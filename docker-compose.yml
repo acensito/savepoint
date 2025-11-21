@@ -1,0 +1,20 @@
+services:
+  savepoint_backend:
+    # EN LUGAR DE 'image', USAMOS 'build':
+    build:
+      context: ./backend      # Dónde buscar el Dockerfile
+      dockerfile: Dockerfile  # Nombre del archivo
+    
+    container_name: savepoint_backend
+    restart: unless-stopped
+    
+    # MAPEO DE PUERTOS (IMPORTANTE)
+    # Izquierda (8090): El puerto de tu PC (Host)
+    # Derecha (8080): El puerto que definimos en el Dockerfile
+    ports:
+      - "8090:8080"
+    
+    # VOLÚMENES
+    # Mapeamos tu carpeta local pb_data a la ruta del contenedor
+    volumes:
+      - ./backend/pb_data:/pb/pb_data
