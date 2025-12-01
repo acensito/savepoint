@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+
 
 class AppTheme {
   static final ThemeData lightTheme = ThemeData(
@@ -8,7 +8,7 @@ class AppTheme {
       seedColor: const Color(0xFF6200EE), // Morado SavePoint
       brightness: Brightness.light,
     ),
-    textTheme: GoogleFonts.poppinsTextTheme(),
+    // textTheme: GoogleFonts.poppinsTextTheme(),
     appBarTheme: const AppBarTheme(
       centerTitle: true,
       elevation: 0,
