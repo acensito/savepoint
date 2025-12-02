@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:savepoint/features/auth/providers/auth_provider.dart';
+import 'package:savepoint/features/games/presentation/screens/my_games_view.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -30,7 +31,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     // 1. Definimos las vistas (Pantallas)
     final List<Widget> pages = [
       const Center(child: Text("📊 Resumen (Dashboard)")),
-      const Center(child: Text("🎮 Mis Juegos")),
+      const MyGamesView(),
       const Center(child: Text("⚙️ Configuración")),
     ];
 
