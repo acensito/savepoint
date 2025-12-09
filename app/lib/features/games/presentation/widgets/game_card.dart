@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../domain/entities/game.dart';
+import 'package:savepoint/features/games/domain/entities/game.dart';
 
 class GameCard extends StatelessWidget {
   final Game game;

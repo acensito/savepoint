@@ -12,6 +12,7 @@ class GameRepositoryImpl implements GameRepository {
   @override
   Future<List<Game>> getGames() async {
     try {
+
       // Pedimos la lista completa a la colección 'games'
       final records = await _pb.collection('games').getFullList(
         sort: '-created', // Los más nuevos primero
@@ -26,4 +27,6 @@ class GameRepositoryImpl implements GameRepository {
       throw Exception("Error al cargar juegos: $e");
     }
   }
+
+
 }
