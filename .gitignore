@@ -1,0 +1,47 @@
+# Backend Laravel
+backend/vendor/
+backend/.env
+backend/.env.local
+backend/.env.*.local
+backend/storage/
+backend/bootstrap/cache/
+backend/node_modules/
+backend/public/hot
+backend/.DS_Store
+backend/*.log
+backend/Thumbs.db
+
+# Flutter / Dart
+mobile/build/
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/.packages
+mobile/pubspec.lock (opcional - subir para reproducibilidad)
+mobile/.idea/
+mobile/.vscode/
+mobile/coverage/
+
+# IDEs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Docker
+.env.docker
+docker-compose.override.yml
+
+# OS
+*.log
+*.tmp
+.env.production
+
+# Desarrollo local
+.env.local
+.env.*.local
