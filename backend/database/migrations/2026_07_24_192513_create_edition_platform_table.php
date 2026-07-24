@@ -6,20 +6,15 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('edition_platform', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
+            $table->foreignId('edition_id')->constrained('editions')->onDelete('cascade');
+            $table->foreignId('platform_id')->constrained('platforms')->onDelete('cascade');
+            $table->primary(['edition_id', 'platform_id']);
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('edition_platform');
