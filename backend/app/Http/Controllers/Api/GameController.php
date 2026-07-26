@@ -3,47 +3,23 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Game;
+use App\Http\Resources\Api\GameResource;
 use Illuminate\Http\Request;
 
 class GameController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Muestra una lista de los juegos.
      */
     public function index()
     {
-        //
+        // Traemos todos los juegos, cargando la relación 'platform' de golpe para optimizar
+        $games = Game::with('platform')->latest()->get();
+
+        // Devolvemos la colección pasada por el "filtro" de nuestro Resource
+        return GameResource::collection($games);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
-    }
+    // Aquí irían el resto de métodos (store, show, update, destroy)...
 }
