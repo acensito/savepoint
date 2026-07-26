@@ -16,12 +16,10 @@
                 <span class="text-xl font-bold tracking-tight text-slate-900">SavePoint</span>
             </div>
             
-            <div class="flex gap-4">
-                <a href="#" class="flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-indigo-600 transition-colors">
-                    <x-heroicon-o-plus-circle class="w-5 h-5" />
-                    Añadir Juego
-                </a>
-            </div>
+            <a href="{{ route('web.games.create') }}" class="flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-indigo-600 transition-colors">
+                <x-heroicon-o-plus-circle class="w-5 h-5" />
+                Añadir Juego
+            </a>
             
         </div>
     </nav>
