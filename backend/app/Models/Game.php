@@ -2,42 +2,81 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Attributes\Fillable;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable([
-    'user_id', 'ean', 'title', 'platform_id', 'cover', 'data',
-    'release_date', 'developer', 'genres', 'status', 'play_status',
-    'condition', 'edition_id', 'notes', 'rating', 'price_paid',
-    'purchase_place', 'purchase_date', 'manual_status', 'region', 'age_rating',
-])]
 class Game extends Model
 {
-    use HasFactory;
+    // Activamos la papelera de reciclaje para no perder datos por error
+    use SoftDeletes;
 
-    protected $casts = [
-        'genres' => 'array',
-        'release_date' => 'date',
-        'purchase_date' => 'date',
-        'price_paid' => 'decimal:2',
-        'condition' => 'string', // Ya no es relación, es enum
+    /**
+     * Los atributos que se pueden asignar de forma masiva.
+     */
+    protected $fillable = [
+        'user_id',
+        'ean',
+        'title',
+        'platform_id',
+        'cover',
+        'data',
+        'release_date',
+        'developer',
+        'genres',
+        'status',
+        'play_status',
+        'condition',
+        'edition_id',
+        'notes',
+        'rating',
+        'price_paid',
+        'purchase_place',
+        'purchase_date',
+        'manual_status',
+        'region',
+        'age_rating',
     ];
 
+    /**
+     * Conversión automática de tipos de datos.
+     */
+    protected function casts(): array
+    {
+        return [
+            'release_date' => 'date',
+            'purchase_date' => 'date',
+            'genres' => 'array', // Laravel convierte el JSON de Postgres a un array de PHP automáticamente
+            'price_paid' => 'decimal:2',
+            'rating' => 'integer',
+        ];
+    }
+
+    // ==========================================
+    // RELACIONES
+    // ==========================================
+
+    /**
+     * Un juego pertenece a un único usuario.
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * Un juego pertenece a una plataforma.
+     */
     public function platform(): BelongsTo
     {
         return $this->belongsTo(Platform::class);
     }
 
+    /**
+     * Un juego pertenece a una edición específica (Opcional).
+     */
     public function edition(): BelongsTo
     {
         return $this->belongsTo(Edition::class);
     }
-
 }

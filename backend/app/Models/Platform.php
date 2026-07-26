@@ -2,30 +2,36 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Attributes\Fillable;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['name', 'slug', 'manufacturer_id'])]
 class Platform extends Model
 {
-    use HasFactory;
+    protected $fillable = ['name', 'slug', 'manufacturer_id'];
 
+    /**
+     * Una plataforma pertenece a un fabricante.
+     */
     public function manufacturer(): BelongsTo
     {
         return $this->belongsTo(Manufacturer::class);
     }
 
+    /**
+     * Una plataforma tiene muchos juegos.
+     */
     public function games(): HasMany
     {
         return $this->hasMany(Game::class);
     }
 
+    /**
+     * Una plataforma puede estar en múltiples ediciones.
+     */
     public function editions(): BelongsToMany
     {
-        return $this->belongsToMany(Edition::class, 'edition_platform');
+        return $this->belongsToMany(Edition::class);
     }
 }
