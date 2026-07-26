@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 
 class GameController extends Controller
 {
+
     public function index()
     {
         $games = Game::with('platform')->latest()->get();
@@ -16,10 +17,12 @@ class GameController extends Controller
     }
 
     // Muestra el formulario
-    public function create()
+    public function create(Request $request)
     {
-        $platforms = Platform::orderBy('name')->get(); // Para el desplegable
-        return view('games.create', compact('platforms'));
+        $platforms = \App\Models\Platform::orderBy('name')->get();
+        $prefilledTitle = $request->input('title', '');
+
+        return view('games.create-manual', compact('platforms', 'prefilledTitle'));
     }
 
     // Guarda el juego en la base de datos
@@ -79,5 +82,31 @@ class GameController extends Controller
         $game->delete();
 
         return redirect()->route('web.games.index')->with('success', 'Juego enviado a la papelera.');
+    }
+
+    public function search(Request $request)
+    {
+        $query = trim($request->input('q', ''));
+
+        $localGames = Game::with('platform')
+            ->when($query !== '', function ($q) use ($query) {
+                $q->where(function ($sub) use ($query) {
+                    $sub->where('title', 'ILIKE', '%' . $query . '%')
+                        ->orWhere('ean', $query);
+                });
+            })
+            ->paginate(20)
+            ->withQueryString();
+
+        return view('games.search', compact('localGames', 'query'));
+    }
+
+    // Muestra el formulario manual si el usuario pulsa en "+ Introducir datos manualmente"
+    public function createManual(Request $request)
+    {
+        $platforms = \App\Models\Platform::orderBy('name')->get();
+        $prefilledTitle = $request->input('title', '');
+
+        return view('games.create-manual', compact('platforms', 'prefilledTitle'));
     }
 }

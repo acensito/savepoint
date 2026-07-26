@@ -10,7 +10,8 @@
         "blade-ui-kit/blade-heroicons": "^2.7",
         "laravel/framework": "^13.8",
         "laravel/sanctum": "^4.0",
-        "laravel/tinker": "^3.0"
+        "laravel/tinker": "^3.0",
+        "livewire/livewire": "*"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

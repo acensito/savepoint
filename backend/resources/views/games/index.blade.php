@@ -8,7 +8,7 @@
         </div>
         
         <div class="flex gap-2">
-            <a href="{{ route('web.games.create') }}" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">
+            <a href="{{ route('web.games.search') }}" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">
                 + Añadir Juego
             </a>
         </div>

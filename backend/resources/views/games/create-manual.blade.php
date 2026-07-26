@@ -19,7 +19,7 @@
                 <!-- Título -->
                 <div>
                     <label for="title" class="block font-medium text-sm text-slate-700 mb-1">Título</label>
-                    <input type="text" name="title" id="title" value="{{ old('title', $prefilledTitle) }}" required 
+                    <input type="text" name="title" id="title" value="{{ old('title', $prefilledTitle ?? '') }}" required 
                         class="w-full rounded-lg border border-slate-300 px-4 py-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 outline-none">
                     @error('title') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
                 </div>
