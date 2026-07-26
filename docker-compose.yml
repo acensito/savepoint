@@ -3,12 +3,17 @@ services:
     image: postgres:16-alpine
     container_name: savepoint_db
     restart: unless-stopped
+    # Lee las credenciales de base de datos directamente desde tu .env de Laravel
+    env_file:
+      - ./backend/.env
     environment:
+      # Mantenemos estas como fallback por si el .env no carga a tiempo en el arranque inicial
       POSTGRES_DB: ${DB_DATABASE:-savepoint}
       POSTGRES_USER: ${DB_USERNAME:-savepoint}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-secreto123}
     ports:
-      - "5432:5432"
+      # Cerrado al exterior: Solo accesible desde localhost (tu PC)
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -24,7 +29,8 @@ services:
     container_name: savepoint_redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      # Cerrado al exterior: Solo accesible desde localhost
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -42,28 +48,39 @@ services:
     container_name: savepoint_app
     restart: unless-stopped
     working_dir: /app
-    environment:
-      - APP_NAME=SavePoint
-      - APP_ENV=${APP_ENV:-local}
-      - APP_DEBUG=${APP_DEBUG:-true}
-      - APP_URL=http://localhost
-      - DB_CONNECTION=pgsql
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_DATABASE=${DB_DATABASE:-savepoint}
-      - DB_USERNAME=${DB_USERNAME:-savepoint}
-      - DB_PASSWORD=${DB_PASSWORD:-secreto123}
-      - CACHE_DRIVER=redis
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - SESSION_DRIVER=redis
-      - QUEUE_DRIVER=redis
+    # Carga todas las variables de entorno de Laravel directamente
+    env_file:
+      - ./backend/.env
     volumes:
       - ./backend:/app
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+    networks:
+      - savepoint_net
+
+  # Nuevo contenedor para los Jobs de Redis
+  queue:
+    build:
+      context: ./docker
+      dockerfile: Dockerfile
+    container_name: savepoint_queue
+    restart: unless-stopped
+    working_dir: /app
+    # Ejecuta el worker en lugar de PHP-FPM
+    command: php artisan queue:work redis --sleep=3 --tries=3 --max-time=3600
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend:/app
+    depends_on:
+      app:
+        condition: service_started
+      redis:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
     networks:
       - savepoint_net
