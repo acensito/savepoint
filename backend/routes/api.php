@@ -2,17 +2,21 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\GameController;
+use App\Http\Controllers\Api\AuthController;
 use Illuminate\Http\Request;
 
-// Rutas protegidas (Requieren Token)
+// Rutas PÚBLICAS
+Route::post('/login', [AuthController::class, 'login']);
+
+// Rutas PROTEGIDAS (Requieren Token)
 Route::middleware('auth:sanctum')->group(function () {
     
-    // Devuelve los datos del usuario logueado actualmente
+    Route::post('/logout', [AuthController::class, 'logout']);
+    
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
 
-    // Todo el CRUD de juegos protegido
     Route::apiResource('games', GameController::class);
     
 });
