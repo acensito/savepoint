@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Manufacturer extends Model
 {
-    protected $fillable = ['name', 'slug'];
+    protected $fillable = ['name', 'slug', 'bg_color', 'text_color', 'border_color'];
 
     /**
      * Un fabricante tiene múltiples plataformas.

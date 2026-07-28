@@ -1,114 +1,50 @@
-# SavePoint 🎮
+# Savepoint
 
-**SavePoint** es una aplicación open-source para gestionar tu colección personal de videojuegos. Incluye un catálogo global, búsqueda inteligente en tiendas externas (Xtralife, CeX), y tracking completo de estado, precio y condición de cada copia.
+Savepoint es una aplicación para catalogar y gestionar una colección personal de videojuegos: qué juegos tienes, en qué plataforma, su estado de conservación, si los has terminado o no, valoración, precio de compra, etc.
 
-## 🏗️ Arquitectura
+El proyecto está construido como backend Laravel que sirve tanto una interfaz web (Blade) como una API REST (Sanctum) pensada para un futuro cliente externo (p. ej. app móvil).
 
-Este es un **monorepo** con tres componentes independientes:
+## Stack técnico
 
-- **Backend**: Laravel 11 + PostgreSQL (API REST con Sanctum)
-- **Mobile**: Flutter + Riverpod (iOS/Android)
-- **Web**: Inertia.js + Vue (interfaz web, fase 2)
-- **Infrastructure**: Docker Compose para desarrollo y producción
+- **Backend:** Laravel 13 / PHP 8.3
+- **Base de datos:** PostgreSQL (usa `JSONB` para campos como `genres`)
+- **Autenticación web:** sesiones con guard `web` (login por email/contraseña)
+- **Autenticación API:** Laravel Sanctum (tokens Bearer)
+- **Frontend web:** Blade + Tailwind CSS + Vite, iconos con `blade-heroicons`
 
-## 📁 Estructura de Carpetas
+## Requisitos funcionales realizados
 
-```
-savepoint/
-├── backend/          # API REST (Laravel 11)
-├── mobile/           # Aplicación móvil (Flutter)
-├── docker/           # Configuración Docker
-├── docs/             # Documentación
-└── docker-compose.yml
-```
+### Gestión de la colección de juegos
+- Alta de un juego mediante un único formulario directo (título, plataforma, estado de juego, valoración) — sin pasos intermedios de búsqueda previa, ya que no hay scraping de fuentes externas.
+- Listado de la colección (página principal) con título, plataforma, estado (pendiente/jugando/terminado) y valoración, paginado.
+- Búsqueda dentro de la propia colección por **título** o **EAN**, integrada en la página principal (los filtros adicionales quedan para más adelante).
+- Edición de un juego existente.
+- Baja de un juego mediante **papelera de reciclaje** (soft delete, no se pierde el registro).
+- Modelo de datos preparado para bastante más detalle del que hoy se edita desde el formulario: EAN, carátula, desarrollador, géneros, condición física, edición, notas, precio y lugar de compra, fecha de compra, estado del manual, región y clasificación por edad.
 
-## 🚀 Inicio Rápido
+### Catálogo (fabricantes y plataformas)
+- Panel de gestión (`/manufacturers`, `/platforms`) para dar de alta, editar y borrar fabricantes y plataformas propias, en vez de depender de un catálogo precargado fijo.
+- Cada **fabricante** define un color de marca para el chip (fondo, letras y borde) que heredan todas sus plataformas.
+- Cada **plataforma** puede personalizar sus propios colores en lugar de heredar los del fabricante, y tiene una **etiqueta abreviada** editable para el chip (p. ej. "PS5"); si no se define, se usa el nombre completo.
+- El chip de plataforma (colores + etiqueta) se muestra en el listado de la colección mediante un componente Blade reutilizable (`<x-platform-chip>`).
+- Relación fabricante → plataforma → edición → juego modelada con Eloquent.
 
-### Requisitos
-- Docker & Docker Compose
-- Git
-- (Opcional) Flutter SDK para desarrollo mobile
+### Autenticación
+- **Web:** login/logout con sesión (regenera el ID de sesión al iniciar sesión para evitar session fixation; redirige a la página original tras el login).
+- **API:** login/logout con emisión y revocación de token Sanctum, pensado para un cliente externo (app móvil).
 
-### 1. Clonar el repositorio
-```bash
-git clone https://github.com/tu-usuario/savepoint.git
-cd savepoint
-```
+### API REST
+- CRUD de juegos (`GET/POST/PUT/DELETE /api/games`) protegido con `auth:sanctum`.
+- Respuestas transformadas con `GameResource` (aplana la plataforma a su nombre, expone URL de carátula, etc.).
+- Validación de entrada separada en `StoreGameRequest` / `UpdateGameRequest`.
 
-### 2. Levantar la infraestructura
-```bash
-# Copiar variables de entorno
-cp backend/.env.example backend/.env
+### Seguridad de datos
+- Cada juego pertenece a un usuario (`user_id`), asignado siempre al usuario autenticado (`auth()->id()` / `$request->user()->id`) al crearlo, tanto en web como en API.
+- Listados y búsqueda (web y API) filtrados por `user_id`: cada usuario solo ve su propia colección.
+- `GamePolicy` aplicada con `Gate::authorize()` en editar y borrar (web y API), para que nadie pueda tocar un juego ajeno aunque adivine su ID por URL.
+- Botón de cerrar sesión ("Salir") en la navegación.
 
-# Levantar servicios (PostgreSQL + Laravel)
-docker-compose up -d
+## Pendiente / en curso
 
-# Esperar a que PostgreSQL esté listo
-sleep 10
-
-# Instalar dependencias y migrar DB
-docker-compose exec app composer install
-docker-compose exec app php artisan key:generate
-docker-compose exec app php artisan migrate
-```
-
-### 3. Verificar
-- Backend API: `http://localhost/api/health`
-- Base de datos: conectar a `postgres://savepoint:secreto123@localhost:5432/savepoint`
-
-### 4. Desarrollo Mobile (Flutter)
-```bash
-cd mobile
-flutter pub get
-flutter run
-```
-
-## 📚 Documentación
-
-- [**SETUP.md**](docs/SETUP.md) - Guía de instalación completa
-- [**API.md**](docs/API.md) - Endpoints y autenticación
-- [**ARCHITECTURE.md**](docs/ARCHITECTURE.md) - Diseño técnico
-- [**CONTRIBUTING.md**](docs/CONTRIBUTING.md) - Cómo contribuir
-
-## 🔧 Comandos útiles
-
-```bash
-# Backend
-docker-compose exec app php artisan tinker
-docker-compose exec app php artisan migrate:fresh --seed
-docker-compose logs -f app
-
-# Base de datos
-docker-compose exec postgres psql -U savepoint -d savepoint
-
-# Mobile
-cd mobile && flutter clean && flutter pub get
-```
-
-## 📝 Features
-
-✅ **Implementado**
-- Autenticación (Laravel Sanctum)
-- Búsqueda global (Xtralife + CeX)
-- Gestión de colección personal
-- Clean Architecture en Flutter
-
-🚧 **En desarrollo**
-- CRUD completo de juegos
-- Dashboard web
-- Sincronización móvil-web
-- API de catálogo global
-
-## 📄 Licencia
-
-MIT
-
-## 👤 Autor
-
-Felipe - [@tu_github](https://github.com/tu_github)
-
----
-
-## ¿Preguntas?
-
-Abre un issue o contacta a través de las discussions.
+- El formulario de alta y de edición solo cubren título, plataforma, estado y valoración; el resto de campos del modelo (EAN, condición, precio, notas, etc.) todavía no tienen UI.
+- La búsqueda de la colección todavía no tiene filtros (por plataforma, estado, etc.) más allá del texto libre por título/EAN.

@@ -8,6 +8,7 @@ use App\Http\Resources\Api\GameResource;
 use Illuminate\Http\Request;
 use App\Http\Requests\Api\StoreGameRequest;
 use App\Http\Requests\Api\UpdateGameRequest;
+use Illuminate\Support\Facades\Gate;
 
 class GameController extends Controller
 {
@@ -16,8 +17,8 @@ class GameController extends Controller
      */
     public function index()
     {
-        // Traemos todos los juegos, cargando la relación 'platform' de golpe para optimizar
-        $games = Game::with('platform')->latest()->get();
+        // Solo los juegos del usuario autenticado, cargando 'platform' de golpe para optimizar
+        $games = Game::where('user_id', auth()->id())->with('platform')->latest()->get();
 
         // Devolvemos la colección pasada por el "filtro" de nuestro Resource
         return GameResource::collection($games);
@@ -32,9 +33,7 @@ class GameController extends Controller
         // Solo cogemos los datos validados (evitamos que nos inyecten campos maliciosos).
         $validatedData = $request->validated();
 
-        // Como todavía no tenemos el login hecho, vamos a asignar el juego 
-        // temporalmente al usuario de prueba (ID 1) que creaste en el Seeder.
-        $validatedData['user_id'] = 1; 
+        $validatedData['user_id'] = $request->user()->id;
 
         // Creamos el juego en la base de datos
         $game = Game::create($validatedData);
@@ -48,6 +47,8 @@ class GameController extends Controller
      */
     public function update(UpdateGameRequest $request, Game $game)
     {
+        Gate::authorize('update', $game);
+
         // Actualizamos el juego con los datos que hayan pasado la validación
         $game->update($request->validated());
 
@@ -60,7 +61,9 @@ class GameController extends Controller
      */
     public function destroy(Game $game)
     {
-        // Gracias al trait SoftDeletes que pusimos en el modelo, 
+        Gate::authorize('delete', $game);
+
+        // Gracias al trait SoftDeletes que pusimos en el modelo,
         // esto no lo borra de Postgres, solo rellena la columna 'deleted_at'
         $game->delete();
 
