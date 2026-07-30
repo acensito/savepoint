@@ -53,5 +53,6 @@ El proyecto está construido como backend Laravel que sirve tanto una interfaz w
 
 ## Pendiente / en curso
 
-- Versión web responsive/mobile de toda la interfaz (pensada como acceso de emergencia cuando la app móvil no esté disponible): sidebar colapsable y listado en tarjetas en pantallas estrechas.
 - Sin tests automatizados más allá del scaffold por defecto de Laravel — es el siguiente foco de trabajo.
+- Versión web responsive/mobile de toda la interfaz (pensada como acceso de emergencia cuando la app móvil no esté disponible): sidebar colapsable y listado en tarjetas en pantallas estrechas.
+- Importar/exportar la colección: de momento interesa sobre todo la **importación** (volcado inicial de datos desde la hoja Excel actual). Falta decidir formato de entrada (¿CSV/Excel con las columnas ya vistas en el listado?) y cómo mapear plataformas/ediciones existentes vs. crearlas sobre la marcha.
