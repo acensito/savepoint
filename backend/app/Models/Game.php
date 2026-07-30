@@ -79,4 +79,36 @@ class Game extends Model
     {
         return $this->belongsTo(Edition::class);
     }
+
+    // ==========================================
+    // CARÁTULA
+    // ==========================================
+
+    /**
+     * URL pública de la carátula, o null si no tiene.
+     *
+     * Usamos el helper url() (consciente de la petición actual) en vez de
+     * Storage::disk('public')->url(), que depende de APP_URL y puede acabar
+     * generando enlaces a "localhost" cuando se accede por IP/dominio.
+     */
+    public function coverUrl(): ?string
+    {
+        return $this->cover ? url('storage/' . $this->cover) : null;
+    }
+
+    /**
+     * Iniciales (hasta 2 letras) para el recuadro que sustituye a la carátula
+     * cuando el juego no tiene una subida.
+     */
+    public function coverInitials(): string
+    {
+        $words = preg_split('/\s+/', trim($this->title)) ?: [];
+
+        $initials = collect($words)
+            ->take(2)
+            ->map(fn (string $word) => mb_strtoupper(mb_substr($word, 0, 1)))
+            ->implode('');
+
+        return $initials !== '' ? $initials : '?';
+    }
 }

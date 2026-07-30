@@ -13,7 +13,7 @@
 
     <div class="w-full max-w-sm">
         <div class="flex items-center justify-center gap-2 mb-8">
-            <x-gicon name="extension" class="text-[32px] text-indigo-400" />
+            <x-gicon name="joystick" class="text-[32px] text-indigo-400" />
             <span class="text-xl font-bold tracking-tight text-slate-100">SavePoint</span>
         </div>
 

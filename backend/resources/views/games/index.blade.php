@@ -47,7 +47,10 @@
                     <tr class="hover:bg-slate-800/40 transition-colors">
                         <!-- Título -->
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm font-bold text-slate-100">{{ $game->title }}</div>
+                            <div class="flex items-center gap-3">
+                                <x-game-cover :game="$game" size="sm" />
+                                <div class="text-sm font-bold text-slate-100">{{ $game->title }}</div>
+                            </div>
                         </td>
 
                         <!-- Plataforma -->

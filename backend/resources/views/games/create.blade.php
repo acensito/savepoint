@@ -13,53 +13,10 @@
         </div>
 
         <div class="bg-slate-900 border border-slate-800 rounded-xl p-8">
-            <form action="{{ route('web.games.store') }}" method="POST" class="space-y-6">
+            <form action="{{ route('web.games.store') }}" method="POST" enctype="multipart/form-data" class="space-y-6">
                 @csrf
+                @include('games._form', ['game' => null])
 
-                <!-- Título -->
-                <div>
-                    <label for="title" class="block font-medium text-sm text-slate-300 mb-1">Título</label>
-                    <input type="text" name="title" id="title" value="{{ old('title') }}" required autofocus
-                        class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500 outline-none">
-                    @error('title') <span class="text-red-400 text-sm mt-1 block">{{ $message }}</span> @enderror
-                </div>
-
-                <!-- Plataforma -->
-                <div>
-                    <label for="platform_id" class="block font-medium text-sm text-slate-300 mb-1">Plataforma</label>
-                    <select name="platform_id" id="platform_id"
-                        class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500 outline-none">
-                        <option value="">Selecciona una plataforma</option>
-                        @foreach($platforms as $platform)
-                            <option value="{{ $platform->id }}" {{ old('platform_id') == $platform->id ? 'selected' : '' }}>
-                                {{ $platform->name }}
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('platform_id') <span class="text-red-400 text-sm mt-1 block">{{ $message }}</span> @enderror
-                </div>
-
-                <!-- Estado -->
-                <div>
-                    <label for="play_status" class="block font-medium text-sm text-slate-300 mb-1">Estado</label>
-                    <select name="play_status" id="play_status"
-                        class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500 outline-none">
-                        <option value="pending" {{ old('play_status') == 'pending' ? 'selected' : '' }}>Pendiente</option>
-                        <option value="playing" {{ old('play_status') == 'playing' ? 'selected' : '' }}>Jugando</option>
-                        <option value="finished" {{ old('play_status') == 'finished' ? 'selected' : '' }}>Terminado</option>
-                    </select>
-                    @error('play_status') <span class="text-red-400 text-sm mt-1 block">{{ $message }}</span> @enderror
-                </div>
-
-                <!-- Valoración -->
-                <div>
-                    <label for="rating" class="block font-medium text-sm text-slate-300 mb-1">Valoración (1-5)</label>
-                    <input type="number" name="rating" id="rating" min="1" max="5" value="{{ old('rating') }}"
-                        class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500 outline-none">
-                    @error('rating') <span class="text-red-400 text-sm mt-1 block">{{ $message }}</span> @enderror
-                </div>
-
-                <!-- Botones -->
                 <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
                     <a href="{{ route('web.games.index') }}" class="text-slate-400 hover:text-slate-100 text-sm font-medium px-4 py-2">Cancelar</a>
                     <button type="submit" class="bg-indigo-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-indigo-500 transition-colors">

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Web\AuthController;
+use App\Http\Controllers\Web\EditionController;
 use App\Http\Controllers\Web\GameController;
 use App\Http\Controllers\Web\ManufacturerController;
 use App\Http\Controllers\Web\PlatformController;
@@ -41,7 +42,8 @@ Route::middleware('auth')->group(function () {
     Route::put('/games/{game}', [GameController::class, 'update'])->name('web.games.update');
     Route::delete('/games/{game}', [GameController::class, 'destroy'])->name('web.games.destroy');
 
-    // Panel de catálogo: fabricantes y plataformas (con su configuración de color de chip)
+    // Panel de catálogo: fabricantes, plataformas y ediciones (normal/especial/coleccionista/...)
     Route::resource('manufacturers', ManufacturerController::class)->except('show')->names('web.manufacturers');
     Route::resource('platforms', PlatformController::class)->except('show')->names('web.platforms');
+    Route::resource('editions', EditionController::class)->except('show')->names('web.editions');
 });

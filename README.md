@@ -15,12 +15,14 @@ El proyecto está construido como backend Laravel que sirve tanto una interfaz w
 ## Requisitos funcionales realizados
 
 ### Gestión de la colección de juegos
-- Alta de un juego mediante un único formulario directo (título, plataforma, estado de juego, valoración) — sin pasos intermedios de búsqueda previa, ya que no hay scraping de fuentes externas.
-- Listado de la colección (página principal) con título, plataforma, estado (pendiente/jugando/terminado) y valoración, paginado.
+- Alta de un juego mediante un único formulario directo — sin pasos intermedios de búsqueda previa, ya que no hay scraping de fuentes externas. Cubre prácticamente todo el modelo: título, EAN, desarrollador, plataforma, fecha de lanzamiento, géneros, propiedad, estado de juego, condición física, valoración, precio y lugar/fecha de compra, manual, región, clasificación por edad y notas.
+- **Carátula**: se sube desde el propio formulario (JPG/PNG/WEBP, máx. 1MB) con vista previa en vivo. Si el juego no tiene carátula, se muestra un recuadro con las iniciales del título en su lugar (tanto en el listado como en el formulario), generado con `Game::coverInitials()`.
+- Listado de la colección (página principal) con miniatura, título, plataforma, estado (pendiente/jugando/terminado) y valoración, paginado.
 - Búsqueda dentro de la propia colección por **título** o **EAN**, integrada en la página principal (los filtros adicionales quedan para más adelante).
-- Edición de un juego existente.
+- Edición de un juego existente, incluida la opción de reemplazar o quitar la carátula.
 - Baja de un juego mediante **papelera de reciclaje** (soft delete, no se pierde el registro).
-- Modelo de datos preparado para bastante más detalle del que hoy se edita desde el formulario: EAN, carátula, desarrollador, géneros, condición física, edición, notas, precio y lugar de compra, fecha de compra, estado del manual, región y clasificación por edad.
+- Al editar/reemplazar la carátula, el fichero anterior se borra del disco (`storage/app/public/covers`) para no dejar huérfanos.
+- La edición (relación `Edition`) todavía no tiene panel de gestión, así que de momento no aparece como campo en el formulario del juego.
 
 ### Catálogo (fabricantes y plataformas)
 - Panel de gestión (`/manufacturers`, `/platforms`) para dar de alta, editar y borrar fabricantes y plataformas propias, en vez de depender de un catálogo precargado fijo.
@@ -46,5 +48,6 @@ El proyecto está construido como backend Laravel que sirve tanto una interfaz w
 
 ## Pendiente / en curso
 
-- El formulario de alta y de edición solo cubren título, plataforma, estado y valoración; el resto de campos del modelo (EAN, condición, precio, notas, etc.) todavía no tienen UI.
 - La búsqueda de la colección todavía no tiene filtros (por plataforma, estado, etc.) más allá del texto libre por título/EAN.
+- No hay panel de gestión para ediciones (`Edition`), por lo que el campo `edition_id` del juego no es editable desde la UI todavía.
+- Sin tests automatizados más allá del scaffold por defecto de Laravel — es el siguiente foco de trabajo.
