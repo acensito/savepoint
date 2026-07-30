@@ -44,6 +44,12 @@
                         Colección
                     </a>
 
+                    <a href="{{ route('web.stats.index') }}"
+                        class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('web.stats.*') ? 'bg-indigo-500/10 text-indigo-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' }}">
+                        <x-gicon name="bar_chart" class="text-[20px]" />
+                        Estadísticas
+                    </a>
+
                     <a href="{{ route('web.platforms.index') }}"
                         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('web.platforms.*') ? 'bg-indigo-500/10 text-indigo-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' }}">
                         <x-gicon name="memory" class="text-[20px]" />

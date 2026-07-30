@@ -17,8 +17,9 @@ El proyecto está construido como backend Laravel que sirve tanto una interfaz w
 ### Gestión de la colección de juegos
 - Alta de un juego mediante un único formulario directo — sin pasos intermedios de búsqueda previa, ya que no hay scraping de fuentes externas. Cubre prácticamente todo el modelo: título, EAN, desarrollador, plataforma, fecha de lanzamiento, géneros, propiedad, estado de juego, condición física, valoración, precio y lugar/fecha de compra, manual, región, clasificación por edad y notas.
 - **Carátula**: se sube desde el propio formulario (JPG/PNG/WEBP, máx. 1MB) con vista previa en vivo. Si el juego no tiene carátula, se muestra un recuadro con las iniciales del título en su lugar (tanto en el listado como en el formulario), generado con `Game::coverInitials()`.
-- Listado de la colección (página principal) con miniatura, título, plataforma, estado (pendiente/jugando/terminado) y valoración, paginado.
+- Listado de la colección (página principal) con miniatura, título, plataforma, edición, estado, región, manual, valoración (estrellas), precio y fecha de compra, paginado.
 - Búsqueda dentro de la propia colección por **título** o **EAN**, más filtros por **plataforma**, **estado de juego** y **propiedad**, todo combinable desde la página principal.
+- La consulta del listado solo trae las columnas y relaciones que la vista pinta (evita cargar `notes`/`data`/`genres` innecesariamente y N+1 en `platform`/`edition`).
 - Edición de un juego existente, incluida la opción de reemplazar o quitar la carátula.
 - Baja de un juego mediante **papelera de reciclaje** (soft delete, no se pierde el registro).
 - Al editar/reemplazar la carátula, el fichero anterior se borra del disco (`storage/app/public/covers`) para no dejar huérfanos.
@@ -41,6 +42,9 @@ El proyecto está construido como backend Laravel que sirve tanto una interfaz w
 - Respuestas transformadas con `GameResource` (aplana la plataforma a su nombre, expone URL de carátula, etc.).
 - Validación de entrada separada en `StoreGameRequest` / `UpdateGameRequest`.
 
+### Estadísticas
+- Panel (`/stats`) con total de juegos, gasto total y valoración media, reparto de juegos por plataforma (barra por plataforma), y reparto por estado de juego y por propiedad (barras apiladas con leyenda).
+
 ### Seguridad de datos
 - Cada juego pertenece a un usuario (`user_id`), asignado siempre al usuario autenticado (`auth()->id()` / `$request->user()->id`) al crearlo, tanto en web como en API.
 - Listados y búsqueda (web y API) filtrados por `user_id`: cada usuario solo ve su propia colección.
@@ -49,5 +53,5 @@ El proyecto está construido como backend Laravel que sirve tanto una interfaz w
 
 ## Pendiente / en curso
 
-- Panel de estadísticas de la colección (aún sin diseñar: nº de juegos, por plataforma, completados vs. pendientes, gasto total, etc.).
+- Versión web responsive/mobile de toda la interfaz (pensada como acceso de emergencia cuando la app móvil no esté disponible): sidebar colapsable y listado en tarjetas en pantallas estrechas.
 - Sin tests automatizados más allá del scaffold por defecto de Laravel — es el siguiente foco de trabajo.

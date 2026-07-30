@@ -6,6 +6,7 @@ use App\Http\Controllers\Web\GameController;
 use App\Http\Controllers\Web\ManufacturerController;
 use App\Http\Controllers\Web\PlatformController;
 use App\Http\Controllers\Web\ProfileController;
+use App\Http\Controllers\Web\StatsController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -32,6 +33,9 @@ Route::middleware('auth')->group(function () {
 
     // Colección (con búsqueda opcional por título/EAN vía ?q=)
     Route::get('/', [GameController::class, 'index'])->name('web.games.index');
+
+    // Estadísticas de la colección
+    Route::get('/stats', [StatsController::class, 'index'])->name('web.stats.index');
 
     // OJO con el orden: las rutas estáticas van ANTES que las que llevan
     // un parámetro {game}, o '/games/create' acabaría entrando por
