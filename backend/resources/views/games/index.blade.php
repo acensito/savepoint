@@ -14,15 +14,39 @@
         </div>
     </div>
 
-    <!-- Buscador (por título o EAN) -->
+    <!-- Buscador (por título o EAN) y filtros -->
     <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 mb-6">
-        <form action="{{ route('web.games.index') }}" method="GET" class="flex gap-3">
+        <form action="{{ route('web.games.index') }}" method="GET" class="flex flex-wrap gap-3">
             <input type="text" name="q" value="{{ $query ?? '' }}" placeholder="Buscar por título o EAN..."
-                class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 placeholder:text-slate-500 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-none text-sm">
+                class="flex-1 min-w-[200px] rounded-lg border border-slate-700 bg-slate-800 text-slate-100 placeholder:text-slate-500 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-none text-sm">
+
+            <select name="platform_id" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-none text-sm">
+                <option value="">Todas las plataformas</option>
+                @foreach($platforms as $platform)
+                    <option value="{{ $platform->id }}" {{ (string) $platformId === (string) $platform->id ? 'selected' : '' }}>
+                        {{ $platform->name }}
+                    </option>
+                @endforeach
+            </select>
+
+            <select name="play_status" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-none text-sm">
+                <option value="">Cualquier estado de juego</option>
+                <option value="pending" {{ $playStatus === 'pending' ? 'selected' : '' }}>Pendiente</option>
+                <option value="playing" {{ $playStatus === 'playing' ? 'selected' : '' }}>Jugando</option>
+                <option value="finished" {{ $playStatus === 'finished' ? 'selected' : '' }}>Terminado</option>
+            </select>
+
+            <select name="status" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-none text-sm">
+                <option value="">Cualquier propiedad</option>
+                <option value="owned" {{ $status === 'owned' ? 'selected' : '' }}>En posesión</option>
+                <option value="wishlist" {{ $status === 'wishlist' ? 'selected' : '' }}>Lista de deseos</option>
+                <option value="sold" {{ $status === 'sold' ? 'selected' : '' }}>Vendido</option>
+            </select>
+
             <button type="submit" class="bg-slate-700 text-slate-100 px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-600 transition-colors whitespace-nowrap">
-                Buscar
+                Filtrar
             </button>
-            @if(!empty($query))
+            @if(!empty($query) || $platformId !== '' || $playStatus !== '' || $status !== '')
                 <a href="{{ route('web.games.index') }}" class="flex items-center text-sm font-medium text-slate-400 hover:text-slate-100 whitespace-nowrap">
                     Limpiar
                 </a>
@@ -104,8 +128,8 @@
                 @empty
                     <tr>
                         <td colspan="5" class="px-6 py-12 text-center text-slate-500 text-sm">
-                            @if(!empty($query))
-                                No hay coincidencias para "{{ $query }}".
+                            @if(!empty($query) || $platformId !== '' || $playStatus !== '' || $status !== '')
+                                No hay juegos que coincidan con la búsqueda o los filtros aplicados.
                             @else
                                 No hay juegos registrados todavía.
                             @endif

@@ -13,10 +13,16 @@ use Illuminate\Support\Facades\Storage;
 class GameController extends Controller
 {
 
-    // Colección del usuario, con búsqueda opcional por título o EAN (?q=)
+    // Colección del usuario, con búsqueda por título/EAN y filtros por plataforma/estado (?q=, ?platform_id=, ?play_status=, ?status=)
     public function index(Request $request)
     {
-        $query = trim($request->input('q', ''));
+        // ConvertEmptyStringsToNull (middleware por defecto) transforma los campos
+        // vacíos del formulario en null, así que hay que castear a string antes de
+        // comparar con '' o whereNull() saldría disparado sin querer.
+        $query = trim((string) $request->input('q', ''));
+        $platformId = (string) $request->input('platform_id', '');
+        $playStatus = (string) $request->input('play_status', '');
+        $status = (string) $request->input('status', '');
 
         $games = Game::where('user_id', auth()->id())
             ->with('platform.manufacturer')
@@ -26,11 +32,16 @@ class GameController extends Controller
                         ->orWhere('ean', $query);
                 });
             })
+            ->when($platformId !== '', fn ($q) => $q->where('platform_id', $platformId))
+            ->when($playStatus !== '', fn ($q) => $q->where('play_status', $playStatus))
+            ->when($status !== '', fn ($q) => $q->where('status', $status))
             ->latest()
             ->paginate(20)
             ->withQueryString();
 
-        return view('games.index', compact('games', 'query'));
+        $platforms = Platform::orderBy('name')->get();
+
+        return view('games.index', compact('games', 'query', 'platforms', 'platformId', 'playStatus', 'status'));
     }
 
     // Muestra el formulario de alta
