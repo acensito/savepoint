@@ -55,14 +55,19 @@
     </div>
 
     <!-- Contenedor de la Tabla -->
-    <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-800">
             <thead class="bg-slate-800/50">
                 <tr>
                     <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Título</th>
                     <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Plataforma</th>
+                    <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Edición</th>
                     <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Estado</th>
+                    <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Región</th>
+                    <th scope="col" class="px-6 py-3.5 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">Manual</th>
                     <th scope="col" class="px-6 py-3.5 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">Valoración</th>
+                    <th scope="col" class="px-6 py-3.5 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">Precio</th>
+                    <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Fecha compra</th>
                     <th scope="col" class="px-6 py-3.5 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">Acciones</th>
                 </tr>
             </thead>
@@ -82,6 +87,11 @@
                             <x-platform-chip :platform="$game->platform" />
                         </td>
 
+                        <!-- Edición -->
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
+                            {{ $game->edition?->name ?? '—' }}
+                        </td>
+
                         <!-- Estado -->
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center gap-1.5 {{ $game->play_status === 'finished' ? 'text-emerald-400' : 'text-slate-400' }}">
@@ -96,16 +106,35 @@
                             </div>
                         </td>
 
+                        <!-- Región -->
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
+                            {{ $game->region ?? '—' }}
+                        </td>
+
+                        <!-- Manual -->
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            @if($game->manual_status === 'included')
+                                <x-gicon name="check_circle" class="text-[18px] text-emerald-400" />
+                            @elseif($game->manual_status === 'missing')
+                                <x-gicon name="cancel" class="text-[18px] text-slate-600" />
+                            @else
+                                <span class="text-sm text-slate-500">—</span>
+                            @endif
+                        </td>
+
                         <!-- Valoración -->
                         <td class="px-6 py-4 whitespace-nowrap text-center">
-                            @if($game->rating)
-                                <div class="inline-flex items-center gap-1 font-semibold text-slate-300 text-sm">
-                                    {{ $game->rating }}
-                                    <x-gicon name="star" filled class="text-[16px] text-amber-400" />
-                                </div>
-                            @else
-                                <span class="text-sm text-slate-500">-</span>
-                            @endif
+                            <x-star-rating :rating="$game->rating" class="justify-center" />
+                        </td>
+
+                        <!-- Precio -->
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-slate-300">
+                            {{ $game->price_paid !== null ? number_format($game->price_paid, 2, ',', '.') . ' €' : '—' }}
+                        </td>
+
+                        <!-- Fecha de compra -->
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
+                            {{ $game->purchase_date?->format('d/m/Y') ?? '—' }}
                         </td>
 
                         <!-- Acciones (Editar y Borrar) -->
@@ -127,7 +156,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5" class="px-6 py-12 text-center text-slate-500 text-sm">
+                        <td colspan="10" class="px-6 py-12 text-center text-slate-500 text-sm">
                             @if(!empty($query) || $platformId !== '' || $playStatus !== '' || $status !== '')
                                 No hay juegos que coincidan con la búsqueda o los filtros aplicados.
                             @else

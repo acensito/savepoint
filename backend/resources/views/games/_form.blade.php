@@ -145,8 +145,18 @@
     </div>
 
     <div>
-        <label for="rating" class="{{ $label }}">Valoración (1-5)</label>
-        <input type="number" name="rating" id="rating" min="1" max="5" value="{{ old('rating', $game?->rating) }}" class="{{ $input }} max-w-[120px]">
+        <label class="{{ $label }}">Valoración</label>
+        <input type="hidden" name="rating" id="rating" value="{{ old('rating', $game?->rating) }}">
+        <div class="flex items-center gap-3">
+            <div id="rating-stars" class="flex items-center gap-1">
+                @for ($i = 1; $i <= 5; $i++)
+                    <button type="button" class="rating-star p-0.5 leading-none" data-value="{{ $i }}" aria-label="{{ $i }} estrella(s)">
+                        <x-gicon name="star" class="text-[26px] text-slate-600 pointer-events-none" />
+                    </button>
+                @endfor
+            </div>
+            <span id="rating-label" class="text-sm text-slate-400"></span>
+        </div>
         @error('rating') <span class="{{ $error }}">{{ $message }}</span> @enderror
     </div>
 </div>
@@ -257,5 +267,45 @@
     }
 
     document.getElementById('platform_id')?.addEventListener('change', filterEditions);
+
+    (function () {
+        const ratingLabels = { 1: 'Malo', 2: 'Aceptable', 3: 'Regular', 4: 'Bueno', 5: 'Excelente' };
+        const ratingInput = document.getElementById('rating');
+        const ratingButtons = document.querySelectorAll('.rating-star');
+        const ratingLabelEl = document.getElementById('rating-label');
+        if (!ratingInput || !ratingButtons.length) return;
+
+        function paintRating(value) {
+            // El color depende del valor elegido en conjunto (1 = rojo ... 5 = amarillo),
+            // no de la posición de cada estrella: si eliges 3, las tres se pintan naranja.
+            const hue = value >= 1 ? (value - 1) * 15 : 0;
+            ratingButtons.forEach((btn) => {
+                const starValue = Number(btn.dataset.value);
+                const icon = btn.querySelector('.material-symbols-outlined');
+                if (starValue <= value) {
+                    icon.style.color = `hsl(${hue} 85% 55%)`;
+                    icon.style.fontVariationSettings = "'FILL' 1";
+                } else {
+                    icon.style.color = '';
+                    icon.style.fontVariationSettings = "'FILL' 0";
+                }
+            });
+            ratingLabelEl.textContent = ratingLabels[value] || '';
+        }
+
+        ratingButtons.forEach((btn) => {
+            btn.addEventListener('mouseenter', () => paintRating(Number(btn.dataset.value)));
+            btn.addEventListener('click', () => {
+                ratingInput.value = btn.dataset.value;
+                paintRating(Number(ratingInput.value));
+            });
+        });
+
+        document.getElementById('rating-stars').addEventListener('mouseleave', () => {
+            paintRating(Number(ratingInput.value) || 0);
+        });
+
+        paintRating(Number(ratingInput.value) || 0);
+    })();
     filterEditions();
 </script>

@@ -21,7 +21,10 @@
             </a>
 
             <form action="{{ route('web.logout') }}" method="POST" class="flex items-center gap-4">
-                <span class="text-sm text-indigo-100">{{ auth()->user()->email }}</span>
+                <a href="{{ route('web.profile.edit') }}" class="flex items-center gap-1.5 text-sm text-indigo-100 hover:text-white transition-colors {{ request()->routeIs('web.profile.*') ? 'text-white font-medium' : '' }}">
+                    <x-gicon name="account_circle" class="text-[18px]" />
+                    {{ auth()->user()->email }}
+                </a>
                 @csrf
                 <button type="submit" class="flex items-center gap-1.5 text-sm font-medium text-indigo-100 hover:text-white transition-colors">
                     <x-gicon name="logout" class="text-[18px]" />

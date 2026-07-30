@@ -25,7 +25,20 @@ class GameController extends Controller
         $status = (string) $request->input('status', '');
 
         $games = Game::where('user_id', auth()->id())
-            ->with('platform.manufacturer')
+            // Solo las columnas que pinta el listado: notes/data/genres/etc. serían
+            // peso muerto en una tabla paginada y no se usan aquí.
+            ->select([
+                'id', 'title', 'cover', 'platform_id', 'edition_id',
+                'play_status', 'status', 'rating', 'price_paid', 'purchase_date',
+                'region', 'manual_status', 'created_at',
+            ])
+            // Relaciones acotadas a las columnas que realmente pinta el chip de
+            // plataforma y el nombre de la edición, para no arrastrar el resto.
+            ->with([
+                'platform:id,name,label,bg_color,text_color,border_color,manufacturer_id',
+                'platform.manufacturer:id,bg_color,text_color,border_color',
+                'edition:id,name',
+            ])
             ->when($query !== '', function ($q) use ($query) {
                 $q->where(function ($sub) use ($query) {
                     $sub->where('title', 'ILIKE', '%' . $query . '%')

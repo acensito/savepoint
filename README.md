@@ -18,11 +18,11 @@ El proyecto está construido como backend Laravel que sirve tanto una interfaz w
 - Alta de un juego mediante un único formulario directo — sin pasos intermedios de búsqueda previa, ya que no hay scraping de fuentes externas. Cubre prácticamente todo el modelo: título, EAN, desarrollador, plataforma, fecha de lanzamiento, géneros, propiedad, estado de juego, condición física, valoración, precio y lugar/fecha de compra, manual, región, clasificación por edad y notas.
 - **Carátula**: se sube desde el propio formulario (JPG/PNG/WEBP, máx. 1MB) con vista previa en vivo. Si el juego no tiene carátula, se muestra un recuadro con las iniciales del título en su lugar (tanto en el listado como en el formulario), generado con `Game::coverInitials()`.
 - Listado de la colección (página principal) con miniatura, título, plataforma, estado (pendiente/jugando/terminado) y valoración, paginado.
-- Búsqueda dentro de la propia colección por **título** o **EAN**, integrada en la página principal (los filtros adicionales quedan para más adelante).
+- Búsqueda dentro de la propia colección por **título** o **EAN**, más filtros por **plataforma**, **estado de juego** y **propiedad**, todo combinable desde la página principal.
 - Edición de un juego existente, incluida la opción de reemplazar o quitar la carátula.
 - Baja de un juego mediante **papelera de reciclaje** (soft delete, no se pierde el registro).
 - Al editar/reemplazar la carátula, el fichero anterior se borra del disco (`storage/app/public/covers`) para no dejar huérfanos.
-- La edición (relación `Edition`) todavía no tiene panel de gestión, así que de momento no aparece como campo en el formulario del juego.
+- Panel de gestión de ediciones (`/editions`) para dar de alta ediciones (normal/especial/coleccionista/...) asociadas a una o varias plataformas; el campo `edition_id` del juego se filtra según la plataforma elegida en el formulario.
 
 ### Catálogo (fabricantes y plataformas)
 - Panel de gestión (`/manufacturers`, `/platforms`) para dar de alta, editar y borrar fabricantes y plataformas propias, en vez de depender de un catálogo precargado fijo.
@@ -34,6 +34,7 @@ El proyecto está construido como backend Laravel que sirve tanto una interfaz w
 ### Autenticación
 - **Web:** login/logout con sesión (regenera el ID de sesión al iniciar sesión para evitar session fixation; redirige a la página original tras el login).
 - **API:** login/logout con emisión y revocación de token Sanctum, pensado para un cliente externo (app móvil).
+- **Perfil** (`/profile`): el usuario puede actualizar su nombre/email y cambiar su contraseña (pide la contraseña actual para confirmarla).
 
 ### API REST
 - CRUD de juegos (`GET/POST/PUT/DELETE /api/games`) protegido con `auth:sanctum`.
@@ -48,6 +49,5 @@ El proyecto está construido como backend Laravel que sirve tanto una interfaz w
 
 ## Pendiente / en curso
 
-- La búsqueda de la colección todavía no tiene filtros (por plataforma, estado, etc.) más allá del texto libre por título/EAN.
-- No hay panel de gestión para ediciones (`Edition`), por lo que el campo `edition_id` del juego no es editable desde la UI todavía.
+- Panel de estadísticas de la colección (aún sin diseñar: nº de juegos, por plataforma, completados vs. pendientes, gasto total, etc.).
 - Sin tests automatizados más allá del scaffold por defecto de Laravel — es el siguiente foco de trabajo.

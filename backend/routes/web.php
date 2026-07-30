@@ -5,6 +5,7 @@ use App\Http\Controllers\Web\EditionController;
 use App\Http\Controllers\Web\GameController;
 use App\Http\Controllers\Web\ManufacturerController;
 use App\Http\Controllers\Web\PlatformController;
+use App\Http\Controllers\Web\ProfileController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -46,4 +47,9 @@ Route::middleware('auth')->group(function () {
     Route::resource('manufacturers', ManufacturerController::class)->except('show')->names('web.manufacturers');
     Route::resource('platforms', PlatformController::class)->except('show')->names('web.platforms');
     Route::resource('editions', EditionController::class)->except('show')->names('web.editions');
+
+    // Perfil del usuario: datos de la cuenta y cambio de contraseña
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('web.profile.edit');
+    Route::put('/profile', [ProfileController::class, 'updateInfo'])->name('web.profile.update');
+    Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('web.profile.password');
 });
