@@ -61,7 +61,7 @@
                     @error('current_password') <span class="{{ $error }}">{{ $message }}</span> @enderror
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label for="password" class="{{ $label }}">Nueva contraseña</label>
                         <input type="password" name="password" id="password" required class="{{ $input }}">

@@ -25,21 +25,29 @@
     <div class="h-screen flex flex-col overflow-hidden">
 
         <!-- Navbar: ancho completo, fina -->
-        <header class="h-12 flex-shrink-0 flex items-center justify-between px-5">
-            <a href="{{ route('web.games.index') }}" class="flex items-center gap-2 text-white">
-                <x-gicon name="joystick" class="text-[22px]" />
-                <span class="text-base font-bold tracking-tight">SavePoint</span>
-            </a>
+        <header class="h-12 flex-shrink-0 flex items-center justify-between gap-3 px-5">
+            <div class="flex items-center gap-2 min-w-0">
+                <button type="button" id="sidebar-mobile-toggle"
+                    class="md:hidden flex items-center justify-center w-8 h-8 -ml-1.5 rounded-lg text-indigo-100 hover:bg-white/10 transition-colors flex-shrink-0"
+                    aria-expanded="false" aria-controls="sidebar" aria-label="Abrir menú">
+                    <x-gicon name="menu" class="text-[22px]" />
+                </button>
 
-            <form action="{{ route('web.logout') }}" method="POST" class="flex items-center gap-4">
+                <a href="{{ route('web.games.index') }}" class="flex items-center gap-2 text-white min-w-0">
+                    <x-gicon name="joystick" class="text-[22px] flex-shrink-0" />
+                    <span class="text-base font-bold tracking-tight truncate">SavePoint</span>
+                </a>
+            </div>
+
+            <form action="{{ route('web.logout') }}" method="POST" class="flex items-center gap-4 flex-shrink-0">
                 <a href="{{ route('web.profile.edit') }}" class="flex items-center gap-1.5 text-sm text-indigo-100 hover:text-white transition-colors {{ request()->routeIs('web.profile.*') ? 'text-white font-medium' : '' }}">
                     <x-gicon name="account_circle" class="text-[18px]" />
-                    {{ auth()->user()->email }}
+                    <span class="hidden sm:inline">{{ auth()->user()->email }}</span>
                 </a>
                 @csrf
                 <button type="submit" class="flex items-center gap-1.5 text-sm font-medium text-indigo-100 hover:text-white transition-colors">
                     <x-gicon name="logout" class="text-[18px]" />
-                    Salir
+                    <span class="hidden sm:inline">Salir</span>
                 </button>
             </form>
         </header>
@@ -47,12 +55,23 @@
         <!-- Cuerpo: sidebar + contenido, esquinas superiores redondeadas -->
         <div class="flex-1 flex overflow-hidden rounded-t-[8px]">
 
+            <!-- Fondo oscuro tras el sidebar cuando el drawer móvil está abierto; tocarlo lo cierra -->
+            <div id="sidebar-backdrop"></div>
+
             <aside id="sidebar" class="sidebar flex-shrink-0 bg-slate-900 border-r border-slate-800 flex flex-col overflow-y-auto transition-[width] duration-200 ease-in-out">
-                <div class="flex items-center justify-end px-3 py-2">
+                <div class="flex items-center justify-between px-3 py-2">
+                    <span class="md:hidden pl-1 text-sm font-semibold text-slate-200">Menú</span>
+
                     <button type="button" id="sidebar-toggle"
-                        class="flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-colors"
+                        class="hidden md:flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-colors"
                         aria-expanded="true" aria-controls="sidebar" aria-label="Contraer menú">
                         <x-gicon id="sidebar-toggle-icon" name="chevron_left" class="text-[20px] transition-transform duration-200" />
+                    </button>
+
+                    <button type="button" id="sidebar-mobile-close"
+                        class="md:hidden flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-colors"
+                        aria-label="Cerrar menú">
+                        <x-gicon name="close" class="text-[20px]" />
                     </button>
                 </div>
 
@@ -97,7 +116,7 @@
                 </div>
             </aside>
 
-            <main class="flex-1 overflow-y-auto bg-slate-950 px-8 py-8">
+            <main class="flex-1 overflow-y-auto bg-slate-950 px-4 py-6 md:px-8 md:py-8">
                 @yield('content')
             </main>
 

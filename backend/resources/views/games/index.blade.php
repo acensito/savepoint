@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-    <div class="mb-8 flex justify-between items-end">
+    <div class="mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
         <div>
             <h1 class="text-3xl font-bold text-slate-100 tracking-tight">Mi Colección</h1>
             <p class="text-slate-400 mt-1">Tienes {{ $games->total() }} juegos registrados.</p>
@@ -54,8 +54,85 @@
         </form>
     </div>
 
-    <!-- Contenedor de la Tabla -->
-    <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
+    <!-- Tarjetas: listado en pantallas estrechas, sin scroll horizontal -->
+    <div class="md:hidden space-y-3">
+        @forelse($games as $game)
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                <div class="flex items-start gap-3">
+                    <x-game-cover :game="$game" size="sm" />
+
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-start justify-between gap-2">
+                            <h3 class="text-sm font-bold text-slate-100 truncate">{{ $game->title }}</h3>
+                            <x-star-rating :rating="$game->rating" class="flex-shrink-0" />
+                        </div>
+
+                        <div class="mt-1.5">
+                            <x-platform-chip :platform="$game->platform" />
+                        </div>
+
+                        <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
+                            <span class="flex items-center gap-1 {{ $game->play_status === 'finished' ? 'text-emerald-400' : '' }}">
+                                @if($game->play_status === 'finished')
+                                    <x-gicon name="check_circle" class="text-[16px]" />
+                                @else
+                                    <x-gicon name="schedule" class="text-[16px]" />
+                                @endif
+                                <span class="capitalize">{{ $game->play_status ?? 'Pendiente' }}</span>
+                            </span>
+
+                            @if($game->edition)
+                                <span>{{ $game->edition->name }}</span>
+                            @endif
+
+                            @if($game->region)
+                                <span>{{ $game->region }}</span>
+                            @endif
+
+                            @if($game->manual_status === 'included')
+                                <span class="flex items-center gap-1 text-emerald-400">
+                                    <x-gicon name="check_circle" class="text-[14px]" /> Manual
+                                </span>
+                            @endif
+
+                            @if($game->price_paid !== null)
+                                <span>{{ number_format($game->price_paid, 2, ',', '.') }} €</span>
+                            @endif
+
+                            @if($game->purchase_date)
+                                <span>{{ $game->purchase_date->format('d/m/Y') }}</span>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3 pt-3 border-t border-slate-800 flex items-center justify-end gap-4 text-sm font-medium">
+                    <a href="{{ route('web.games.edit', $game->id) }}" class="text-indigo-400 hover:text-indigo-300 transition-colors">
+                        Editar
+                    </a>
+
+                    <form action="{{ route('web.games.destroy', $game->id) }}" method="POST" onsubmit="return confirm('¿Seguro que quieres enviar este juego a la papelera?');">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="text-red-400 hover:text-red-300 transition-colors">
+                            Borrar
+                        </button>
+                    </form>
+                </div>
+            </div>
+        @empty
+            <div class="bg-slate-900 border border-slate-800 rounded-xl px-6 py-12 text-center text-slate-500 text-sm">
+                @if(!empty($query) || $platformId !== '' || $playStatus !== '' || $status !== '')
+                    No hay juegos que coincidan con la búsqueda o los filtros aplicados.
+                @else
+                    No hay juegos registrados todavía.
+                @endif
+            </div>
+        @endforelse
+    </div>
+
+    <!-- Tabla: listado en pantallas medianas y grandes -->
+    <div class="hidden md:block bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-800">
             <thead class="bg-slate-800/50">
                 <tr>

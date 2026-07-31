@@ -50,7 +50,7 @@
         @error('title') <span class="{{ $error }}">{{ $message }}</span> @enderror
     </div>
 
-    <div class="grid grid-cols-2 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
             <label for="ean" class="{{ $label }}">EAN</label>
             <input type="text" name="ean" id="ean" value="{{ old('ean', $game?->ean) }}" class="{{ $input }}">
@@ -63,7 +63,7 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-2 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
             <label for="platform_id" class="{{ $label }}">Plataforma</label>
             <select name="platform_id" id="platform_id" class="{{ $input }}">
@@ -111,7 +111,7 @@
 <div class="pt-6 border-t border-slate-800 space-y-4">
     <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Estado y valoración</h2>
 
-    <div class="grid grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
             <label for="status" class="{{ $label }}">Propiedad</label>
             <select name="status" id="status" class="{{ $input }}">
@@ -165,7 +165,7 @@
 <div class="pt-6 border-t border-slate-800 space-y-4">
     <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Compra</h2>
 
-    <div class="grid grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
             <label for="price_paid" class="{{ $label }}">Precio pagado</label>
             <input type="number" step="0.01" min="0" name="price_paid" id="price_paid" value="{{ old('price_paid', $game?->price_paid) }}" class="{{ $input }}">
@@ -188,7 +188,7 @@
 <div class="pt-6 border-t border-slate-800 space-y-4">
     <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Detalles físicos</h2>
 
-    <div class="grid grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
             <label for="manual_status" class="{{ $label }}">Manual</label>
             <select name="manual_status" id="manual_status" class="{{ $input }}">

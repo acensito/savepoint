@@ -11,7 +11,7 @@
     @error('name') <span class="text-red-400 text-sm mt-1 block">{{ $message }}</span> @enderror
 </div>
 
-<div class="grid grid-cols-3 gap-4">
+<div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
     <div>
         <label for="bg_color" class="block font-medium text-sm text-slate-300 mb-1">Fondo</label>
         <input type="color" name="bg_color" id="bg_color" value="{{ $bg }}"

@@ -44,7 +44,7 @@
         Personalizar colores para esta plataforma
     </label>
 
-    <div id="color-fields" class="grid grid-cols-3 gap-4 mt-4 {{ $hasOverride ? '' : 'hidden' }}">
+    <div id="color-fields" class="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4 {{ $hasOverride ? '' : 'hidden' }}">
         <div>
             <label for="bg_color" class="block font-medium text-sm text-slate-300 mb-1">Fondo</label>
             <input type="color" name="bg_color" id="bg_color" value="{{ $bg }}"

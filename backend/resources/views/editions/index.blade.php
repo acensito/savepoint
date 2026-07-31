@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-    <div class="mb-8 flex justify-between items-end">
+    <div class="mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
         <div>
             <h1 class="text-3xl font-bold text-slate-100 tracking-tight">Ediciones</h1>
             <p class="text-slate-400 mt-1">Normal, especial, coleccionista, digital, CIB... y en qué plataformas existe cada una.</p>
@@ -20,7 +20,7 @@
         </div>
     @endif
 
-    <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-800">
             <thead class="bg-slate-800/50">
                 <tr>

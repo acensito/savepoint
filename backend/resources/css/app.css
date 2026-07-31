@@ -31,6 +31,39 @@ html.sidebar-collapsed #sidebar-toggle-icon {
     transform: rotate(180deg);
 }
 
+/* Drawer del sidebar en pantallas estrechas: por debajo del breakpoint `md`
+   de Tailwind (768px) el sidebar sale de la caja de flex normal y se
+   convierte en un panel superpuesto que entra/sale desde la izquierda. */
+@media (max-width: 767.98px) {
+    .sidebar {
+        position: fixed;
+        inset: 0 auto 0 0;
+        z-index: 40;
+        transform: translateX(-100%);
+        transition: transform 200ms ease-in-out;
+    }
+
+    html.mobile-drawer-open .sidebar {
+        transform: translateX(0);
+    }
+
+    #sidebar-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 30;
+        background: rgb(0 0 0 / 0.6);
+    }
+
+    html.mobile-drawer-open #sidebar-backdrop {
+        display: block;
+    }
+
+    html.mobile-drawer-open body {
+        overflow: hidden;
+    }
+}
+
 /* Iconos servidos desde Google Fonts (Material Symbols), ver el <link> en resources/views/layouts/app.blade.php */
 .material-symbols-outlined {
     font-family: 'Material Symbols Outlined';
