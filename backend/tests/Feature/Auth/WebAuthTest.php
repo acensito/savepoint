@@ -85,4 +85,25 @@ class WebAuthTest extends TestCase
 
         $response->assertRedirect(route('login'));
     }
+
+    public function test_login_is_throttled_after_too_many_failed_attempts(): void
+    {
+        $user = User::factory()->create(['password' => Hash::make('password')]);
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->post('/login', [
+                'email' => $user->email,
+                'password' => 'wrong-password',
+            ]);
+        }
+
+        // El sexto intento queda bloqueado aunque la contraseña sea correcta.
+        $response = $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $response->assertSessionHasErrors('email');
+        $this->assertGuest();
+    }
 }

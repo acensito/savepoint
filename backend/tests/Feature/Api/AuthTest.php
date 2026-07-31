@@ -82,4 +82,25 @@ class AuthTest extends TestCase
             ->getJson('/api/user')
             ->assertStatus(401);
     }
+
+    public function test_login_is_throttled_after_too_many_failed_attempts(): void
+    {
+        $user = User::factory()->create(['password' => Hash::make('password')]);
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->postJson('/api/login', [
+                'email' => $user->email,
+                'password' => 'wrong-password',
+            ]);
+        }
+
+        // El sexto intento queda bloqueado aunque la contraseña sea correcta.
+        $response = $this->postJson('/api/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $response->assertStatus(429);
+        $this->assertDatabaseCount('personal_access_tokens', 0);
+    }
 }
