@@ -25,6 +25,16 @@ class GameController extends Controller
     }
 
     /**
+     * Muestra un juego concreto.
+     */
+    public function show(Game $game)
+    {
+        Gate::authorize('view', $game);
+
+        return new GameResource($game->load('platform'));
+    }
+
+    /**
      * Guarda un nuevo juego en la base de datos.
      */
     public function store(StoreGameRequest $request)

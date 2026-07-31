@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Game extends Model
 {
     // Activamos la papelera de reciclaje para no perder datos por error
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
 
     /**
      * Los atributos que se pueden asignar de forma masiva.

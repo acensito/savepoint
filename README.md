@@ -75,8 +75,23 @@ docker compose exec app php artisan storage:link
 
 La app queda disponible en `http://localhost:8081`.
 
+### Tests
+
+```bash
+docker compose exec app php artisan test
+```
+
+El entorno de test es independiente del de desarrollo: `phpunit.xml` fuerza `APP_ENV=testing`, SQLite en memoria, sesión/caché en array, etc., así que correr los tests nunca toca la base Postgres real ni Redis (el `docker-compose.yml` deliberadamente no pasa `backend/.env` como `env_file` de `app`/`queue` para que esto funcione).
+
+Cobertura actual:
+- `Tests\Feature\Auth\WebAuthTest`: login/logout, credenciales inválidas, redirect a la página originalmente solicitada, protección de rutas para invitados.
+- `Tests\Feature\Api\AuthTest`: login/logout vía Sanctum (emisión y revocación de token), `/api/user` protegido.
+- `Tests\Feature\Api\GameControllerTest`: CRUD completo de la API, scoping por usuario y `GamePolicy` bloqueando acceso a juegos ajenos (403 en view/update/delete).
+- `Tests\Feature\Web\GameControllerTest`: alta y edición de juegos con subida/reemplazo de carátula real, validación, y `GamePolicy` aplicada en las rutas web.
+- `Tests\Unit\Models\GameTest` / `PlatformTest`: iniciales y URL de carátula, resolución de colores/etiqueta de chip con fallback a fabricante.
+
 ## Pendiente / en curso
 
-- Sin tests automatizados más allá del scaffold por defecto de Laravel — es el siguiente foco de trabajo.
+- Ampliar tests a lo que queda sin cubrir: paneles de catálogo (fabricantes/plataformas/ediciones), perfil de usuario y estadísticas.
 - Versión web responsive/mobile de toda la interfaz (pensada como acceso de emergencia cuando la app móvil no esté disponible): listado en tarjetas en pantallas estrechas (el sidebar plegable de escritorio ya está hecho, ver "Interfaz").
 - Importar/exportar la colección: de momento interesa sobre todo la **importación** (volcado inicial de datos desde la hoja Excel actual). Falta decidir formato de entrada (¿CSV/Excel con las columnas ya vistas en el listado?) y cómo mapear plataformas/ediciones existentes vs. crearlas sobre la marcha.
