@@ -8,6 +8,29 @@
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
 
+/* Sidebar plegable: el ancho y el estado colapsado se controlan aquí (no con
+   utilidades de Tailwind) para poder alternarlos con una sola clase en <html>,
+   aplicada antes del primer pintado desde el script bloqueante del layout. */
+.sidebar {
+    width: 15rem;
+}
+
+html.sidebar-collapsed .sidebar {
+    width: 4.5rem;
+}
+
+html.sidebar-collapsed .sidebar-label {
+    display: none;
+}
+
+html.sidebar-collapsed .sidebar nav a {
+    justify-content: center;
+}
+
+html.sidebar-collapsed #sidebar-toggle-icon {
+    transform: rotate(180deg);
+}
+
 /* Iconos servidos desde Google Fonts (Material Symbols), ver el <link> en resources/views/layouts/app.blade.php */
 .material-symbols-outlined {
     font-family: 'Material Symbols Outlined';

@@ -51,8 +51,32 @@ El proyecto está construido como backend Laravel que sirve tanto una interfaz w
 - `GamePolicy` aplicada con `Gate::authorize()` en editar y borrar (web y API), para que nadie pueda tocar un juego ajeno aunque adivine su ID por URL.
 - Botón de cerrar sesión ("Salir") en la navegación.
 
+### Interfaz
+- Sidebar plegable: un botón en su cabecera lo contrae a solo iconos (de 15rem a 4.5rem) para aprovechar el ancho en pantallas 1080p; cada enlace muestra su nombre como tooltip nativo mientras está colapsado. La preferencia se guarda en `localStorage` y se aplica antes del primer pintado (vía un script bloqueante en el `<head>`) para no parpadear al navegar entre páginas. Implementado en JS vanilla (sin Alpine ni otra dependencia).
+
+## Desarrollo con Docker
+
+El stack (`docker-compose.yml`) levanta `postgres`, `redis`, `app` (PHP-FPM), `queue` (worker de Redis) y `nginx`. La imagen de `app`/`queue` (`docker/Dockerfile`) incluye Composer y Node.js 22 + npm (copiados desde las imágenes oficiales `composer:latest` y `node:22-alpine`) para poder compilar los assets de Vite dentro del propio contenedor.
+
+Primer arranque:
+
+```bash
+cp backend/.env.example backend/.env   # y ajustar DB_HOST/REDIS_HOST a postgres/redis, DB_* a los del compose
+docker compose up -d --build
+
+docker compose exec app composer install
+docker compose exec app npm install
+docker compose exec app npm run build       # o npm run dev si se expone el puerto 5173 para HMR
+
+docker compose exec app php artisan migrate
+docker compose exec app php artisan db:seed  # usuarios de prueba: felipe@savepoint.test / test@example.com, contraseña "password"
+docker compose exec app php artisan storage:link
+```
+
+La app queda disponible en `http://localhost:8081`.
+
 ## Pendiente / en curso
 
 - Sin tests automatizados más allá del scaffold por defecto de Laravel — es el siguiente foco de trabajo.
-- Versión web responsive/mobile de toda la interfaz (pensada como acceso de emergencia cuando la app móvil no esté disponible): sidebar colapsable y listado en tarjetas en pantallas estrechas.
+- Versión web responsive/mobile de toda la interfaz (pensada como acceso de emergencia cuando la app móvil no esté disponible): listado en tarjetas en pantallas estrechas (el sidebar plegable de escritorio ya está hecho, ver "Interfaz").
 - Importar/exportar la colección: de momento interesa sobre todo la **importación** (volcado inicial de datos desde la hoja Excel actual). Falta decidir formato de entrada (¿CSV/Excel con las columnas ya vistas en el listado?) y cómo mapear plataformas/ediciones existentes vs. crearlas sobre la marcha.

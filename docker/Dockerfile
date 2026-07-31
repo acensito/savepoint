@@ -40,12 +40,18 @@ post_max_size=4M" > /usr/local/etc/php/conf.d/uploads.ini
 # 5. Instalar Composer obteniéndolo de su imagen oficial
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# 6. Crear usuario no-root para trabajar localmente sin romper permisos
+# 6. Instalar Node.js/npm (para compilar assets con Vite) desde la imagen oficial de Node
+COPY --from=node:22-alpine /usr/local/bin/node /usr/local/bin/node
+COPY --from=node:22-alpine /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+    && ln -s /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
+
+# 7. Crear usuario no-root para trabajar localmente sin romper permisos
 RUN adduser -G root -u $uid -h /home/$user -D $user \
-    && mkdir -p /home/$user/.composer \
+    && mkdir -p /home/$user/.composer /home/$user/.npm \
     && chown -R $user:root /home/$user
 
-# 7. Preparar el directorio de trabajo de Laravel
+# 8. Preparar el directorio de trabajo de Laravel
 RUN mkdir -p /app/storage /app/bootstrap/cache \
     && chown -R $user:root /app
 

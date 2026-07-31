@@ -7,6 +7,17 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+    <script>
+        // Bloqueante a propósito: aplica el estado guardado del sidebar antes del primer
+        // pintado para que no haya un parpadeo al pasar de expandido a plegado (o viceversa).
+        (function () {
+            try {
+                if (localStorage.getItem('sp:sidebarCollapsed') === '1') {
+                    document.documentElement.classList.add('sidebar-collapsed');
+                }
+            } catch (e) {}
+        })();
+    </script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-indigo-600 text-slate-300 antialiased">
@@ -36,44 +47,52 @@
         <!-- Cuerpo: sidebar + contenido, esquinas superiores redondeadas -->
         <div class="flex-1 flex overflow-hidden rounded-t-[8px]">
 
-            <aside class="w-60 flex-shrink-0 bg-slate-900 border-r border-slate-800 flex flex-col overflow-y-auto">
-                <nav class="flex-1 px-3 py-4 space-y-1">
-                    <a href="{{ route('web.games.index') }}"
+            <aside id="sidebar" class="sidebar flex-shrink-0 bg-slate-900 border-r border-slate-800 flex flex-col overflow-y-auto transition-[width] duration-200 ease-in-out">
+                <div class="flex items-center justify-end px-3 py-2">
+                    <button type="button" id="sidebar-toggle"
+                        class="flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-colors"
+                        aria-expanded="true" aria-controls="sidebar" aria-label="Contraer menú">
+                        <x-gicon id="sidebar-toggle-icon" name="chevron_left" class="text-[20px] transition-transform duration-200" />
+                    </button>
+                </div>
+
+                <nav class="flex-1 px-3 py-1 space-y-1">
+                    <a href="{{ route('web.games.index') }}" title="Colección"
                         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('web.games.*') ? 'bg-indigo-500/10 text-indigo-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' }}">
                         <x-gicon name="sports_esports" class="text-[20px]" />
-                        Colección
+                        <span class="sidebar-label">Colección</span>
                     </a>
 
-                    <a href="{{ route('web.stats.index') }}"
+                    <a href="{{ route('web.stats.index') }}" title="Estadísticas"
                         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('web.stats.*') ? 'bg-indigo-500/10 text-indigo-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' }}">
                         <x-gicon name="bar_chart" class="text-[20px]" />
-                        Estadísticas
+                        <span class="sidebar-label">Estadísticas</span>
                     </a>
 
-                    <a href="{{ route('web.platforms.index') }}"
+                    <a href="{{ route('web.platforms.index') }}" title="Plataformas"
                         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('web.platforms.*') ? 'bg-indigo-500/10 text-indigo-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' }}">
                         <x-gicon name="memory" class="text-[20px]" />
-                        Plataformas
+                        <span class="sidebar-label">Plataformas</span>
                     </a>
 
-                    <a href="{{ route('web.editions.index') }}"
+                    <a href="{{ route('web.editions.index') }}" title="Ediciones"
                         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('web.editions.*') ? 'bg-indigo-500/10 text-indigo-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' }}">
                         <x-gicon name="workspace_premium" class="text-[20px]" />
-                        Ediciones
+                        <span class="sidebar-label">Ediciones</span>
                     </a>
 
-                    <a href="{{ route('web.manufacturers.index') }}"
+                    <a href="{{ route('web.manufacturers.index') }}" title="Fabricantes"
                         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('web.manufacturers.*') ? 'bg-indigo-500/10 text-indigo-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' }}">
                         <x-gicon name="storefront" class="text-[20px]" />
-                        Fabricantes
+                        <span class="sidebar-label">Fabricantes</span>
                     </a>
                 </nav>
 
                 <div class="px-3 py-4 border-t border-slate-800">
-                    <a href="{{ route('web.games.create') }}"
+                    <a href="{{ route('web.games.create') }}" title="Añadir Juego"
                         class="flex items-center justify-center gap-2 w-full bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2.5 rounded-lg text-sm font-medium transition-colors">
                         <x-gicon name="add_circle" class="text-[18px]" />
-                        Añadir Juego
+                        <span class="sidebar-label">Añadir Juego</span>
                     </a>
                 </div>
             </aside>
