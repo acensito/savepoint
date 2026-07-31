@@ -48,9 +48,10 @@ services:
     container_name: savepoint_app
     restart: unless-stopped
     working_dir: /app
-    # Carga todas las variables de entorno de Laravel directamente
-    env_file:
-      - ./backend/.env
+    # Laravel carga backend/.env por su cuenta en cada arranque (dotenv);
+    # NO se pasa como env_file del contenedor porque esas variables quedarían
+    # fijas en $_SERVER a nivel de proceso PHP y PHPUnit no podría pisarlas
+    # (APP_ENV=testing, DB_CONNECTION=sqlite, etc.) al correr los tests.
     volumes:
       - ./backend:/app
     depends_on:
@@ -71,8 +72,6 @@ services:
     working_dir: /app
     # Ejecuta el worker en lugar de PHP-FPM
     command: php artisan queue:work redis --sleep=3 --tries=3 --max-time=3600
-    env_file:
-      - ./backend/.env
     volumes:
       - ./backend:/app
     depends_on:
