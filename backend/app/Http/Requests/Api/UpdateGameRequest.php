@@ -18,7 +18,6 @@ class UpdateGameRequest extends FormRequest
             'platform_id' => ['sometimes', 'required', 'exists:platforms,id'],
             'status' => ['nullable', 'string', 'max:50'],
             'play_status' => ['nullable', 'string', 'max:50'],
-            'condition' => ['nullable', 'string', 'max:50'],
             'release_date' => ['nullable', 'date'],
             'genres' => ['nullable', 'array'],
             'rating' => ['nullable', 'integer', 'min:1', 'max:10'],

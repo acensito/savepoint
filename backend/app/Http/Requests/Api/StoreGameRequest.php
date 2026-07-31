@@ -26,7 +26,6 @@ class StoreGameRequest extends FormRequest
             'platform_id' => ['required', 'exists:platforms,id'], // Debe existir en la tabla platforms
             'status' => ['nullable', 'string', 'max:50'],
             'play_status' => ['nullable', 'string', 'max:50'],
-            'condition' => ['nullable', 'string', 'max:50'],
             'release_date' => ['nullable', 'date'],
             'genres' => ['nullable', 'array'], // Validamos que llegue como un array
             'rating' => ['nullable', 'integer', 'min:1', 'max:10'],

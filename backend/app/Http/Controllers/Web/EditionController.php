@@ -30,6 +30,13 @@ class EditionController extends Controller
         $edition = Edition::create(['name' => $validated['name']]);
         $edition->platforms()->sync($validated['platform_ids'] ?? []);
 
+        // El alta de un juego permite crear una edición al vuelo (modal, sin
+        // navegar fuera del formulario) para no perder lo ya rellenado; en
+        // ese caso responde JSON en vez de redirigir.
+        if ($request->wantsJson()) {
+            return response()->json(['id' => $edition->id, 'name' => $edition->name], 201);
+        }
+
         return redirect()->route('web.editions.index')->with('success', 'Edición creada correctamente.');
     }
 

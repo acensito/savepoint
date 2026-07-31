@@ -12,17 +12,19 @@
 @endphp
 
 @section('content')
-    <div class="mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
-        <div>
-            <h1 class="text-3xl font-bold text-slate-100 tracking-tight">Mi Colección</h1>
-            <p class="text-slate-400 mt-1">Tienes {{ $games->total() }} juegos registrados.</p>
+    <div class="mb-5 sm:mb-8 flex items-center justify-between gap-3">
+        <div class="min-w-0">
+            <h1 class="text-xl sm:text-3xl font-bold text-slate-100 tracking-tight truncate">Mi Colección</h1>
+            <p class="text-xs sm:text-base text-slate-400 mt-0.5 sm:mt-1">
+                {{ $games->total() }} {{ \Illuminate\Support\Str::plural('juego', $games->total()) }} {{ \Illuminate\Support\Str::plural('registrado', $games->total()) }}.
+            </p>
         </div>
 
-        <div class="flex gap-2">
-            <a href="{{ route('web.games.create') }}" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-500 transition-colors">
-                + Añadir Juego
-            </a>
-        </div>
+        <a href="{{ route('web.games.create') }}" aria-label="Añadir juego"
+            class="flex-shrink-0 flex items-center justify-center gap-1.5 w-10 h-10 sm:w-auto sm:h-auto rounded-full sm:rounded-lg sm:px-4 sm:py-2 bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 transition-colors">
+            <x-gicon name="add" class="text-[22px] sm:text-[18px]" />
+            <span class="hidden sm:inline">Añadir Juego</span>
+        </a>
     </div>
 
     <!-- Buscador y filtros: colapsados tras un botón en móvil para no comerse la pantalla -->
@@ -50,8 +52,8 @@
     <!-- Tarjetas: listado en pantallas estrechas, sin scroll horizontal -->
     <div class="md:hidden space-y-2.5">
         @forelse($games as $game)
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 flex items-center gap-3">
-                <x-game-cover :game="$game" size="lg" class="!w-14 !h-14 !rounded-xl !text-lg" />
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 flex items-start gap-3">
+                <x-game-cover :game="$game" size="lg" class="!w-14 !rounded-xl !text-lg" />
 
                 <div class="flex-1 min-w-0">
                     <h3 class="text-[15px] font-bold text-slate-100 truncate leading-snug">{{ $game->title }}</h3>
@@ -128,9 +130,9 @@
                     <tr class="hover:bg-slate-800/40 transition-colors">
                         <!-- Título -->
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="flex items-center gap-3">
+                            <div class="flex items-start gap-3">
                                 <x-game-cover :game="$game" size="sm" />
-                                <div class="text-sm font-bold text-slate-100">{{ $game->title }}</div>
+                                <div class="text-sm font-bold text-slate-100 pt-1.5">{{ $game->title }}</div>
                             </div>
                         </td>
 
@@ -166,9 +168,11 @@
                         <!-- Manual -->
                         <td class="px-6 py-4 whitespace-nowrap text-center">
                             @if($game->manual_status === 'included')
-                                <x-gicon name="check_circle" class="text-[18px] text-emerald-400" />
+                                <x-gicon name="check_circle" class="text-[18px] text-emerald-400" title="Con Manual" />
+                            @elseif($game->manual_status === 'booklet')
+                                <x-gicon name="description" class="text-[18px] text-emerald-400" title="Folleto" />
                             @elseif($game->manual_status === 'missing')
-                                <x-gicon name="cancel" class="text-[18px] text-slate-600" />
+                                <x-gicon name="warning" class="text-[18px] text-amber-400" title="Sin Manual" />
                             @else
                                 <span class="text-sm text-slate-500">—</span>
                             @endif

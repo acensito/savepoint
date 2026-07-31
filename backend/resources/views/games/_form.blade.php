@@ -5,7 +5,7 @@
 
     $defaultPurchaseDate = $game ? $game->purchase_date?->format('Y-m-d') : now()->format('Y-m-d');
 
-    $regionPresets = ['PAL-ES', 'PAL-UK', 'PAL-FR', 'PAL-DE', 'PAL-IT', 'NTSC-U', 'NTSC-J'];
+    $regionPresets = ['PAL-ES', 'PAL-EU', 'PAL-UK', 'PAL-FR', 'PAL-DE', 'PAL-IT', 'NTSC-U', 'NTSC-J'];
     $defaultRegionSelect = $game ? ($game->region ?? '') : 'PAL-ES';
     $currentRegionSelect = old('region_select', $defaultRegionSelect);
     $isCustomRegion = $currentRegionSelect !== '' && $currentRegionSelect !== 'other' && !in_array($currentRegionSelect, $regionPresets, true);
@@ -13,12 +13,12 @@
 @endphp
 
 <!-- Carátula -->
-<div class="flex items-center gap-6">
-    <div id="cover-wrapper">
+<div class="flex items-start gap-6">
+    <div id="cover-wrapper" class="w-24 flex-shrink-0">
         @if($game?->cover)
-            <img id="cover-preview-img" src="{{ $game->coverUrl() }}" alt="Carátula" class="w-24 h-24 rounded-xl object-cover border border-slate-700 flex-shrink-0">
+            <img id="cover-preview-img" src="{{ $game->coverUrl() }}" alt="Carátula" class="w-24 h-auto rounded-xl border border-slate-700">
         @else
-            <div id="cover-preview-img" class="w-24 h-24 rounded-xl flex items-center justify-center bg-slate-800 border border-slate-700 text-slate-400 font-bold text-2xl flex-shrink-0">
+            <div id="cover-preview-img" class="w-24 aspect-square rounded-xl flex items-center justify-center bg-slate-800 border border-slate-700 text-slate-400 font-bold text-2xl">
                 <span id="cover-initials">{{ $game?->coverInitials() ?? '?' }}</span>
             </div>
         @endif
@@ -78,17 +78,42 @@
         </div>
         <div>
             <label for="edition_id" class="{{ $label }}">Edición</label>
-            <select name="edition_id" id="edition_id" class="{{ $input }}">
-                <option value="">Sin edición específica</option>
-                @foreach($editions as $edition)
-                    <option value="{{ $edition->id }}" data-platforms="{{ $edition->platforms->pluck('id')->implode(',') }}"
-                        {{ old('edition_id', $game?->edition_id) == $edition->id ? 'selected' : '' }}>
-                        {{ $edition->name }}
-                    </option>
-                @endforeach
-            </select>
+            <div class="flex gap-2">
+                <select name="edition_id" id="edition_id" class="{{ $input }}">
+                    <option value="">Sin edición específica</option>
+                    @foreach($editions as $edition)
+                        <option value="{{ $edition->id }}" data-platforms="{{ $edition->platforms->pluck('id')->implode(',') }}"
+                            {{ old('edition_id', $game?->edition_id) == $edition->id ? 'selected' : '' }}>
+                            {{ $edition->name }}
+                        </option>
+                    @endforeach
+                </select>
+                <button type="button" id="quick-add-edition-btn"
+                    class="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-lg border border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
+                    aria-label="Crear una edición nueva">
+                    <x-gicon name="add" class="text-[20px]" />
+                </button>
+            </div>
             <p class="text-xs text-slate-500 mt-1">Se filtra según la plataforma elegida. <a href="{{ route('web.editions.index') }}" class="text-indigo-400 hover:text-indigo-300">Gestionar ediciones</a>.</p>
             @error('edition_id') <span class="{{ $error }}">{{ $message }}</span> @enderror
+
+            <dialog id="quick-add-edition-dialog" class="rounded-xl border border-slate-800 bg-slate-900 text-slate-100 p-0 backdrop:bg-black/60 w-full max-w-sm">
+                <div class="p-5">
+                    <h2 class="text-base font-semibold text-slate-100">Nueva edición</h2>
+                    <p class="text-xs text-slate-500 mt-1">Se añade sin salir de este formulario; no se pierde lo que ya has rellenado. Podrás asociarla a plataformas concretas más tarde desde "Gestionar ediciones".</p>
+
+                    <div class="mt-4">
+                        <label for="quick-edition-name" class="{{ $label }}">Nombre</label>
+                        <input type="text" id="quick-edition-name" placeholder="Edición Coleccionista" class="{{ $input }}">
+                        <span id="quick-edition-error" class="text-red-400 text-sm mt-1 block"></span>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-3 mt-5">
+                        <button type="button" id="quick-add-edition-cancel" class="text-slate-400 hover:text-slate-100 text-sm font-medium px-4 py-2">Cancelar</button>
+                        <button type="button" id="quick-add-edition-submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-500 transition-colors">Crear edición</button>
+                    </div>
+                </div>
+            </dialog>
         </div>
     </div>
 
@@ -111,12 +136,12 @@
 <div class="pt-6 border-t border-slate-800 space-y-4">
     <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Estado y valoración</h2>
 
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
             <label for="status" class="{{ $label }}">Propiedad</label>
             <select name="status" id="status" class="{{ $input }}">
                 <option value="">—</option>
-                <option value="owned" {{ old('status', $game?->status) == 'owned' ? 'selected' : '' }}>En posesión</option>
+                <option value="owned" {{ old('status', $game ? $game->status : 'owned') == 'owned' ? 'selected' : '' }}>En colección</option>
                 <option value="wishlist" {{ old('status', $game?->status) == 'wishlist' ? 'selected' : '' }}>Lista de deseos</option>
                 <option value="sold" {{ old('status', $game?->status) == 'sold' ? 'selected' : '' }}>Vendido</option>
             </select>
@@ -130,17 +155,6 @@
                 <option value="finished" {{ old('play_status', $game?->play_status) == 'finished' ? 'selected' : '' }}>Terminado</option>
             </select>
             @error('play_status') <span class="{{ $error }}">{{ $message }}</span> @enderror
-        </div>
-        <div>
-            <label for="condition" class="{{ $label }}">Condición física</label>
-            <select name="condition" id="condition" class="{{ $input }}">
-                <option value="">—</option>
-                <option value="mint" {{ old('condition', $game?->condition) == 'mint' ? 'selected' : '' }}>Como nuevo</option>
-                <option value="good" {{ old('condition', $game?->condition) == 'good' ? 'selected' : '' }}>Buena</option>
-                <option value="fair" {{ old('condition', $game?->condition) == 'fair' ? 'selected' : '' }}>Regular</option>
-                <option value="poor" {{ old('condition', $game?->condition) == 'poor' ? 'selected' : '' }}>Mala</option>
-            </select>
-            @error('condition') <span class="{{ $error }}">{{ $message }}</span> @enderror
         </div>
     </div>
 
@@ -192,9 +206,10 @@
         <div>
             <label for="manual_status" class="{{ $label }}">Manual</label>
             <select name="manual_status" id="manual_status" class="{{ $input }}">
-                <option value="">—</option>
-                <option value="included" {{ old('manual_status', $game?->manual_status) == 'included' ? 'selected' : '' }}>Incluido</option>
-                <option value="missing" {{ old('manual_status', $game?->manual_status) == 'missing' ? 'selected' : '' }}>No incluido</option>
+                <option value="">--</option>
+                <option value="included" {{ old('manual_status', $game?->manual_status) == 'included' ? 'selected' : '' }}>Con Manual</option>
+                <option value="missing" {{ old('manual_status', $game?->manual_status) == 'missing' ? 'selected' : '' }}>Sin Manual</option>
+                <option value="booklet" {{ old('manual_status', $game?->manual_status) == 'booklet' ? 'selected' : '' }}>Folleto</option>
             </select>
             @error('manual_status') <span class="{{ $error }}">{{ $message }}</span> @enderror
         </div>
@@ -233,7 +248,7 @@
         const file = e.target.files[0];
         if (!file) return;
         document.getElementById('cover-wrapper').innerHTML =
-            `<img id="cover-preview-img" src="${URL.createObjectURL(file)}" alt="Carátula" class="w-24 h-24 rounded-xl object-cover border border-slate-700 flex-shrink-0">`;
+            `<img id="cover-preview-img" src="${URL.createObjectURL(file)}" alt="Carátula" class="w-24 h-auto rounded-xl border border-slate-700">`;
     });
 
     document.getElementById('title')?.addEventListener('input', (e) => {
@@ -267,6 +282,73 @@
     }
 
     document.getElementById('platform_id')?.addEventListener('change', filterEditions);
+
+    (function () {
+        const dialog = document.getElementById('quick-add-edition-dialog');
+        const openBtn = document.getElementById('quick-add-edition-btn');
+        const cancelBtn = document.getElementById('quick-add-edition-cancel');
+        const submitBtn = document.getElementById('quick-add-edition-submit');
+        const nameInput = document.getElementById('quick-edition-name');
+        const errorEl = document.getElementById('quick-edition-error');
+        if (!dialog || !openBtn) return;
+
+        openBtn.addEventListener('click', () => {
+            errorEl.textContent = '';
+            nameInput.value = '';
+            dialog.showModal();
+            nameInput.focus();
+        });
+
+        cancelBtn.addEventListener('click', () => dialog.close());
+
+        submitBtn.addEventListener('click', async () => {
+            const name = nameInput.value.trim();
+            if (!name) {
+                errorEl.textContent = 'El nombre es obligatorio.';
+                return;
+            }
+
+            submitBtn.disabled = true;
+            errorEl.textContent = '';
+
+            try {
+                // La edición se crea al vuelo por AJAX precisamente para no
+                // navegar a /editions/create y perder lo ya rellenado en este
+                // formulario de alta/edición de juego.
+                const response = await fetch('{{ route('web.editions.store') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('input[name="_token"]')?.value ?? '',
+                    },
+                    body: JSON.stringify({ name }),
+                });
+
+                if (!response.ok) {
+                    const data = await response.json().catch(() => ({}));
+                    errorEl.textContent = data.errors?.name?.[0] ?? 'No se pudo crear la edición.';
+                    return;
+                }
+
+                const edition = await response.json();
+
+                const select = document.getElementById('edition_id');
+                const option = document.createElement('option');
+                option.value = edition.id;
+                option.textContent = edition.name;
+                option.dataset.platforms = '';
+                select.appendChild(option);
+                select.value = edition.id;
+
+                dialog.close();
+            } catch (err) {
+                errorEl.textContent = 'No se pudo crear la edición. Comprueba tu conexión e inténtalo de nuevo.';
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
+    })();
 
     (function () {
         const ratingLabels = { 1: 'Malo', 2: 'Aceptable', 3: 'Regular', 4: 'Bueno', 5: 'Excelente' };

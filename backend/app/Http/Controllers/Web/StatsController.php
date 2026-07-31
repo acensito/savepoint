@@ -74,7 +74,7 @@ class StatsController extends Controller
             ->groupBy('status')
             ->pluck('total', 'status');
 
-        $labels = ['owned' => 'En posesión', 'wishlist' => 'Lista de deseos', 'sold' => 'Vendido'];
+        $labels = ['owned' => 'En colección', 'wishlist' => 'Lista de deseos', 'sold' => 'Vendido'];
         $colors = ['owned' => '#818cf8', 'wishlist' => '#fbbf24', 'sold' => '#94a3b8'];
 
         // 'status' es opcional en el formulario: los juegos sin valor asignado
