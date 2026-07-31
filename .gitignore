@@ -45,3 +45,7 @@ docker-compose.override.yml
 # Desarrollo local
 .env.local
 .env.*.local
+
+# Claude Code: settings.local.json es local por máquina (permisos, etc.),
+# no debe compartirse entre quien clone el repo.
+.claude/settings.local.json
