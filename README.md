@@ -22,7 +22,7 @@ El proyecto está construido como backend Laravel que sirve tanto una interfaz w
 - Búsqueda dentro de la propia colección por **título** o **EAN**, más filtros por **plataforma**, **estado de juego** y **propiedad**, todo combinable desde la página principal.
 - La consulta del listado solo trae las columnas y relaciones que la vista pinta (evita cargar `notes`/`data`/`genres` innecesariamente y N+1 en `platform`/`edition`).
 - Edición de un juego existente, incluida la opción de reemplazar o quitar la carátula.
-- Baja de un juego mediante **papelera de reciclaje** (soft delete, no se pierde el registro).
+- Baja de un juego mediante **papelera de reciclaje** (soft delete): panel dedicado (`/games/trash`) para ver los juegos borrados, restaurarlos o eliminarlos definitivamente (esto último borra también el fichero de la carátula).
 - Al editar/reemplazar la carátula, el fichero anterior se borra del disco (`storage/app/public/covers`) para no dejar huérfanos.
 - Panel de gestión de ediciones (`/editions`) para dar de alta ediciones (normal/especial/coleccionista/...) asociadas a una o varias plataformas, con un botón "Seleccionar todas"/"Ninguna" para no marcarlas una a una; el campo `edition_id` del juego se filtra según la plataforma elegida en el formulario. Si la edición que necesitas no existe todavía, se puede crear al vuelo desde el propio formulario de alta/edición de juego (modal + AJAX) sin perder lo ya rellenado.
 
@@ -40,6 +40,7 @@ El proyecto está construido como backend Laravel que sirve tanto una interfaz w
 
 ### API REST
 - CRUD de juegos (`GET/POST/PUT/DELETE /api/games`) protegido con `auth:sanctum`.
+- El listado (`index`) pagina: 20 juegos por página por defecto, admite `?per_page=` con tope de 100.
 - Respuestas transformadas con `GameResource` (aplana la plataforma a su nombre, expone URL de carátula, etc.).
 - Validación de entrada separada en `StoreGameRequest` / `UpdateGameRequest`.
 
@@ -49,7 +50,8 @@ El proyecto está construido como backend Laravel que sirve tanto una interfaz w
 ### Seguridad de datos
 - Cada juego pertenece a un usuario (`user_id`), asignado siempre al usuario autenticado (`auth()->id()` / `$request->user()->id`) al crearlo, tanto en web como en API.
 - Listados y búsqueda (web y API) filtrados por `user_id`: cada usuario solo ve su propia colección.
-- `GamePolicy` aplicada con `Gate::authorize()` en editar y borrar (web y API), para que nadie pueda tocar un juego ajeno aunque adivine su ID por URL.
+- `GamePolicy` aplicada con `Gate::authorize()` en editar, borrar, restaurar y eliminar definitivamente (web y API), para que nadie pueda tocar un juego ajeno aunque adivine su ID por URL.
+- Login (web y API) con protección contra fuerza bruta: bloqueo de 60 segundos tras 5 intentos fallidos, con clave email+IP (`ThrottlesLogins`), así que un atacante no puede bloquear a otros usuarios que compartan su misma IP.
 - Botón de cerrar sesión ("Salir") en la navegación.
 
 ### Interfaz
@@ -57,6 +59,7 @@ El proyecto está construido como backend Laravel que sirve tanto una interfaz w
 - Navegación móvil (< 768px): el sidebar deja de ocupar ancho fijo y pasa a ser un drawer superpuesto que entra desde la izquierda, con botón hamburguesa en el header y fondo oscuro; se cierra tocando fuera, el botón de cerrar o cualquier enlace del menú.
 - Colección en móvil: el listado se muestra como tarjetas (carátula, plataforma, estado, valoración y precio, con acciones de editar/borrar como botones de icono) en vez de la tabla de escritorio. El buscador y los filtros quedan colapsados detrás de un botón "Buscar y filtrar" (con contador de filtros activos, y abierto automáticamente si ya venías con alguno aplicado) para no ocupar la pantalla principal; usa `<details>` nativo, sin JS adicional.
 - Formularios (alta/edición de juego, perfil, fabricantes, plataformas) apilan sus campos en una sola columna en pantallas estrechas en vez de apretarlos en el mismo grid que escritorio.
+- Feedback de acciones: los mensajes de éxito se muestran como un toast flotante que se desvanece solo (antes eran banners fijos, duplicados en cada vista, y en la colección principal directamente no se mostraban). Las acciones destructivas (borrar juego, plataforma, fabricante, edición, o eliminar definitivamente desde la papelera) piden confirmación en un `<dialog>` propio con el nombre del elemento afectado, en vez del `confirm()` del navegador. Ambos son un único componente compartido en el layout, reutilizado desde cualquier vista.
 
 ## Desarrollo con Docker
 
@@ -88,10 +91,10 @@ docker compose exec app php artisan test
 El entorno de test es independiente del de desarrollo: `phpunit.xml` fuerza `APP_ENV=testing`, SQLite en memoria, sesión/caché en array, etc., así que correr los tests nunca toca la base Postgres real ni Redis (el `docker-compose.yml` deliberadamente no pasa `backend/.env` como `env_file` de `app`/`queue` para que esto funcione).
 
 Cobertura actual:
-- `Tests\Feature\Auth\WebAuthTest`: login/logout, credenciales inválidas, redirect a la página originalmente solicitada, protección de rutas para invitados.
-- `Tests\Feature\Api\AuthTest`: login/logout vía Sanctum (emisión y revocación de token), `/api/user` protegido.
-- `Tests\Feature\Api\GameControllerTest`: CRUD completo de la API, scoping por usuario y `GamePolicy` bloqueando acceso a juegos ajenos (403 en view/update/delete).
-- `Tests\Feature\Web\GameControllerTest`: alta y edición de juegos con subida/reemplazo de carátula real, validación, y `GamePolicy` aplicada en las rutas web.
+- `Tests\Feature\Auth\WebAuthTest`: login/logout, credenciales inválidas, redirect a la página originalmente solicitada, protección de rutas para invitados, bloqueo por fuerza bruta.
+- `Tests\Feature\Api\AuthTest`: login/logout vía Sanctum (emisión y revocación de token), `/api/user` protegido, bloqueo por fuerza bruta.
+- `Tests\Feature\Api\GameControllerTest`: CRUD completo de la API, paginación (tamaño por defecto, `per_page` a medida y con tope), scoping por usuario y `GamePolicy` bloqueando acceso a juegos ajenos (403 en view/update/delete).
+- `Tests\Feature\Web\GameControllerTest`: alta y edición de juegos con subida/reemplazo de carátula real, validación, `GamePolicy` aplicada en las rutas web, y la papelera (listar/restaurar/eliminar definitivamente, con scoping por usuario).
 - `Tests\Unit\Models\GameTest` / `PlatformTest`: iniciales y URL de carátula, resolución de colores/etiqueta de chip con fallback a fabricante.
 
 ## Pendiente / en curso
@@ -99,14 +102,16 @@ Cobertura actual:
 - Ampliar tests a lo que queda sin cubrir: paneles de catálogo (fabricantes/plataformas/ediciones), perfil de usuario y estadísticas.
 - Responsive/mobile: hecho para la navegación, el listado principal (tarjetas + filtros colapsables) y los formularios de alta/edición/perfil (ver "Interfaz"). Falta: los paneles de catálogo (fabricantes/plataformas/ediciones) solo tienen scroll horizontal en la tabla, sin vista de tarjetas propia.
 - Importar/exportar la colección: de momento interesa sobre todo la **importación** (volcado inicial de datos desde la hoja Excel actual). Falta decidir formato de entrada (¿CSV/Excel con las columnas ya vistas en el listado?) y cómo mapear plataformas/ediciones existentes vs. crearlas sobre la marcha.
-- Papelera de reciclaje sin interfaz: los juegos borrados quedan con soft delete (`GamePolicy::restore()` ya contempla el permiso) pero no hay ninguna vista para verlos ni restaurarlos todavía.
 - Sin recuperación de contraseña (no hay flujo de email/token de reset).
-- La API no pagina ni filtra el listado de juegos (`Api\GameController@index` trae todos de golpe); no es un problema con la colección actual, pero conviene resolverlo antes de construir el cliente móvil.
+- La API no filtra el listado de juegos (ya pagina, pero no admite búsqueda por título/EAN ni filtros por plataforma/estado como el listado web); no es un problema con la colección actual, pero conviene resolverlo antes de construir el cliente móvil.
 - Sin backups automatizados de Postgres (ni `pg_dump` programado ni snapshot del volumen).
 
 ## Changelog
 
 ### 2026-08-01
+- Papelera de reciclaje con interfaz (`/games/trash`): restaurar o eliminar definitivamente un juego borrado (con limpieza de la carátula en disco).
+- Paginación en `GET /api/games` (20 por página, `?per_page=` hasta 100).
+- Toast flotante para los mensajes de éxito (sustituye los banners fijos repetidos por vista, que en la colección principal ni siquiera existían) y modal de confirmación propio para las acciones destructivas (sustituye el `confirm()` nativo del navegador en juegos, papelera, plataformas, fabricantes y ediciones).
 - Protección contra fuerza bruta en el login (web y API): bloqueo de 60s tras 5 intentos fallidos, por email+IP, con contador compartido vía `ThrottlesLogins`.
 - Alta de juego: "Propiedad" renombrada a "En colección" (valor por defecto al crear), retirado el campo "Condición física", nuevos valores de "Manual" (Con Manual/Sin Manual/Folleto, con color según si falta o no) y añadida la región PAL-EU.
 - Carátulas: el preview y el listado respetan la proporción real de la imagen (ancho fijo, alto automático) en vez de recortar a cuadrado; arreglada la Content-Security-Policy de nginx, que bloqueaba el preview en vivo del alta.
