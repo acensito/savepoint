@@ -52,7 +52,10 @@ El proyecto está construido como backend Laravel que sirve tanto una interfaz w
 - Botón de cerrar sesión ("Salir") en la navegación.
 
 ### Interfaz
-- Sidebar plegable: un botón en su cabecera lo contrae a solo iconos (de 15rem a 4.5rem) para aprovechar el ancho en pantallas 1080p; cada enlace muestra su nombre como tooltip nativo mientras está colapsado. La preferencia se guarda en `localStorage` y se aplica antes del primer pintado (vía un script bloqueante en el `<head>`) para no parpadear al navegar entre páginas. Implementado en JS vanilla (sin Alpine ni otra dependencia).
+- Sidebar plegable (escritorio): un botón en su cabecera lo contrae a solo iconos (de 15rem a 4.5rem) para aprovechar el ancho en pantallas 1080p; cada enlace muestra su nombre como tooltip nativo mientras está colapsado. La preferencia se guarda en `localStorage` y se aplica antes del primer pintado (vía un script bloqueante en el `<head>`) para no parpadear al navegar entre páginas. Implementado en JS vanilla (sin Alpine ni otra dependencia).
+- Navegación móvil (< 768px): el sidebar deja de ocupar ancho fijo y pasa a ser un drawer superpuesto que entra desde la izquierda, con botón hamburguesa en el header y fondo oscuro; se cierra tocando fuera, el botón de cerrar o cualquier enlace del menú.
+- Colección en móvil: el listado se muestra como tarjetas (carátula, plataforma, estado, valoración y precio, con acciones de editar/borrar como botones de icono) en vez de la tabla de escritorio. El buscador y los filtros quedan colapsados detrás de un botón "Buscar y filtrar" (con contador de filtros activos, y abierto automáticamente si ya venías con alguno aplicado) para no ocupar la pantalla principal; usa `<details>` nativo, sin JS adicional.
+- Formularios (alta/edición de juego, perfil, fabricantes, plataformas) apilan sus campos en una sola columna en pantallas estrechas en vez de apretarlos en el mismo grid que escritorio.
 
 ## Desarrollo con Docker
 
@@ -93,5 +96,5 @@ Cobertura actual:
 ## Pendiente / en curso
 
 - Ampliar tests a lo que queda sin cubrir: paneles de catálogo (fabricantes/plataformas/ediciones), perfil de usuario y estadísticas.
-- Versión web responsive/mobile de toda la interfaz (pensada como acceso de emergencia cuando la app móvil no esté disponible): listado en tarjetas en pantallas estrechas (el sidebar plegable de escritorio ya está hecho, ver "Interfaz").
+- Responsive/mobile: hecho para la navegación, el listado principal (tarjetas + filtros colapsables) y los formularios de alta/edición/perfil (ver "Interfaz"). Falta: los paneles de catálogo (fabricantes/plataformas/ediciones) solo tienen scroll horizontal en la tabla, sin vista de tarjetas propia.
 - Importar/exportar la colección: de momento interesa sobre todo la **importación** (volcado inicial de datos desde la hoja Excel actual). Falta decidir formato de entrada (¿CSV/Excel con las columnas ya vistas en el listado?) y cómo mapear plataformas/ediciones existentes vs. crearlas sobre la marcha.
