@@ -64,6 +64,16 @@ html.sidebar-collapsed #sidebar-toggle-icon {
     }
 }
 
+/* Quita el triángulo nativo del <summary> del panel de filtros colapsable
+   (games/index.blade.php): el icono expand_more ya cumple esa función. */
+summary {
+    list-style: none;
+}
+
+summary::-webkit-details-marker {
+    display: none;
+}
+
 /* Iconos servidos desde Google Fonts (Material Symbols), ver el <link> en resources/views/layouts/app.blade.php */
 .material-symbols-outlined {
     font-family: 'Material Symbols Outlined';

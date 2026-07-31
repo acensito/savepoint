@@ -1,5 +1,16 @@
 @extends('layouts.app')
 
+@php
+    $activeFilters = array_filter([
+        !empty($query),
+        $platformId !== '',
+        $playStatus !== '',
+        $status !== '',
+    ]);
+    $hasActiveFilters = count($activeFilters) > 0;
+    $activeFilterCount = count($activeFilters);
+@endphp
+
 @section('content')
     <div class="mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
         <div>
@@ -14,115 +25,79 @@
         </div>
     </div>
 
-    <!-- Buscador (por título o EAN) y filtros -->
-    <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 mb-6">
-        <form action="{{ route('web.games.index') }}" method="GET" class="flex flex-wrap gap-3">
-            <input type="text" name="q" value="{{ $query ?? '' }}" placeholder="Buscar por título o EAN..."
-                class="flex-1 min-w-[200px] rounded-lg border border-slate-700 bg-slate-800 text-slate-100 placeholder:text-slate-500 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-none text-sm">
+    <!-- Buscador y filtros: colapsados tras un botón en móvil para no comerse la pantalla -->
+    <details class="group md:hidden bg-slate-900 border border-slate-800 rounded-xl mb-6" {{ $hasActiveFilters ? 'open' : '' }}>
+        <summary class="flex items-center justify-between gap-2 px-4 py-3 cursor-pointer select-none">
+            <span class="flex items-center gap-2 text-sm font-medium text-slate-200">
+                <x-gicon name="filter_list" class="text-[18px] text-slate-400" />
+                Buscar y filtrar
+                @if($hasActiveFilters)
+                    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-indigo-500 text-white text-[11px] font-bold">{{ $activeFilterCount }}</span>
+                @endif
+            </span>
+            <x-gicon name="expand_more" class="text-[20px] text-slate-500 transition-transform duration-200 group-open:rotate-180" />
+        </summary>
 
-            <select name="platform_id" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-none text-sm">
-                <option value="">Todas las plataformas</option>
-                @foreach($platforms as $platform)
-                    <option value="{{ $platform->id }}" {{ (string) $platformId === (string) $platform->id ? 'selected' : '' }}>
-                        {{ $platform->name }}
-                    </option>
-                @endforeach
-            </select>
+        <div class="px-4 pb-4">
+            @include('games._filters')
+        </div>
+    </details>
 
-            <select name="play_status" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-none text-sm">
-                <option value="">Cualquier estado de juego</option>
-                <option value="pending" {{ $playStatus === 'pending' ? 'selected' : '' }}>Pendiente</option>
-                <option value="playing" {{ $playStatus === 'playing' ? 'selected' : '' }}>Jugando</option>
-                <option value="finished" {{ $playStatus === 'finished' ? 'selected' : '' }}>Terminado</option>
-            </select>
-
-            <select name="status" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-none text-sm">
-                <option value="">Cualquier propiedad</option>
-                <option value="owned" {{ $status === 'owned' ? 'selected' : '' }}>En posesión</option>
-                <option value="wishlist" {{ $status === 'wishlist' ? 'selected' : '' }}>Lista de deseos</option>
-                <option value="sold" {{ $status === 'sold' ? 'selected' : '' }}>Vendido</option>
-            </select>
-
-            <button type="submit" class="bg-slate-700 text-slate-100 px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-600 transition-colors whitespace-nowrap">
-                Filtrar
-            </button>
-            @if(!empty($query) || $platformId !== '' || $playStatus !== '' || $status !== '')
-                <a href="{{ route('web.games.index') }}" class="flex items-center text-sm font-medium text-slate-400 hover:text-slate-100 whitespace-nowrap">
-                    Limpiar
-                </a>
-            @endif
-        </form>
+    <div class="hidden md:block bg-slate-900 border border-slate-800 rounded-xl p-4 mb-6">
+        @include('games._filters')
     </div>
 
     <!-- Tarjetas: listado en pantallas estrechas, sin scroll horizontal -->
-    <div class="md:hidden space-y-3">
+    <div class="md:hidden space-y-2.5">
         @forelse($games as $game)
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-                <div class="flex items-start gap-3">
-                    <x-game-cover :game="$game" size="sm" />
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 flex items-center gap-3">
+                <x-game-cover :game="$game" size="lg" class="!w-14 !h-14 !rounded-xl !text-lg" />
 
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-start justify-between gap-2">
-                            <h3 class="text-sm font-bold text-slate-100 truncate">{{ $game->title }}</h3>
-                            <x-star-rating :rating="$game->rating" class="flex-shrink-0" />
-                        </div>
+                <div class="flex-1 min-w-0">
+                    <h3 class="text-[15px] font-bold text-slate-100 truncate leading-snug">{{ $game->title }}</h3>
 
-                        <div class="mt-1.5">
-                            <x-platform-chip :platform="$game->platform" />
-                        </div>
+                    <div class="mt-1 flex items-center gap-1.5 flex-wrap">
+                        <x-platform-chip :platform="$game->platform" class="!px-2 !py-0.5 !text-[10px]" />
 
-                        <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
-                            <span class="flex items-center gap-1 {{ $game->play_status === 'finished' ? 'text-emerald-400' : '' }}">
-                                @if($game->play_status === 'finished')
-                                    <x-gicon name="check_circle" class="text-[16px]" />
-                                @else
-                                    <x-gicon name="schedule" class="text-[16px]" />
-                                @endif
-                                <span class="capitalize">{{ $game->play_status ?? 'Pendiente' }}</span>
-                            </span>
-
-                            @if($game->edition)
-                                <span>{{ $game->edition->name }}</span>
+                        <span class="inline-flex items-center gap-1 text-[11px] font-medium {{ $game->play_status === 'finished' ? 'text-emerald-400' : 'text-slate-500' }}">
+                            @if($game->play_status === 'finished')
+                                <x-gicon name="check_circle" class="text-[13px]" />
+                            @else
+                                <x-gicon name="schedule" class="text-[13px]" />
                             @endif
+                            {{ $game->play_status ? ucfirst($game->play_status) : 'Pendiente' }}
+                        </span>
+                    </div>
 
-                            @if($game->region)
-                                <span>{{ $game->region }}</span>
-                            @endif
-
-                            @if($game->manual_status === 'included')
-                                <span class="flex items-center gap-1 text-emerald-400">
-                                    <x-gicon name="check_circle" class="text-[14px]" /> Manual
-                                </span>
-                            @endif
-
-                            @if($game->price_paid !== null)
-                                <span>{{ number_format($game->price_paid, 2, ',', '.') }} €</span>
-                            @endif
-
-                            @if($game->purchase_date)
-                                <span>{{ $game->purchase_date->format('d/m/Y') }}</span>
-                            @endif
-                        </div>
+                    <div class="mt-1.5 flex items-center gap-2">
+                        <x-star-rating :rating="$game->rating" size="text-[11px]" />
+                        @if($game->price_paid !== null)
+                            <span class="text-[11px] font-semibold text-slate-400 tabular-nums">{{ number_format($game->price_paid, 2, ',', '.') }} €</span>
+                        @endif
                     </div>
                 </div>
 
-                <div class="mt-3 pt-3 border-t border-slate-800 flex items-center justify-end gap-4 text-sm font-medium">
-                    <a href="{{ route('web.games.edit', $game->id) }}" class="text-indigo-400 hover:text-indigo-300 transition-colors">
-                        Editar
+                <div class="flex flex-col items-center gap-1 flex-shrink-0">
+                    <a href="{{ route('web.games.edit', $game->id) }}"
+                        class="flex items-center justify-center w-8 h-8 rounded-full text-slate-400 hover:bg-slate-800 hover:text-indigo-400 active:bg-slate-800 transition-colors"
+                        aria-label="Editar {{ $game->title }}">
+                        <x-gicon name="edit" class="text-[18px]" />
                     </a>
 
                     <form action="{{ route('web.games.destroy', $game->id) }}" method="POST" onsubmit="return confirm('¿Seguro que quieres enviar este juego a la papelera?');">
                         @csrf
                         @method('DELETE')
-                        <button type="submit" class="text-red-400 hover:text-red-300 transition-colors">
-                            Borrar
+                        <button type="submit"
+                            class="flex items-center justify-center w-8 h-8 rounded-full text-slate-400 hover:bg-slate-800 hover:text-red-400 active:bg-slate-800 transition-colors"
+                            aria-label="Borrar {{ $game->title }}">
+                            <x-gicon name="delete" class="text-[18px]" />
                         </button>
                     </form>
                 </div>
             </div>
         @empty
             <div class="bg-slate-900 border border-slate-800 rounded-xl px-6 py-12 text-center text-slate-500 text-sm">
-                @if(!empty($query) || $platformId !== '' || $playStatus !== '' || $status !== '')
+                @if($hasActiveFilters)
                     No hay juegos que coincidan con la búsqueda o los filtros aplicados.
                 @else
                     No hay juegos registrados todavía.
@@ -234,7 +209,7 @@
                 @empty
                     <tr>
                         <td colspan="10" class="px-6 py-12 text-center text-slate-500 text-sm">
-                            @if(!empty($query) || $platformId !== '' || $playStatus !== '' || $status !== '')
+                            @if($hasActiveFilters)
                                 No hay juegos que coincidan con la búsqueda o los filtros aplicados.
                             @else
                                 No hay juegos registrados todavía.
