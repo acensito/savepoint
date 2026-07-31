@@ -99,3 +99,21 @@ Cobertura actual:
 - Ampliar tests a lo que queda sin cubrir: paneles de catálogo (fabricantes/plataformas/ediciones), perfil de usuario y estadísticas.
 - Responsive/mobile: hecho para la navegación, el listado principal (tarjetas + filtros colapsables) y los formularios de alta/edición/perfil (ver "Interfaz"). Falta: los paneles de catálogo (fabricantes/plataformas/ediciones) solo tienen scroll horizontal en la tabla, sin vista de tarjetas propia.
 - Importar/exportar la colección: de momento interesa sobre todo la **importación** (volcado inicial de datos desde la hoja Excel actual). Falta decidir formato de entrada (¿CSV/Excel con las columnas ya vistas en el listado?) y cómo mapear plataformas/ediciones existentes vs. crearlas sobre la marcha.
+- Papelera de reciclaje sin interfaz: los juegos borrados quedan con soft delete (`GamePolicy::restore()` ya contempla el permiso) pero no hay ninguna vista para verlos ni restaurarlos todavía.
+- Sin recuperación de contraseña (no hay flujo de email/token de reset).
+- La API no pagina ni filtra el listado de juegos (`Api\GameController@index` trae todos de golpe); no es un problema con la colección actual, pero conviene resolverlo antes de construir el cliente móvil.
+- Sin backups automatizados de Postgres (ni `pg_dump` programado ni snapshot del volumen).
+
+## Changelog
+
+### 2026-08-01
+- Protección contra fuerza bruta en el login (web y API): bloqueo de 60s tras 5 intentos fallidos, por email+IP, con contador compartido vía `ThrottlesLogins`.
+- Alta de juego: "Propiedad" renombrada a "En colección" (valor por defecto al crear), retirado el campo "Condición física", nuevos valores de "Manual" (Con Manual/Sin Manual/Folleto, con color según si falta o no) y añadida la región PAL-EU.
+- Carátulas: el preview y el listado respetan la proporción real de la imagen (ancho fijo, alto automático) en vez de recortar a cuadrado; arreglada la Content-Security-Policy de nginx, que bloqueaba el preview en vivo del alta.
+- Creación de ediciones al vuelo desde el propio formulario de alta/edición de juego (modal + AJAX), sin perder los datos ya rellenados; botones "Seleccionar todas"/"Ninguna" en el panel de ediciones.
+- Mensajes de validación traducidos al español (antes mostraban la clave sin traducir, p. ej. `validation.required`).
+
+### 2026-07-31
+- Interfaz responsive/móvil: navegación en drawer con hamburguesa, listado principal en tarjetas con buscador/filtros colapsables, formularios apilados en pantallas estrechas.
+- Cobertura de tests: autenticación web y API (Sanctum), CRUD de la API con `GamePolicy`, alta/edición de juegos con carátula real.
+- Corregido el entorno de tests: por un problema de configuración de Docker (`env_file` duplicando lo que ya carga Laravel) llegó a ejecutarse contra la base de datos real de desarrollo en vez de SQLite en memoria.
