@@ -13,12 +13,6 @@
             <p class="text-slate-400 mt-1">Gestiona los datos de tu cuenta y tu contraseña.</p>
         </div>
 
-        @if(session('success'))
-            <div class="mb-6 text-sm text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-4 py-2.5">
-                {{ session('success') }}
-            </div>
-        @endif
-
         <!-- Datos de la cuenta -->
         <div class="bg-slate-900 border border-slate-800 rounded-xl p-8 mb-6">
             <h2 class="text-lg font-semibold text-slate-100 mb-6">Datos de la cuenta</h2>

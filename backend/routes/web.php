@@ -42,6 +42,12 @@ Route::middleware('auth')->group(function () {
     // '/games/{game}' y buscando un juego con id "create".
     Route::get('/games/create', [GameController::class, 'create'])->name('web.games.create');
 
+    // Papelera: juegos borrados (soft delete) del usuario, con opción de
+    // restaurar o eliminar definitivamente.
+    Route::get('/games/trash', [GameController::class, 'trash'])->name('web.games.trash');
+    Route::post('/games/{id}/restore', [GameController::class, 'restore'])->name('web.games.restore');
+    Route::delete('/games/{id}/force-delete', [GameController::class, 'forceDelete'])->name('web.games.force-delete');
+
     Route::post('/games', [GameController::class, 'store'])->name('web.games.store');
     Route::get('/games/{game}/edit', [GameController::class, 'edit'])->name('web.games.edit');
     Route::put('/games/{game}', [GameController::class, 'update'])->name('web.games.update');

@@ -37,6 +37,45 @@ class GameControllerTest extends TestCase
         $this->assertCount(2, $response->json('data'));
     }
 
+    public function test_index_paginates_the_results(): void
+    {
+        $user = User::factory()->create();
+        Game::factory()->for($user)->count(25)->create();
+
+        Sanctum::actingAs($user);
+
+        $response = $this->getJson('/api/games')->assertOk();
+
+        $this->assertCount(20, $response->json('data'));
+        $this->assertSame(25, $response->json('meta.total'));
+        $this->assertSame(2, $response->json('meta.last_page'));
+    }
+
+    public function test_index_accepts_a_custom_per_page(): void
+    {
+        $user = User::factory()->create();
+        Game::factory()->for($user)->count(10)->create();
+
+        Sanctum::actingAs($user);
+
+        $response = $this->getJson('/api/games?per_page=5')->assertOk();
+
+        $this->assertCount(5, $response->json('data'));
+        $this->assertSame(2, $response->json('meta.last_page'));
+    }
+
+    public function test_index_caps_per_page_at_100(): void
+    {
+        $user = User::factory()->create();
+        Game::factory()->for($user)->count(5)->create();
+
+        Sanctum::actingAs($user);
+
+        $response = $this->getJson('/api/games?per_page=500')->assertOk();
+
+        $this->assertSame(100, $response->json('meta.per_page'));
+    }
+
     public function test_user_can_view_their_own_game(): void
     {
         $user = User::factory()->create();

@@ -124,5 +124,36 @@
 
     </div>
 
+    <!-- Toasts: contenedor donde showToast() (resources/js/app.js) inserta los avisos -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 w-[calc(100%-2rem)] max-w-sm pointer-events-none"></div>
+
+    <!-- Confirmación de acciones destructivas: un único <dialog> reutilizado por
+         cualquier formulario con class="js-confirm-delete" (ver app.js) en vez
+         del confirm() nativo del navegador, que no respeta el tema de la app. -->
+    <dialog id="confirm-dialog" class="rounded-xl border border-slate-800 bg-slate-900 text-slate-100 p-0 backdrop:bg-black/60 w-full max-w-sm">
+        <div class="p-5">
+            <div class="flex items-start gap-3">
+                <div class="flex-shrink-0 w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center">
+                    <x-gicon name="warning" class="text-[22px] text-red-400" />
+                </div>
+                <div class="flex-1 min-w-0 pt-1.5">
+                    <h2 id="confirm-dialog-title" class="text-base font-semibold text-slate-100">¿Seguro?</h2>
+                    <p id="confirm-dialog-message" class="text-sm text-slate-400 mt-1"></p>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 mt-5">
+                <button type="button" id="confirm-dialog-cancel" class="text-slate-400 hover:text-slate-100 text-sm font-medium px-4 py-2">Cancelar</button>
+                <button type="button" id="confirm-dialog-accept" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-500 transition-colors">Confirmar</button>
+            </div>
+        </div>
+    </dialog>
+
+    @if(session('success'))
+        <script>
+            document.addEventListener('DOMContentLoaded', () => window.showToast?.(@json(session('success')), 'success'));
+        </script>
+    @endif
+
 </body>
 </html>

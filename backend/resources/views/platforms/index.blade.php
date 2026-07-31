@@ -17,12 +17,6 @@
         </div>
     </div>
 
-    @if(session('success'))
-        <div class="mb-6 text-sm text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-4 py-2.5">
-            {{ session('success') }}
-        </div>
-    @endif
-
     <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-800">
             <thead class="bg-slate-800/50">
@@ -46,7 +40,9 @@
                                 <a href="{{ route('web.platforms.edit', $platform->id) }}" class="text-indigo-400 hover:text-indigo-300 transition-colors">
                                     Editar
                                 </a>
-                                <form action="{{ route('web.platforms.destroy', $platform->id) }}" method="POST" class="inline" onsubmit="return confirm('¿Borrar esta plataforma? Los juegos asociados se quedarán sin plataforma.');">
+                                <form action="{{ route('web.platforms.destroy', $platform->id) }}" method="POST" class="inline js-confirm-delete"
+                                    data-confirm-title="Borrar plataforma"
+                                    data-confirm-message="«{{ $platform->name }}» se borrará. Los juegos asociados se quedarán sin plataforma.">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="text-red-400 hover:text-red-300 transition-colors">

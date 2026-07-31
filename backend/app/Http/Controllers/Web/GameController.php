@@ -136,6 +136,55 @@ class GameController extends Controller
     }
 
     /**
+     * Papelera: juegos borrados (soft delete) del usuario autenticado.
+     */
+    public function trash()
+    {
+        $games = Game::onlyTrashed()
+            ->where('user_id', auth()->id())
+            ->with([
+                'platform:id,name,label,bg_color,text_color,border_color,manufacturer_id',
+                'platform.manufacturer:id,bg_color,text_color,border_color',
+            ])
+            ->orderByDesc('deleted_at')
+            ->paginate(20);
+
+        return view('games.trash', compact('games'));
+    }
+
+    /**
+     * Restaura un juego de la papelera.
+     */
+    public function restore(int $id)
+    {
+        $game = Game::onlyTrashed()->findOrFail($id);
+
+        Gate::authorize('restore', $game);
+
+        $game->restore();
+
+        return redirect()->route('web.games.trash')->with('success', 'Juego restaurado correctamente.');
+    }
+
+    /**
+     * Elimina un juego definitivamente, saltándose la papelera.
+     */
+    public function forceDelete(int $id)
+    {
+        $game = Game::onlyTrashed()->findOrFail($id);
+
+        Gate::authorize('forceDelete', $game);
+
+        if ($game->cover) {
+            Storage::disk('public')->delete($game->cover);
+        }
+
+        $game->forceDelete();
+
+        return redirect()->route('web.games.trash')->with('success', 'Juego eliminado definitivamente.');
+    }
+
+    /**
      * Reglas comunes al alta y la edición. El campo 'cover' se valida aquí
      * (para que @error('cover') funcione) pero el valor final que se guarda
      * se decide en store()/update(), no el que devuelve validate().

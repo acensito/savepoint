@@ -13,14 +13,23 @@ use Illuminate\Support\Facades\Gate;
 class GameController extends Controller
 {
     /**
-     * Muestra una lista de los juegos.
+     * Muestra una lista paginada de los juegos.
      */
-    public function index()
+    public function index(Request $request)
     {
-        // Solo los juegos del usuario autenticado, cargando 'platform' de golpe para optimizar
-        $games = Game::where('user_id', auth()->id())->with('platform')->latest()->get();
+        // Tope de 100 para que nadie pida una página gigante; 20 por defecto,
+        // igual que el listado web.
+        $perPage = min((int) $request->integer('per_page', 20), 100);
+        $perPage = $perPage > 0 ? $perPage : 20;
 
-        // Devolvemos la colección pasada por el "filtro" de nuestro Resource
+        // Solo los juegos del usuario autenticado, cargando 'platform' de golpe para optimizar
+        $games = Game::where('user_id', auth()->id())
+            ->with('platform')
+            ->latest()
+            ->paginate($perPage);
+
+        // Al pasarle un paginador, el Resource añade 'links' y 'meta' con la
+        // info de paginación al JSON automáticamente.
         return GameResource::collection($games);
     }
 

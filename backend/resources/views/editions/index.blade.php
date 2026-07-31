@@ -14,12 +14,6 @@
         </div>
     </div>
 
-    @if(session('success'))
-        <div class="mb-6 text-sm text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-4 py-2.5">
-            {{ session('success') }}
-        </div>
-    @endif
-
     <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-800">
             <thead class="bg-slate-800/50">
@@ -49,7 +43,9 @@
                                 <a href="{{ route('web.editions.edit', $edition->id) }}" class="text-indigo-400 hover:text-indigo-300 transition-colors">
                                     Editar
                                 </a>
-                                <form action="{{ route('web.editions.destroy', $edition->id) }}" method="POST" class="inline" onsubmit="return confirm('¿Borrar esta edición? Los juegos asociados se quedarán sin edición.');">
+                                <form action="{{ route('web.editions.destroy', $edition->id) }}" method="POST" class="inline js-confirm-delete"
+                                    data-confirm-title="Borrar edición"
+                                    data-confirm-message="«{{ $edition->name }}» se borrará. Los juegos asociados se quedarán sin edición.">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="text-red-400 hover:text-red-300 transition-colors">

@@ -142,4 +142,77 @@ class GameControllerTest extends TestCase
         $response->assertForbidden();
         $this->assertDatabaseHas('games', ['id' => $game->id, 'deleted_at' => null]);
     }
+
+    public function test_trash_only_lists_the_authenticated_users_deleted_games(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+
+        $mine = Game::factory()->for($user)->create(['title' => 'Mi juego borrado']);
+        $mine->delete();
+
+        $theirs = Game::factory()->for($otherUser)->create(['title' => 'Juego ajeno borrado']);
+        $theirs->delete();
+
+        $stillActive = Game::factory()->for($user)->create(['title' => 'Juego activo']);
+
+        $response = $this->actingAs($user)->get('/games/trash');
+
+        $response->assertOk();
+        $response->assertSee('Mi juego borrado');
+        $response->assertDontSee('Juego ajeno borrado');
+        $response->assertDontSee('Juego activo');
+    }
+
+    public function test_user_can_restore_their_own_deleted_game(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create();
+        $game->delete();
+
+        $response = $this->actingAs($user)->post("/games/{$game->id}/restore");
+
+        $response->assertRedirect(route('web.games.trash'));
+        $this->assertDatabaseHas('games', ['id' => $game->id, 'deleted_at' => null]);
+    }
+
+    public function test_user_cannot_restore_another_users_deleted_game(): void
+    {
+        $owner = User::factory()->create();
+        $game = Game::factory()->for($owner)->create();
+        $game->delete();
+
+        $response = $this->actingAs(User::factory()->create())->post("/games/{$game->id}/restore");
+
+        $response->assertForbidden();
+        $this->assertSoftDeleted('games', ['id' => $game->id]);
+    }
+
+    public function test_user_can_permanently_delete_their_own_trashed_game(): void
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->create();
+        $cover = UploadedFile::fake()->image('cover.jpg')->store('covers', 'public');
+        $game = Game::factory()->for($user)->create(['cover' => $cover]);
+        $game->delete();
+
+        $response = $this->actingAs($user)->delete("/games/{$game->id}/force-delete");
+
+        $response->assertRedirect(route('web.games.trash'));
+        $this->assertDatabaseMissing('games', ['id' => $game->id]);
+        Storage::disk('public')->assertMissing($cover);
+    }
+
+    public function test_user_cannot_permanently_delete_another_users_trashed_game(): void
+    {
+        $owner = User::factory()->create();
+        $game = Game::factory()->for($owner)->create();
+        $game->delete();
+
+        $response = $this->actingAs(User::factory()->create())->delete("/games/{$game->id}/force-delete");
+
+        $response->assertForbidden();
+        $this->assertDatabaseHas('games', ['id' => $game->id]);
+    }
 }

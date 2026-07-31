@@ -20,11 +20,18 @@
             </p>
         </div>
 
-        <a href="{{ route('web.games.create') }}" aria-label="Añadir juego"
-            class="flex-shrink-0 flex items-center justify-center gap-1.5 w-10 h-10 sm:w-auto sm:h-auto rounded-full sm:rounded-lg sm:px-4 sm:py-2 bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 transition-colors">
-            <x-gicon name="add" class="text-[22px] sm:text-[18px]" />
-            <span class="hidden sm:inline">Añadir Juego</span>
-        </a>
+        <div class="flex-shrink-0 flex items-center gap-2">
+            <a href="{{ route('web.games.trash') }}" aria-label="Papelera de reciclaje"
+                class="flex items-center justify-center w-10 h-10 rounded-full border border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-colors">
+                <x-gicon name="delete" class="text-[20px]" />
+            </a>
+
+            <a href="{{ route('web.games.create') }}" aria-label="Añadir juego"
+                class="flex items-center justify-center gap-1.5 w-10 h-10 sm:w-auto sm:h-auto rounded-full sm:rounded-lg sm:px-4 sm:py-2 bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 transition-colors">
+                <x-gicon name="add" class="text-[22px] sm:text-[18px]" />
+                <span class="hidden sm:inline">Añadir Juego</span>
+            </a>
+        </div>
     </div>
 
     <!-- Buscador y filtros: colapsados tras un botón en móvil para no comerse la pantalla -->
@@ -86,7 +93,9 @@
                         <x-gicon name="edit" class="text-[18px]" />
                     </a>
 
-                    <form action="{{ route('web.games.destroy', $game->id) }}" method="POST" onsubmit="return confirm('¿Seguro que quieres enviar este juego a la papelera?');">
+                    <form action="{{ route('web.games.destroy', $game->id) }}" method="POST" class="js-confirm-delete"
+                        data-confirm-title="Enviar a la papelera"
+                        data-confirm-message="«{{ $game->title }}» se moverá a la papelera. Podrás restaurarlo más tarde.">
                         @csrf
                         @method('DELETE')
                         <button type="submit"
@@ -200,7 +209,9 @@
                                     Editar
                                 </a>
 
-                                <form action="{{ route('web.games.destroy', $game->id) }}" method="POST" class="inline" onsubmit="return confirm('¿Seguro que quieres enviar este juego a la papelera?');">
+                                <form action="{{ route('web.games.destroy', $game->id) }}" method="POST" class="inline js-confirm-delete"
+                                    data-confirm-title="Enviar a la papelera"
+                                    data-confirm-message="«{{ $game->title }}» se moverá a la papelera. Podrás restaurarlo más tarde.">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="text-red-400 hover:text-red-300 transition-colors">
