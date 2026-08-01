@@ -14,7 +14,58 @@
         </div>
     </div>
 
-    <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
+    <!-- Tarjetas: listado en pantallas estrechas, sin scroll horizontal -->
+    <div class="md:hidden space-y-2.5">
+        @forelse($editions as $edition)
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <h3 class="text-[15px] font-bold text-slate-100 truncate">{{ $edition->name }}</h3>
+                        <p class="text-xs text-slate-500 mt-0.5">
+                            {{ $edition->games_count }} {{ \Illuminate\Support\Str::plural('juego', $edition->games_count) }}
+                        </p>
+                    </div>
+
+                    <div class="flex items-center gap-1 flex-shrink-0">
+                        <a href="{{ route('web.editions.edit', $edition->id) }}"
+                            class="flex items-center justify-center w-8 h-8 rounded-full text-slate-400 hover:bg-slate-800 hover:text-indigo-400 active:bg-slate-800 transition-colors"
+                            aria-label="Editar {{ $edition->name }}">
+                            <x-gicon name="edit" class="text-[18px]" />
+                        </a>
+
+                        <form action="{{ route('web.editions.destroy', $edition->id) }}" method="POST" class="js-confirm-delete"
+                            data-confirm-title="Borrar edición"
+                            data-confirm-message="«{{ $edition->name }}» se borrará. Los juegos asociados se quedarán sin edición.">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit"
+                                class="flex items-center justify-center w-8 h-8 rounded-full text-slate-400 hover:bg-slate-800 hover:text-red-400 active:bg-slate-800 transition-colors"
+                                aria-label="Borrar {{ $edition->name }}">
+                                <x-gicon name="delete" class="text-[18px]" />
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="mt-2">
+                    @forelse($edition->platforms as $platform)
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700 mr-1 mb-1">
+                            {{ $platform->name }}
+                        </span>
+                    @empty
+                        <span class="text-xs text-slate-500 italic">Cualquier plataforma</span>
+                    @endforelse
+                </div>
+            </div>
+        @empty
+            <div class="bg-slate-900 border border-slate-800 rounded-xl px-6 py-12 text-center text-slate-500 text-sm">
+                No hay ediciones registradas todavía.
+            </div>
+        @endforelse
+    </div>
+
+    <!-- Tabla: listado en pantallas medianas y grandes -->
+    <div class="hidden md:block bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-800">
             <thead class="bg-slate-800/50">
                 <tr>

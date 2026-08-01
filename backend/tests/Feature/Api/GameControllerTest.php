@@ -76,6 +76,54 @@ class GameControllerTest extends TestCase
         $this->assertSame(100, $response->json('meta.per_page'));
     }
 
+    public function test_index_filters_by_title_or_ean(): void
+    {
+        $user = User::factory()->create();
+        Game::factory()->for($user)->create(['title' => 'Hollow Knight', 'ean' => '111']);
+        Game::factory()->for($user)->create(['title' => 'Celeste', 'ean' => '222']);
+
+        Sanctum::actingAs($user);
+
+        $response = $this->getJson('/api/games?q=hollow')->assertOk();
+        $this->assertCount(1, $response->json('data'));
+        $this->assertSame('Hollow Knight', $response->json('data.0.title'));
+
+        $response = $this->getJson('/api/games?q=222')->assertOk();
+        $this->assertCount(1, $response->json('data'));
+        $this->assertSame('Celeste', $response->json('data.0.title'));
+    }
+
+    public function test_index_filters_by_platform_play_status_and_status(): void
+    {
+        $user = User::factory()->create();
+        $platform = Platform::factory()->create();
+
+        Game::factory()->for($user)->create([
+            'platform_id' => $platform->id,
+            'play_status' => 'finished',
+            'status' => 'owned',
+        ]);
+        Game::factory()->for($user)->create([
+            'platform_id' => Platform::factory()->create()->id,
+            'play_status' => 'pending',
+            'status' => 'wishlist',
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $this->getJson("/api/games?platform_id={$platform->id}")
+            ->assertOk()
+            ->assertJsonCount(1, 'data');
+
+        $this->getJson('/api/games?play_status=finished')
+            ->assertOk()
+            ->assertJsonCount(1, 'data');
+
+        $this->getJson('/api/games?status=wishlist')
+            ->assertOk()
+            ->assertJsonCount(1, 'data');
+    }
+
     public function test_user_can_view_their_own_game(): void
     {
         $user = User::factory()->create();

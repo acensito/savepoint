@@ -13,7 +13,8 @@ use Illuminate\Support\Facades\Gate;
 class GameController extends Controller
 {
     /**
-     * Muestra una lista paginada de los juegos.
+     * Muestra una lista paginada de los juegos, con los mismos filtros que el
+     * listado web (?q=, ?platform_id=, ?play_status=, ?status=).
      */
     public function index(Request $request)
     {
@@ -22,11 +23,26 @@ class GameController extends Controller
         $perPage = min((int) $request->integer('per_page', 20), 100);
         $perPage = $perPage > 0 ? $perPage : 20;
 
+        $query = trim((string) $request->input('q', ''));
+        $platformId = (string) $request->input('platform_id', '');
+        $playStatus = (string) $request->input('play_status', '');
+        $status = (string) $request->input('status', '');
+
         // Solo los juegos del usuario autenticado, cargando 'platform' de golpe para optimizar
         $games = Game::where('user_id', auth()->id())
             ->with('platform')
+            ->when($query !== '', function ($q) use ($query) {
+                $q->where(function ($sub) use ($query) {
+                    $sub->whereLike('title', '%' . $query . '%', caseSensitive: false)
+                        ->orWhere('ean', $query);
+                });
+            })
+            ->when($platformId !== '', fn ($q) => $q->where('platform_id', $platformId))
+            ->when($playStatus !== '', fn ($q) => $q->where('play_status', $playStatus))
+            ->when($status !== '', fn ($q) => $q->where('status', $status))
             ->latest()
-            ->paginate($perPage);
+            ->paginate($perPage)
+            ->withQueryString();
 
         // Al pasarle un paginador, el Resource añade 'links' y 'meta' con la
         // info de paginación al JSON automáticamente.

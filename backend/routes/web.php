@@ -3,7 +3,9 @@
 use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\EditionController;
 use App\Http\Controllers\Web\GameController;
+use App\Http\Controllers\Web\GameImportController;
 use App\Http\Controllers\Web\ManufacturerController;
+use App\Http\Controllers\Web\PasswordResetController;
 use App\Http\Controllers\Web\PlatformController;
 use App\Http\Controllers\Web\ProfileController;
 use App\Http\Controllers\Web\StatsController;
@@ -20,6 +22,12 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('web.login.attempt');
+
+    // Recuperación de contraseña: pedir enlace por email y consumirlo con un token de un solo uso.
+    Route::get('/forgot-password', [PasswordResetController::class, 'showForgot'])->name('password.request');
+    Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLink'])->name('password.email');
+    Route::get('/reset-password/{token}', [PasswordResetController::class, 'showReset'])->name('password.reset');
+    Route::post('/reset-password', [PasswordResetController::class, 'reset'])->name('password.update');
 });
 
 /*
@@ -42,11 +50,20 @@ Route::middleware('auth')->group(function () {
     // '/games/{game}' y buscando un juego con id "create".
     Route::get('/games/create', [GameController::class, 'create'])->name('web.games.create');
 
+    // Importación masiva desde CSV (volcado inicial de la colección).
+    Route::get('/games/import', [GameImportController::class, 'create'])->name('web.games.import');
+    Route::post('/games/import', [GameImportController::class, 'store'])->name('web.games.import.store');
+    Route::get('/games/import/template', [GameImportController::class, 'template'])->name('web.games.import.template');
+
     // Papelera: juegos borrados (soft delete) del usuario, con opción de
     // restaurar o eliminar definitivamente.
     Route::get('/games/trash', [GameController::class, 'trash'])->name('web.games.trash');
     Route::post('/games/{id}/restore', [GameController::class, 'restore'])->name('web.games.restore');
     Route::delete('/games/{id}/force-delete', [GameController::class, 'forceDelete'])->name('web.games.force-delete');
+
+    // Acciones en bloque sobre varios juegos a la vez desde el listado.
+    Route::post('/games/bulk-delete', [GameController::class, 'bulkDestroy'])->name('web.games.bulk-delete');
+    Route::post('/games/bulk-play-status', [GameController::class, 'bulkUpdatePlayStatus'])->name('web.games.bulk-play-status');
 
     Route::post('/games', [GameController::class, 'store'])->name('web.games.store');
     Route::get('/games/{game}/edit', [GameController::class, 'edit'])->name('web.games.edit');

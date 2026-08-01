@@ -17,7 +17,45 @@
         </div>
     </div>
 
-    <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
+    <!-- Tarjetas: listado en pantallas estrechas, sin scroll horizontal -->
+    <div class="md:hidden space-y-2.5">
+        @forelse($platforms as $platform)
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+                <div class="flex items-start justify-between gap-3">
+                    <x-platform-chip :platform="$platform" />
+
+                    <div class="flex items-center gap-1 flex-shrink-0">
+                        <a href="{{ route('web.platforms.edit', $platform->id) }}"
+                            class="flex items-center justify-center w-8 h-8 rounded-full text-slate-400 hover:bg-slate-800 hover:text-indigo-400 active:bg-slate-800 transition-colors"
+                            aria-label="Editar {{ $platform->name }}">
+                            <x-gicon name="edit" class="text-[18px]" />
+                        </a>
+
+                        <form action="{{ route('web.platforms.destroy', $platform->id) }}" method="POST" class="js-confirm-delete"
+                            data-confirm-title="Borrar plataforma"
+                            data-confirm-message="«{{ $platform->name }}» se borrará. Los juegos asociados se quedarán sin plataforma.">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit"
+                                class="flex items-center justify-center w-8 h-8 rounded-full text-slate-400 hover:bg-slate-800 hover:text-red-400 active:bg-slate-800 transition-colors"
+                                aria-label="Borrar {{ $platform->name }}">
+                                <x-gicon name="delete" class="text-[18px]" />
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <p class="text-sm text-slate-400 mt-2">{{ $platform->name }} · {{ $platform->manufacturer?->name ?? 'Sin fabricante' }}</p>
+            </div>
+        @empty
+            <div class="bg-slate-900 border border-slate-800 rounded-xl px-6 py-12 text-center text-slate-500 text-sm">
+                No hay plataformas registradas todavía.
+            </div>
+        @endforelse
+    </div>
+
+    <!-- Tabla: listado en pantallas medianas y grandes -->
+    <div class="hidden md:block bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-800">
             <thead class="bg-slate-800/50">
                 <tr>

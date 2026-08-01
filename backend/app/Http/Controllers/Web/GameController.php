@@ -6,14 +6,28 @@ use App\Http\Controllers\Controller;
 use App\Models\Edition;
 use App\Models\Game;
 use App\Models\Platform;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class GameController extends Controller
 {
+    /**
+     * Columnas por las que se puede ordenar el listado desde ?sort=, mapeadas
+     * a la columna real (evita pasar un nombre de columna arbitrario del
+     * usuario directamente a orderBy()).
+     */
+    private const SORTABLE_COLUMNS = [
+        'title' => 'title',
+        'price_paid' => 'price_paid',
+        'rating' => 'rating',
+        'purchase_date' => 'purchase_date',
+    ];
 
-    // Colección del usuario, con búsqueda por título/EAN y filtros por plataforma/estado (?q=, ?platform_id=, ?play_status=, ?status=)
+    // Colección del usuario, con búsqueda por título/EAN, filtros por plataforma/estado
+    // (?q=, ?platform_id=, ?play_status=, ?status=) y orden (?sort=, ?dir=)
     public function index(Request $request)
     {
         // ConvertEmptyStringsToNull (middleware por defecto) transforma los campos
@@ -23,6 +37,9 @@ class GameController extends Controller
         $platformId = (string) $request->input('platform_id', '');
         $playStatus = (string) $request->input('play_status', '');
         $status = (string) $request->input('status', '');
+        $sort = (string) $request->input('sort', '');
+        $dir = $request->input('dir') === 'asc' ? 'asc' : 'desc';
+        $sortColumn = self::SORTABLE_COLUMNS[$sort] ?? null;
 
         $games = Game::where('user_id', auth()->id())
             // Solo las columnas que pinta el listado: notes/data/genres/etc. serían
@@ -48,13 +65,17 @@ class GameController extends Controller
             ->when($platformId !== '', fn ($q) => $q->where('platform_id', $platformId))
             ->when($playStatus !== '', fn ($q) => $q->where('play_status', $playStatus))
             ->when($status !== '', fn ($q) => $q->where('status', $status))
-            ->latest()
+            ->when(
+                $sortColumn !== null,
+                fn ($q) => $q->orderBy($sortColumn, $dir)->orderByDesc('id'),
+                fn ($q) => $q->latest(),
+            )
             ->paginate(20)
             ->withQueryString();
 
         $platforms = Platform::orderBy('name')->get();
 
-        return view('games.index', compact('games', 'query', 'platforms', 'platformId', 'playStatus', 'status'));
+        return view('games.index', compact('games', 'query', 'platforms', 'platformId', 'playStatus', 'status', 'sort', 'dir'));
     }
 
     // Muestra el formulario de alta
@@ -133,6 +154,59 @@ class GameController extends Controller
         $game->delete();
 
         return redirect()->route('web.games.index')->with('success', 'Juego enviado a la papelera.');
+    }
+
+    /**
+     * Envía a la papelera de golpe todos los juegos seleccionados en el listado.
+     */
+    public function bulkDestroy(Request $request): RedirectResponse
+    {
+        $ids = $this->ownedSelectedIds($request);
+
+        Game::whereIn('id', $ids)->delete();
+
+        return redirect()->route('web.games.index')->with(
+            'success',
+            count($ids) . ' ' . Str::plural('juego', count($ids)) . ' ' . (count($ids) === 1 ? 'enviado' : 'enviados') . ' a la papelera.'
+        );
+    }
+
+    /**
+     * Cambia el estado de juego (pendiente/jugando/terminado) de golpe a
+     * todos los juegos seleccionados en el listado.
+     */
+    public function bulkUpdatePlayStatus(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'play_status' => 'required|string|in:pending,playing,finished',
+        ]);
+
+        $ids = $this->ownedSelectedIds($request);
+
+        Game::whereIn('id', $ids)->update(['play_status' => $validated['play_status']]);
+
+        return redirect()->route('web.games.index')->with(
+            'success',
+            'Estado actualizado en ' . count($ids) . ' ' . Str::plural('juego', count($ids)) . '.'
+        );
+    }
+
+    /**
+     * IDs seleccionados en el formulario, acotados a los que de verdad
+     * pertenecen al usuario autenticado (evita que alguien manipule el HTML
+     * y mande el ID de un juego ajeno).
+     */
+    private function ownedSelectedIds(Request $request): array
+    {
+        $request->validate([
+            'game_ids' => 'required|array|min:1',
+            'game_ids.*' => 'integer',
+        ]);
+
+        return Game::where('user_id', auth()->id())
+            ->whereIn('id', $request->input('game_ids'))
+            ->pluck('id')
+            ->all();
     }
 
     /**

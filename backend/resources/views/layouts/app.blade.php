@@ -8,12 +8,19 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
     <script>
-        // Bloqueante a propósito: aplica el estado guardado del sidebar antes del primer
-        // pintado para que no haya un parpadeo al pasar de expandido a plegado (o viceversa).
+        // Bloqueante a propósito: aplica el estado guardado del sidebar y del tema antes
+        // del primer pintado para que no haya parpadeo (sidebar expandido/plegado, u
+        // oscuro/claro) al cargar o al navegar entre páginas.
         (function () {
             try {
                 if (localStorage.getItem('sp:sidebarCollapsed') === '1') {
                     document.documentElement.classList.add('sidebar-collapsed');
+                }
+                if (localStorage.getItem('sp:theme') === 'light') {
+                    document.documentElement.classList.add('light');
+                }
+                if (localStorage.getItem('sp:gamesView') === 'grid') {
+                    document.documentElement.classList.add('games-grid-view');
                 }
             } catch (e) {}
         })();
@@ -39,17 +46,24 @@
                 </a>
             </div>
 
-            <form action="{{ route('web.logout') }}" method="POST" class="flex items-center gap-4 flex-shrink-0">
-                <a href="{{ route('web.profile.edit') }}" class="flex items-center gap-1.5 text-sm text-indigo-100 hover:text-white transition-colors {{ request()->routeIs('web.profile.*') ? 'text-white font-medium' : '' }}">
-                    <x-gicon name="account_circle" class="text-[18px]" />
-                    <span class="hidden sm:inline">{{ auth()->user()->email }}</span>
-                </a>
-                @csrf
-                <button type="submit" class="flex items-center gap-1.5 text-sm font-medium text-indigo-100 hover:text-white transition-colors">
-                    <x-gicon name="logout" class="text-[18px]" />
-                    <span class="hidden sm:inline">Salir</span>
+            <div class="flex items-center gap-4 flex-shrink-0">
+                <button type="button" class="js-theme-toggle flex items-center justify-center w-8 h-8 rounded-lg text-indigo-100 hover:bg-white/10 hover:text-white transition-colors"
+                    aria-label="Cambiar tema">
+                    <x-gicon name="light_mode" class="text-[20px]" />
                 </button>
-            </form>
+
+                <form action="{{ route('web.logout') }}" method="POST" class="flex items-center gap-4">
+                    <a href="{{ route('web.profile.edit') }}" class="flex items-center gap-1.5 text-sm text-indigo-100 hover:text-white transition-colors {{ request()->routeIs('web.profile.*') ? 'text-white font-medium' : '' }}">
+                        <x-gicon name="account_circle" class="text-[18px]" />
+                        <span class="hidden sm:inline">{{ auth()->user()->email }}</span>
+                    </a>
+                    @csrf
+                    <button type="submit" class="flex items-center gap-1.5 text-sm font-medium text-indigo-100 hover:text-white transition-colors">
+                        <x-gicon name="logout" class="text-[18px]" />
+                        <span class="hidden sm:inline">Salir</span>
+                    </button>
+                </form>
+            </div>
         </header>
 
         <!-- Cuerpo: sidebar + contenido, esquinas superiores redondeadas -->

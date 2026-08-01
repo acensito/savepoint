@@ -8,6 +8,52 @@
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
 
+/* Tema claro/oscuro: la app se diseñó en oscuro, así que las clases de cada
+   vista (bg-slate-900, text-slate-400, border-slate-800...) siguen siendo
+   las mismas en los dos temas. Lo que cambia es a qué color apunta cada
+   variable de Tailwind cuando el <html> lleva la clase 'light': redefinimos
+   aquí esas variables (con los valores que Tailwind ya trae de fábrica para
+   los tonos opuestos de la escala) en vez de tocar cada plantilla. Así
+   'bg-slate-900' pasa de "casi negro" a "gris muy claro" sin cambiar una
+   sola clase en los .blade.php, incluidas las variantes con opacidad
+   (bg-slate-800/50, hover:bg-slate-800/40...), que Tailwind calcula a
+   partir de la misma variable con color-mix().
+   Sin la clase 'light' (por defecto) no cambia nada: se sigue viendo
+   exactamente el tema oscuro de siempre. */
+:root {
+    color-scheme: dark;
+}
+
+:root.light {
+    color-scheme: light;
+
+    /* Superficies y bordes: espejo de la escala alrededor del punto medio
+       (950↔50, 900↔100, 800↔200...) para conservar la misma jerarquía de
+       "cuánto destaca" cada capa, pero en claro. */
+    --color-slate-950: var(--color-slate-50);
+    --color-slate-900: var(--color-slate-100);
+    --color-slate-800: var(--color-slate-200);
+    --color-slate-700: var(--color-slate-300);
+    --color-slate-600: var(--color-slate-400);
+    --color-slate-400: var(--color-slate-600);
+    --color-slate-300: var(--color-slate-700);
+    --color-slate-200: var(--color-slate-800);
+    --color-slate-100: var(--color-slate-900);
+
+    /* Texto de color (enlaces, iconos de estado, avisos) que en oscuro usa
+       tonos claros (400/300) para resaltar sobre fondos negros: sobre fondo
+       claro esos mismos tonos no tienen contraste suficiente, así que se
+       oscurecen. Los tonos 500/600 que se usan como fondo (botones, chips a
+       10-20% de opacidad) no se tocan: ya funcionan bien en los dos temas. */
+    --color-indigo-400: var(--color-indigo-600);
+    --color-indigo-300: var(--color-indigo-700);
+    --color-red-400: var(--color-red-600);
+    --color-red-300: var(--color-red-800);
+    --color-emerald-400: var(--color-emerald-600);
+    --color-emerald-300: var(--color-emerald-700);
+    --color-amber-400: var(--color-amber-600);
+}
+
 /* Sidebar plegable: el ancho y el estado colapsado se controlan aquí (no con
    utilidades de Tailwind) para poder alternarlos con una sola clase en <html>,
    aplicada antes del primer pintado desde el script bloqueante del layout. */
@@ -62,6 +108,32 @@ html.sidebar-collapsed #sidebar-toggle-icon {
     html.mobile-drawer-open body {
         overflow: hidden;
     }
+}
+
+/* El preflight de Tailwind resetea 'margin' a 0 en todos los elementos,
+   incluido <dialog>. Sin margen, el 'margin: auto' que el navegador usa por
+   defecto para centrar un <dialog> abierto con showModal() desaparece y el
+   diálogo se queda pegado en la esquina superior izquierda. */
+dialog {
+    margin: auto;
+}
+
+/* Vista de estantería de la colección (games/index.blade.php): alternativa en
+   grid de carátulas grandes a la tabla/tarjetas habituales. Los selectores de
+   ID pesan más que las utilidades de Tailwind (evita depender del orden de
+   generación de clases) para decidir cuál de las dos vistas se muestra según
+   la clase que el script bloqueante del <head> aplica a <html> a partir de
+   la preferencia guardada. */
+#view-grid {
+    display: none;
+}
+
+html.games-grid-view #view-list {
+    display: none;
+}
+
+html.games-grid-view #view-grid {
+    display: grid;
 }
 
 /* Quita el triángulo nativo del <summary> del panel de filtros colapsable
