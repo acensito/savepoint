@@ -23,6 +23,7 @@ El proyecto está construido como backend Laravel que sirve tanto una interfaz w
 - La consulta del listado solo trae las columnas y relaciones que la vista pinta (evita cargar `notes`/`data`/`genres` innecesariamente y N+1 en `platform`/`edition`).
 - Edición de un juego existente, incluida la opción de reemplazar o quitar la carátula.
 - Baja de un juego mediante **papelera de reciclaje** (soft delete): panel dedicado (`/games/trash`) para ver los juegos borrados, restaurarlos o eliminarlos definitivamente (esto último borra también el fichero de la carátula).
+- **Importación masiva** (`/games/import`) desde un CSV (coma o punto y coma, con o sin BOM de Excel): solo el título es obligatorio, cada fila se procesa de forma independiente (una fila con error no bloquea al resto) y las plataformas/ediciones que el CSV mencione y no existan todavía en el catálogo se crean automáticamente. Hay una plantilla de ejemplo descargable desde la propia página. Tras importar se muestra un resumen (juegos importados, plataformas/ediciones creadas, filas con incidencias).
 - Al editar/reemplazar la carátula, el fichero anterior se borra del disco (`storage/app/public/covers`) para no dejar huérfanos.
 - Panel de gestión de ediciones (`/editions`) para dar de alta ediciones (normal/especial/coleccionista/...) asociadas a una o varias plataformas, con un botón "Seleccionar todas"/"Ninguna" para no marcarlas una a una; el campo `edition_id` del juego se filtra según la plataforma elegida en el formulario. Si la edición que necesitas no existe todavía, se puede crear al vuelo desde el propio formulario de alta/edición de juego (modal + AJAX) sin perder lo ya rellenado.
 
@@ -37,10 +38,11 @@ El proyecto está construido como backend Laravel que sirve tanto una interfaz w
 - **Web:** login/logout con sesión (regenera el ID de sesión al iniciar sesión para evitar session fixation; redirige a la página original tras el login).
 - **API:** login/logout con emisión y revocación de token Sanctum, pensado para un cliente externo (app móvil).
 - **Perfil** (`/profile`): el usuario puede actualizar su nombre/email y cambiar su contraseña (pide la contraseña actual para confirmarla).
+- **Recuperación de contraseña** (`/forgot-password`, `/reset-password/{token}`): flujo estándar de Laravel (token de un solo uso, expira a los 60 minutos, mismo mensaje de éxito exista o no el email para no revelar qué cuentas están registradas). El email se envía por el canal configurado en `MAIL_MAILER` (`log` por defecto en desarrollo, así que el enlace aparece en `storage/logs/laravel.log`).
 
 ### API REST
 - CRUD de juegos (`GET/POST/PUT/DELETE /api/games`) protegido con `auth:sanctum`.
-- El listado (`index`) pagina: 20 juegos por página por defecto, admite `?per_page=` con tope de 100.
+- El listado (`index`) pagina: 20 juegos por página por defecto, admite `?per_page=` con tope de 100. Admite los mismos filtros que el listado web: `?q=` (título o EAN), `?platform_id=`, `?play_status=` y `?status=`.
 - Respuestas transformadas con `GameResource` (aplana la plataforma a su nombre, expone URL de carátula, etc.).
 - Validación de entrada separada en `StoreGameRequest` / `UpdateGameRequest`.
 
@@ -58,8 +60,15 @@ El proyecto está construido como backend Laravel que sirve tanto una interfaz w
 - Sidebar plegable (escritorio): un botón en su cabecera lo contrae a solo iconos (de 15rem a 4.5rem) para aprovechar el ancho en pantallas 1080p; cada enlace muestra su nombre como tooltip nativo mientras está colapsado. La preferencia se guarda en `localStorage` y se aplica antes del primer pintado (vía un script bloqueante en el `<head>`) para no parpadear al navegar entre páginas. Implementado en JS vanilla (sin Alpine ni otra dependencia).
 - Navegación móvil (< 768px): el sidebar deja de ocupar ancho fijo y pasa a ser un drawer superpuesto que entra desde la izquierda, con botón hamburguesa en el header y fondo oscuro; se cierra tocando fuera, el botón de cerrar o cualquier enlace del menú.
 - Colección en móvil: el listado se muestra como tarjetas (carátula, plataforma, estado, valoración y precio, con acciones de editar/borrar como botones de icono) en vez de la tabla de escritorio. El buscador y los filtros quedan colapsados detrás de un botón "Buscar y filtrar" (con contador de filtros activos, y abierto automáticamente si ya venías con alguno aplicado) para no ocupar la pantalla principal; usa `<details>` nativo, sin JS adicional.
+- Paneles de catálogo en móvil (fabricantes, plataformas, ediciones): igual que la colección, pasan de la tabla con scroll horizontal a tarjetas con la misma información y acciones de editar/borrar como botones de icono.
 - Formularios (alta/edición de juego, perfil, fabricantes, plataformas) apilan sus campos en una sola columna en pantallas estrechas en vez de apretarlos en el mismo grid que escritorio.
-- Feedback de acciones: los mensajes de éxito se muestran como un toast flotante que se desvanece solo (antes eran banners fijos, duplicados en cada vista, y en la colección principal directamente no se mostraban). Las acciones destructivas (borrar juego, plataforma, fabricante, edición, o eliminar definitivamente desde la papelera) piden confirmación en un `<dialog>` propio con el nombre del elemento afectado, en vez del `confirm()` del navegador. Ambos son un único componente compartido en el layout, reutilizado desde cualquier vista.
+- Feedback de acciones: los mensajes de éxito se muestran como un toast flotante que se desvanece solo (antes eran banners fijos, duplicados en cada vista, y en la colección principal directamente no se mostraban). Las acciones destructivas (borrar juego, plataforma, fabricante, edición, o eliminar definitivamente desde la papelera) piden confirmación en un `<dialog>` propio con el nombre del elemento afectado, en vez del `confirm()` del navegador. Ambos son un único componente compartido en el layout, reutilizado desde cualquier vista. El `<dialog>` se centra en pantalla vía `margin: auto` (se declara explícitamente en `app.css` porque el preflight de Tailwind resetea el margin por defecto de todos los elementos, y sin él el navegador no puede centrar un `<dialog>` abierto con `showModal()`).
+- Tema claro/oscuro: botón en el header (y en las pantallas de login/recuperar contraseña) que alterna entre los dos, persistido en `localStorage` y aplicado antes del primer pintado (mismo mecanismo que el sidebar). Técnicamente no se tocó ninguna vista: cada plantilla sigue usando las mismas clases de Tailwind (`bg-slate-900`, `text-slate-400`...) de siempre, y lo que cambia con la clase `light` en `<html>` es a qué color apunta cada variable de la paleta (`app.css`), así que da igual cuántas vistas nuevas se añadan en el futuro, heredan el tema sin tocar nada.
+- Orden del listado de la colección (`?sort=`, `?dir=`): por título, precio, valoración o fecha de compra, ascendente o descendente, combinable con la búsqueda y los filtros.
+- Atajo de teclado `/` para enfocar el buscador de la colección, como en GitHub o Gmail.
+- Acciones en bloque en la colección: casillas de selección (una por fila/tarjeta, más "seleccionar todo" en la tabla de escritorio) para enviar varios juegos a la papelera o cambiarles el estado de juego de golpe, sin repetir la acción uno a uno.
+- Botón flotante ("Añadir juego") fijo en la esquina inferior derecha en móvil, para no tener que volver arriba al hacer scroll por una colección larga.
+- Vista de estantería: alternativa en grid de carátulas grandes al listado habitual (tabla/tarjetas), con el mismo botón de alternancia persistido en `localStorage` que el tema.
 
 ## Desarrollo con Docker
 
@@ -93,20 +102,36 @@ El entorno de test es independiente del de desarrollo: `phpunit.xml` fuerza `APP
 Cobertura actual:
 - `Tests\Feature\Auth\WebAuthTest`: login/logout, credenciales inválidas, redirect a la página originalmente solicitada, protección de rutas para invitados, bloqueo por fuerza bruta.
 - `Tests\Feature\Api\AuthTest`: login/logout vía Sanctum (emisión y revocación de token), `/api/user` protegido, bloqueo por fuerza bruta.
-- `Tests\Feature\Api\GameControllerTest`: CRUD completo de la API, paginación (tamaño por defecto, `per_page` a medida y con tope), scoping por usuario y `GamePolicy` bloqueando acceso a juegos ajenos (403 en view/update/delete).
+- `Tests\Feature\Api\GameControllerTest`: CRUD completo de la API, paginación (tamaño por defecto, `per_page` a medida y con tope), filtros (`q`, `platform_id`, `play_status`, `status`), scoping por usuario y `GamePolicy` bloqueando acceso a juegos ajenos (403 en view/update/delete).
 - `Tests\Feature\Web\GameControllerTest`: alta y edición de juegos con subida/reemplazo de carátula real, validación, `GamePolicy` aplicada en las rutas web, y la papelera (listar/restaurar/eliminar definitivamente, con scoping por usuario).
+- `Tests\Feature\Web\GameImportControllerTest`: importación desde CSV (con/sin BOM, separador coma o punto y coma), creación automática de plataformas/ediciones que no existían, filas sin título omitidas y reportadas como incidencia, validación del fichero subido.
+- `Tests\Feature\Web\ManufacturerControllerTest` / `PlatformControllerTest` / `EditionControllerTest`: CRUD de cada panel de catálogo, validaciones propias (colores en formato hex, nombre único de fabricante, colores obligatorios solo si se sobrescriben en una plataforma) y que borrar un registro deja en `null` la relación en juegos/plataformas en vez de arrastrar el borrado.
+- `Tests\Feature\Web\ProfileControllerTest`: actualización de nombre/email (con email único), cambio de contraseña exigiendo la actual y confirmación.
+- `Tests\Feature\Web\StatsControllerTest`: los totales y repartos (por plataforma, estado de juego y propiedad) solo consideran los juegos del usuario autenticado.
+- `Tests\Feature\Web\PasswordResetTest`: envío del enlace de reset (mismo mensaje exista o no el email), reset con token válido/inválido.
 - `Tests\Unit\Models\GameTest` / `PlatformTest`: iniciales y URL de carátula, resolución de colores/etiqueta de chip con fallback a fabricante.
 
 ## Pendiente / en curso
 
-- Ampliar tests a lo que queda sin cubrir: paneles de catálogo (fabricantes/plataformas/ediciones), perfil de usuario y estadísticas.
-- Responsive/mobile: hecho para la navegación, el listado principal (tarjetas + filtros colapsables) y los formularios de alta/edición/perfil (ver "Interfaz"). Falta: los paneles de catálogo (fabricantes/plataformas/ediciones) solo tienen scroll horizontal en la tabla, sin vista de tarjetas propia.
-- Importar/exportar la colección: de momento interesa sobre todo la **importación** (volcado inicial de datos desde la hoja Excel actual). Falta decidir formato de entrada (¿CSV/Excel con las columnas ya vistas en el listado?) y cómo mapear plataformas/ediciones existentes vs. crearlas sobre la marcha.
-- Sin recuperación de contraseña (no hay flujo de email/token de reset).
-- La API no filtra el listado de juegos (ya pagina, pero no admite búsqueda por título/EAN ni filtros por plataforma/estado como el listado web); no es un problema con la colección actual, pero conviene resolverlo antes de construir el cliente móvil.
+- Exportación de la colección (la importación desde CSV ya está implementada, ver "Importación masiva").
 - Sin backups automatizados de Postgres (ni `pg_dump` programado ni snapshot del volumen).
 
 ## Changelog
+
+### 2026-08-02
+- Filtros en la API (`GET /api/games`): mismos parámetros que el listado web (`q`, `platform_id`, `play_status`, `status`), para desbloquear el futuro cliente móvil.
+- Recuperación de contraseña (`/forgot-password`, `/reset-password/{token}`): flujo estándar de Laravel con token de un solo uso, mismo mensaje de éxito exista o no el email.
+- Importación masiva de la colección desde CSV (`/games/import`): solo el título es obligatorio, fila a fila (una fila con error no bloquea el resto), plataformas/ediciones nuevas se crean automáticamente, plantilla de ejemplo descargable y resumen de resultado tras importar.
+- Paneles de catálogo (fabricantes, plataformas, ediciones) con vista de tarjetas en móvil, igual que el listado principal, en vez de solo scroll horizontal en la tabla.
+- Tests: paneles de catálogo, perfil de usuario, estadísticas, recuperación de contraseña, importación CSV y los nuevos filtros de la API.
+- Arreglado el centrado de los `<dialog>` (confirmación de borrado, alta rápida de edición): salían pegados a la esquina superior izquierda por un choque entre el preflight de Tailwind y el centrado nativo del navegador.
+- Tema claro/oscuro con botón en el header (y en login/recuperar contraseña), persistido en `localStorage`.
+- Orden del listado de la colección por título, precio, valoración o fecha de compra.
+- Atajo de teclado `/` para enfocar el buscador de la colección.
+- Acciones en bloque en la colección: seleccionar varios juegos y enviarlos a la papelera o cambiarles el estado de juego de golpe.
+- Botón flotante de "Añadir juego" en móvil.
+- Vista de estantería (grid de carátulas grandes) como alternativa al listado habitual.
+- Tests de las acciones en bloque y de la ordenación del listado (110 tests en total).
 
 ### 2026-08-01
 - Papelera de reciclaje con interfaz (`/games/trash`): restaurar o eliminar definitivamente un juego borrado (con limpieza de la carátula en disco).
