@@ -116,6 +116,24 @@ Cobertura actual:
 - Exportación de la colección (la importación desde CSV ya está implementada, ver "Importación masiva").
 - Sin backups automatizados de Postgres (ni `pg_dump` programado ni snapshot del volumen).
 
+### Ideas de interfaz/funcionalidad sin priorizar
+
+Rápidas:
+- Aviso de EAN duplicado al dar de alta un juego. Ojo: hay juegos antiguos sin EAN, así que la comprobación solo puede saltar cuando el EAN introducido no está vacío y ya existe en la colección del usuario — dos juegos sin EAN nunca deben marcarse como duplicados entre sí.
+- Buscador y filtro por plataforma en la papelera (`/games/trash`), igual que ya tiene el listado principal.
+- Paginación configurable en el listado web (la API ya admite `?per_page=`, la web no).
+- Botón "Deshacer" en el toast al enviar un juego a la papelera, sin tener que ir a `/games/trash`.
+
+Medias:
+- Ficha de detalle de solo lectura por juego (`/games/{id}`), en vez de tener que abrir el formulario de edición para "solo mirar".
+- Edición rápida (valoración/estado de juego) desde la propia fila del listado, por AJAX.
+- Vista previa del CSV antes de importar: primeras filas y a qué columna se ha mapeado cada una, antes de confirmar.
+
+Grandes:
+- Buscador global tipo "Cmd+K" (paleta de comandos) para saltar a un juego/plataforma/sección sin ratón.
+- Estadísticas más ricas: evolución del gasto por mes/año, top de géneros, juego más caro/mejor valorado.
+- Verificación de email / 2FA (el modelo `User` ya tiene `MustVerifyEmail` comentado en el código); opcional para uso personal, interesante si la cuenta se comparte con más gente.
+
 ## Changelog
 
 ### 2026-08-02
