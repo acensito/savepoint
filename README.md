@@ -18,12 +18,15 @@ El proyecto está construido como backend Laravel que sirve tanto una interfaz w
 ### Gestión de la colección de juegos
 - Alta de un juego mediante un único formulario directo — sin pasos intermedios de búsqueda previa, ya que no hay scraping de fuentes externas. Cubre prácticamente todo el modelo: título, EAN, desarrollador, plataforma, fecha de lanzamiento, géneros, propiedad (en colección/lista de deseos/vendido, "en colección" por defecto), estado de juego, valoración, precio y lugar/fecha de compra, manual (con manual/sin manual/folleto), región, clasificación por edad y notas.
 - **Carátula**: se sube desde el propio formulario (JPG/PNG/WEBP, máx. 1MB) con vista previa en vivo que respeta la proporción real de la imagen — ancho fijo y alto automático, así que una portada cuadrada (caja de PC/CD) sale cuadrada y una portrait (la mayoría de cajas de consola) crece en alto sin recortarse. Si el juego no tiene carátula, se muestra un recuadro con las iniciales del título en su lugar (tanto en el listado como en el formulario), generado con `Game::coverInitials()`.
-- Listado de la colección (página principal) con miniatura, título, plataforma, edición, estado, región, manual, valoración (estrellas), precio y fecha de compra, paginado.
-- Búsqueda dentro de la propia colección por **título** o **EAN**, más filtros por **plataforma**, **estado de juego** y **propiedad**, todo combinable desde la página principal.
+- Listado de la colección (página principal) con miniatura, título, plataforma, edición, estado, región, manual, valoración (estrellas), precio y fecha de compra, paginado (tamaño de página configurable desde el propio filtro: 10/20/50/100).
+- Búsqueda dentro de la propia colección por **título** o **EAN**: por defecto es un buscador simple que filtra en vivo según se escribe (AJAX, sin recargar la página), y un botón "Avanzado" despliega el resto de filtros (**plataforma**, **estado de juego**, **propiedad**, orden y tamaño de página) para cuando hacen falta.
 - La consulta del listado solo trae las columnas y relaciones que la vista pinta (evita cargar `notes`/`data`/`genres` innecesariamente y N+1 en `platform`/`edition`).
+- **Ficha de detalle de solo lectura** (`/games/{id}`) con toda la información del juego, para "solo mirar" sin abrir el formulario de edición. El título de cada juego en el listado (tabla, tarjetas o estantería) enlaza aquí.
+- **Edición rápida** de la valoración y el estado de juego directamente desde la fila/tarjeta del listado (clic en una estrella, o en el estado para pasar al siguiente), por AJAX, sin abrir el formulario completo.
 - Edición de un juego existente, incluida la opción de reemplazar o quitar la carátula.
-- Baja de un juego mediante **papelera de reciclaje** (soft delete): panel dedicado (`/games/trash`) para ver los juegos borrados, restaurarlos o eliminarlos definitivamente (esto último borra también el fichero de la carátula).
-- **Importación masiva** (`/games/import`) desde un CSV (coma o punto y coma, con o sin BOM de Excel): solo el título es obligatorio, cada fila se procesa de forma independiente (una fila con error no bloquea al resto) y las plataformas/ediciones que el CSV mencione y no existan todavía en el catálogo se crean automáticamente. Hay una plantilla de ejemplo descargable desde la propia página. Tras importar se muestra un resumen (juegos importados, plataformas/ediciones creadas, filas con incidencias).
+- Al dar de alta o editar un juego con un EAN que ya tienes registrado, se avisa antes de guardar en vez de duplicarlo sin más (con opción de "guardar de todos modos" para el caso legítimo de tener dos copias físicas). Los juegos sin EAN nunca activan el aviso entre sí.
+- Baja de un juego mediante **papelera de reciclaje** (soft delete): panel dedicado (`/games/trash`, con su propio buscador por título/EAN y filtro por plataforma) para ver los juegos borrados, restaurarlos o eliminarlos definitivamente (esto último borra también el fichero de la carátula). El toast que aparece al borrar un juego lleva un botón "Deshacer" que lo restaura sin salir de la colección.
+- **Importación masiva** (`/games/import`) desde un CSV (coma o punto y coma, con o sin BOM de Excel): solo el título es obligatorio, cada fila se procesa de forma independiente (una fila con error no bloquea al resto) y las plataformas/ediciones que el CSV mencione y no existan todavía en el catálogo se crean automáticamente. Al elegir el fichero se muestra antes una **vista previa** (columnas reconocidas/no reconocidas y las primeras filas) sin importar nada todavía. Hay una plantilla de ejemplo descargable desde la propia página. Tras importar se muestra un resumen (juegos importados, plataformas/ediciones creadas, filas con incidencias).
 - Al editar/reemplazar la carátula, el fichero anterior se borra del disco (`storage/app/public/covers`) para no dejar huérfanos.
 - Panel de gestión de ediciones (`/editions`) para dar de alta ediciones (normal/especial/coleccionista/...) asociadas a una o varias plataformas, con un botón "Seleccionar todas"/"Ninguna" para no marcarlas una a una; el campo `edition_id` del juego se filtra según la plataforma elegida en el formulario. Si la edición que necesitas no existe todavía, se puede crear al vuelo desde el propio formulario de alta/edición de juego (modal + AJAX) sin perder lo ya rellenado.
 
@@ -48,6 +51,7 @@ El proyecto está construido como backend Laravel que sirve tanto una interfaz w
 
 ### Estadísticas
 - Panel (`/stats`) con total de juegos, gasto total y valoración media, reparto de juegos por plataforma (barra por plataforma), y reparto por estado de juego y por propiedad (barras apiladas con leyenda).
+- Evolución del gasto por mes de compra (gráfico de barras, últimos 12 meses con datos), top de géneros más repetidos en la colección, y destacados (juego más caro y mejor valorado, con enlace a su ficha).
 
 ### Seguridad de datos
 - Cada juego pertenece a un usuario (`user_id`), asignado siempre al usuario autenticado (`auth()->id()` / `$request->user()->id`) al crearlo, tanto en web como en API.
@@ -66,8 +70,10 @@ El proyecto está construido como backend Laravel que sirve tanto una interfaz w
 - Tema claro/oscuro: botón en el header (y en las pantallas de login/recuperar contraseña) que alterna entre los dos, persistido en `localStorage` y aplicado antes del primer pintado (mismo mecanismo que el sidebar). Técnicamente no se tocó ninguna vista: cada plantilla sigue usando las mismas clases de Tailwind (`bg-slate-900`, `text-slate-400`...) de siempre, y lo que cambia con la clase `light` en `<html>` es a qué color apunta cada variable de la paleta (`app.css`), así que da igual cuántas vistas nuevas se añadan en el futuro, heredan el tema sin tocar nada.
 - Orden del listado de la colección (`?sort=`, `?dir=`): por título, precio, valoración o fecha de compra, ascendente o descendente, combinable con la búsqueda y los filtros.
 - Atajo de teclado `/` para enfocar el buscador de la colección, como en GitHub o Gmail.
-- Acciones en bloque en la colección: casillas de selección (una por fila/tarjeta, más "seleccionar todo" en la tabla de escritorio) para enviar varios juegos a la papelera o cambiarles el estado de juego de golpe, sin repetir la acción uno a uno.
+- Acciones en bloque en la colección: casillas de selección (una por fila/tarjeta, más "seleccionar todo" en la tabla de escritorio) para enviar varios juegos a la papelera o cambiarles el estado de juego de golpe, sin repetir la acción uno a uno. Las casillas están ocultas por defecto: solo aparecen al activar el "modo selección" (botón junto a "Añadir Juego"), para no ocupar espacio permanentemente en cada fila/tarjeta.
 - Botón flotante ("Añadir juego") fijo en la esquina inferior derecha en móvil, para no tener que volver arriba al hacer scroll por una colección larga.
+- Tres formas de ver la colección, alternables con un botón (persistido en `localStorage`, igual mecanismo que el tema): la habitual (tarjetas en móvil, tabla en escritorio), una tabla compacta (filas más bajas, mismos datos) y una estantería (grid de carátulas grandes).
+- Barra de estado discreta al pie de la colección (pegada al fondo del área de scroll): número total de juegos en la colección y gasto total invertido, sin depender de los filtros activos en cada momento.
 - Vista de estantería: alternativa en grid de carátulas grandes al listado habitual (tabla/tarjetas), con el mismo botón de alternancia persistido en `localStorage` que el tema.
 
 ## Desarrollo con Docker
@@ -103,11 +109,11 @@ Cobertura actual:
 - `Tests\Feature\Auth\WebAuthTest`: login/logout, credenciales inválidas, redirect a la página originalmente solicitada, protección de rutas para invitados, bloqueo por fuerza bruta.
 - `Tests\Feature\Api\AuthTest`: login/logout vía Sanctum (emisión y revocación de token), `/api/user` protegido, bloqueo por fuerza bruta.
 - `Tests\Feature\Api\GameControllerTest`: CRUD completo de la API, paginación (tamaño por defecto, `per_page` a medida y con tope), filtros (`q`, `platform_id`, `play_status`, `status`), scoping por usuario y `GamePolicy` bloqueando acceso a juegos ajenos (403 en view/update/delete).
-- `Tests\Feature\Web\GameControllerTest`: alta y edición de juegos con subida/reemplazo de carátula real, validación, `GamePolicy` aplicada en las rutas web, y la papelera (listar/restaurar/eliminar definitivamente, con scoping por usuario).
-- `Tests\Feature\Web\GameImportControllerTest`: importación desde CSV (con/sin BOM, separador coma o punto y coma), creación automática de plataformas/ediciones que no existían, filas sin título omitidas y reportadas como incidencia, validación del fichero subido.
+- `Tests\Feature\Web\GameControllerTest`: alta y edición de juegos con subida/reemplazo de carátula real, validación, aviso de EAN duplicado (con y sin confirmar), `GamePolicy` aplicada en las rutas web, la ficha de detalle, la edición rápida (valoración/estado) por AJAX, el fragmento que devuelve `index()` para peticiones AJAX, y la papelera (listar/restaurar/eliminar definitivamente, buscador/filtro propio, con scoping por usuario).
+- `Tests\Feature\Web\GameImportControllerTest`: importación desde CSV (con/sin BOM, separador coma o punto y coma), creación automática de plataformas/ediciones que no existían, filas sin título omitidas y reportadas como incidencia, validación del fichero subido, y la vista previa (columnas reconocidas/no reconocidas, filas de ejemplo, que no importa nada).
 - `Tests\Feature\Web\ManufacturerControllerTest` / `PlatformControllerTest` / `EditionControllerTest`: CRUD de cada panel de catálogo, validaciones propias (colores en formato hex, nombre único de fabricante, colores obligatorios solo si se sobrescriben en una plataforma) y que borrar un registro deja en `null` la relación en juegos/plataformas en vez de arrastrar el borrado.
 - `Tests\Feature\Web\ProfileControllerTest`: actualización de nombre/email (con email único), cambio de contraseña exigiendo la actual y confirmación.
-- `Tests\Feature\Web\StatsControllerTest`: los totales y repartos (por plataforma, estado de juego y propiedad) solo consideran los juegos del usuario autenticado.
+- `Tests\Feature\Web\StatsControllerTest`: los totales y repartos (por plataforma, estado de juego, propiedad, gasto por mes, top de géneros y destacados) solo consideran los juegos del usuario autenticado.
 - `Tests\Feature\Web\PasswordResetTest`: envío del enlace de reset (mismo mensaje exista o no el email), reset con token válido/inválido.
 - `Tests\Unit\Models\GameTest` / `PlatformTest`: iniciales y URL de carátula, resolución de colores/etiqueta de chip con fallback a fabricante.
 
@@ -118,26 +124,11 @@ Cobertura actual:
 
 ### Ideas de interfaz/funcionalidad sin priorizar
 
-Rápidas:
-- Aviso de EAN duplicado al dar de alta un juego. Ojo: hay juegos antiguos sin EAN, así que la comprobación solo puede saltar cuando el EAN introducido no está vacío y ya existe en la colección del usuario — dos juegos sin EAN nunca deben marcarse como duplicados entre sí.
-- Buscador y filtro por plataforma en la papelera (`/games/trash`), igual que ya tiene el listado principal.
-- Paginación configurable en el listado web (la API ya admite `?per_page=`, la web no).
-- Botón "Deshacer" en el toast al enviar un juego a la papelera, sin tener que ir a `/games/trash`.
-- Vista compacta de la tabla de la colección (filas más bajas/densas), como alternativa a la actual junto a tarjetas y estantería.
-- Mejorar la estética de las tarjetas de la colección en móvil (el diseño actual es funcional pero mejorable).
-- Las casillas de selección de la colección (acciones en bloque) no deberían estar siempre visibles: que aparezcan solo al entrar en un "modo selección" (p. ej. con un botón "Seleccionar"), no todo el rato ocupando espacio en cada fila/tarjeta.
-- Barra de estado discreta en la parte inferior de la colección, con el nº de juegos y algún dato más que pueda interesar (gasto total, algo así), sin llamar la atención.
-
 Medias:
-- Ficha de detalle de solo lectura por juego (`/games/{id}`), en vez de tener que abrir el formulario de edición para "solo mirar".
-- Edición rápida (valoración/estado de juego) desde la propia fila del listado, por AJAX.
-- Vista previa del CSV antes de importar: primeras filas y a qué columna se ha mapeado cada una, antes de confirmar.
-- Rediseño del buscador/filtro de la colección: por defecto un buscador simple que filtra según se escribe (sin recargar la página), con un enlace "Avanzado" dentro del propio recuadro para desplegar el resto de filtros (plataforma, estado, orden...) cuando se necesiten. Implica filtrado en vivo (AJAX o similar), no solo un cambio visual.
 - Escanear el código de barras (EAN) con la cámara al dar de alta un juego, en vez de teclearlo a mano: botón junto al campo EAN que abre la cámara en un diálogo y lo rellena solo al detectar el código. Usar `@zxing/library` (no la `BarcodeDetector` nativa del navegador, que no funciona en Safari/iOS) para que funcione igual en escritorio y móvil. Necesita HTTPS en producción para acceder a la cámara (en local con `localhost` no hay problema).
 
 Grandes:
 - Buscador global tipo "Cmd+K" (paleta de comandos) para saltar a un juego/plataforma/sección sin ratón.
-- Estadísticas más ricas: evolución del gasto por mes/año, top de géneros, juego más caro/mejor valorado.
 - Verificación de email / 2FA (el modelo `User` ya tiene `MustVerifyEmail` comentado en el código); opcional para uso personal, interesante si la cuenta se comparte con más gente.
 
 ## Changelog
@@ -149,6 +140,12 @@ Grandes:
 - Paneles de catálogo (fabricantes, plataformas, ediciones) con vista de tarjetas en móvil, igual que el listado principal, en vez de solo scroll horizontal en la tabla.
 - Tests: paneles de catálogo, perfil de usuario, estadísticas, recuperación de contraseña, importación CSV y los nuevos filtros de la API.
 - Arreglado el centrado de los `<dialog>` (confirmación de borrado, alta rápida de edición): salían pegados a la esquina superior izquierda por un choque entre el preflight de Tailwind y el centrado nativo del navegador.
+- Aviso de EAN duplicado al dar de alta o editar un juego, con opción de guardar de todos modos; nunca salta con juegos sin EAN.
+- Buscador y filtro por plataforma en la papelera, paginación configurable en el listado web (10/20/50/100) y botón "Deshacer" en el toast al enviar un juego a la papelera.
+- Vista compacta de la tabla (junto a tarjetas/tabla habitual y estantería) y estética renovada de las tarjetas de la colección en móvil.
+- Casillas de selección de la colección ocultas por defecto, solo visibles en "modo selección" (botón junto a "Añadir Juego").
+- Barra de estado discreta al pie de la colección con el total de juegos y el gasto invertido en toda la colección.
+- Tests de todo lo anterior (122 tests en total).
 - Tema claro/oscuro con botón en el header (y en login/recuperar contraseña), persistido en `localStorage`.
 - Orden del listado de la colección por título, precio, valoración o fecha de compra.
 - Atajo de teclado `/` para enfocar el buscador de la colección.
@@ -156,6 +153,12 @@ Grandes:
 - Botón flotante de "Añadir juego" en móvil.
 - Vista de estantería (grid de carátulas grandes) como alternativa al listado habitual.
 - Tests de las acciones en bloque y de la ordenación del listado (110 tests en total).
+- Ficha de detalle de solo lectura por juego (`/games/{id}`), enlazada desde el título en cualquier vista de la colección.
+- Edición rápida de valoración y estado de juego desde la propia fila/tarjeta, por AJAX.
+- Vista previa del CSV antes de importar: columnas reconocidas/no reconocidas y primeras filas, sin importar nada todavía.
+- Buscador de la colección rediseñado: simple y con filtrado en vivo por defecto (AJAX, sin recargar), con un botón "Avanzado" para desplegar plataforma/estado/orden/paginación cuando hacen falta.
+- Estadísticas ampliadas: evolución del gasto por mes, top de géneros y destacados (juego más caro y mejor valorado).
+- Tests de todo lo anterior (135 tests en total).
 
 ### 2026-08-01
 - Papelera de reciclaje con interfaz (`/games/trash`): restaurar o eliminar definitivamente un juego borrado (con limpieza de la carátula en disco).
