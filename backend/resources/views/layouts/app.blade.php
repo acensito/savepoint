@@ -20,10 +20,12 @@
                 if (localStorage.getItem('sp:theme') === 'light') {
                     document.documentElement.classList.add('light');
                 }
+                // Sin preferencia guardada todavía, la vista por defecto es la compacta
+                // (antes cualquier valor ausente caía en la lista/tarjetas normal).
                 var gamesView = localStorage.getItem('sp:gamesView');
                 if (gamesView === 'grid') {
                     document.documentElement.classList.add('games-grid-view');
-                } else if (gamesView === 'compact') {
+                } else if (gamesView === 'compact' || gamesView === null) {
                     document.documentElement.classList.add('games-compact-view');
                 }
             } catch (e) {}

@@ -191,7 +191,14 @@ function initGamesViewToggle() {
         });
     };
 
+    let currentMode = document.documentElement.classList.contains('games-grid-view')
+        ? 'grid'
+        : document.documentElement.classList.contains('games-compact-view')
+            ? 'compact'
+            : 'list';
+
     const setMode = (mode) => {
+        currentMode = mode;
         document.documentElement.classList.remove(...Object.values(GAMES_VIEW_CLASSES));
         if (GAMES_VIEW_CLASSES[mode]) {
             document.documentElement.classList.add(GAMES_VIEW_CLASSES[mode]);
@@ -203,16 +210,15 @@ function initGamesViewToggle() {
         } catch (e) {}
     };
 
-    const currentMode = document.documentElement.classList.contains('games-grid-view')
-        ? 'grid'
-        : document.documentElement.classList.contains('games-compact-view')
-            ? 'compact'
-            : 'list';
     syncButtons(currentMode);
 
     buttons.list?.addEventListener('click', () => setMode('list'));
     buttons.compact?.addEventListener('click', () => setMode('compact'));
-    buttons.grid?.addEventListener('click', () => setMode('grid'));
+    // En escritorio hay botones separados para volver a lista/compacta, pero en
+    // móvil el de estantería es el único visible (ver comentario más arriba),
+    // así que tiene que servir también para volver: si ya está activo, alterna
+    // de vuelta a la vista normal en vez de quedarse fijo en estantería.
+    buttons.grid?.addEventListener('click', () => setMode(currentMode === 'grid' ? 'list' : 'grid'));
 }
 
 initGamesViewToggle();

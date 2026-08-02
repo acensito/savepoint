@@ -10,11 +10,6 @@
         </div>
 
         <div class="flex-shrink-0 flex items-center gap-2">
-            <button type="button" id="selection-mode-toggle" aria-pressed="false" aria-label="Seleccionar varios juegos"
-                class="flex items-center justify-center w-10 h-10 rounded-full border border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-colors">
-                <x-gicon name="checklist" class="text-[20px]" />
-            </button>
-
             <a href="{{ route('web.games.create') }}" aria-label="Añadir juego"
                 class="hidden sm:flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 transition-colors">
                 <x-gicon name="add" class="text-[18px]" />
@@ -62,53 +57,44 @@
         </button>
     </div>
 
-    <!-- Buscador/filtros, con el toggle de vista (tabla/tarjetas vs. estantería) a su
-         izquierda en la misma línea, en vez de ocupar una línea aparte. Cuál de las dos
-         vistas se ve lo decide app.css según la clase 'games-grid-view' en <html>, que
-         este botón alterna y persiste en localStorage. -->
-    <div class="flex items-start gap-3 mb-6">
-        <div class="flex-shrink-0 inline-flex items-stretch h-[42px] bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">
+    <!-- Buscador: protagonista de la página (grande, a todo el ancho), visible
+         siempre igual en cualquier tamaño de pantalla en vez de vivir plegado tras
+         un acordeón en móvil, ya que es lo primero que se usa en la colección. Los
+         filtros "Avanzado" (plataforma/estado/orden/paginación) siguen plegados
+         tras su icono, dentro del propio parcial. -->
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 mb-3">
+        @include('games._filters')
+    </div>
+
+    <!-- Iconos de vista y de modo selección: secundarios frente al buscador, así
+         que van más pequeños y agrupados en su propia línea, pegados a la esquina
+         superior derecha justo encima de la tabla/tarjetas. Cuál de las vistas se
+         ve lo decide app.css según la clase 'games-grid-view' en <html>, que estos
+         botones alternan y persisten en localStorage. -->
+    <div class="flex items-center justify-end gap-2 mb-3">
+        <div class="inline-flex items-stretch h-8 bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">
             <!-- Lista y compacta son variantes de la TABLA de escritorio: en móvil,
                  donde siempre se ve la tarjeta (no la tabla), no tienen ningún efecto,
                  así que se ocultan y solo queda el botón de estantería (que sí cambia
                  algo visible en cualquier ancho). -->
             <button type="button" id="games-view-list-btn" aria-label="Ver como lista" aria-pressed="true"
-                class="hidden md:flex items-center justify-center w-10 text-indigo-400 hover:bg-slate-800 transition-colors">
-                <x-gicon name="view_list" class="text-[18px]" />
+                class="hidden md:flex items-center justify-center w-8 text-indigo-400 hover:bg-slate-800 transition-colors">
+                <x-gicon name="view_list" class="text-[15px]" />
             </button>
             <button type="button" id="games-view-compact-btn" aria-label="Ver como tabla compacta" aria-pressed="false"
-                class="hidden md:flex items-center justify-center w-10 text-slate-500 hover:bg-slate-800 md:border-l md:border-slate-800 transition-colors">
-                <x-gicon name="density_small" class="text-[18px]" />
+                class="hidden md:flex items-center justify-center w-8 text-slate-500 hover:bg-slate-800 md:border-l md:border-slate-800 transition-colors">
+                <x-gicon name="density_small" class="text-[15px]" />
             </button>
             <button type="button" id="games-view-grid-btn" aria-label="Ver como estantería" aria-pressed="false"
-                class="flex items-center justify-center w-10 text-slate-500 hover:bg-slate-800 md:border-l md:border-slate-800 transition-colors">
-                <x-gicon name="grid_view" class="text-[18px]" />
+                class="flex items-center justify-center w-8 text-slate-500 hover:bg-slate-800 md:border-l md:border-slate-800 transition-colors">
+                <x-gicon name="grid_view" class="text-[15px]" />
             </button>
         </div>
 
-        <div class="flex-1 min-w-0">
-            <!-- Buscador y filtros: colapsados tras un botón en móvil para no comerse la pantalla -->
-            <details class="group md:hidden bg-slate-900 border border-slate-800 rounded-xl" {{ $hasActiveFilters ? 'open' : '' }}>
-                <summary class="flex items-center justify-between gap-2 px-4 py-3 cursor-pointer select-none">
-                    <span class="flex items-center gap-2 text-sm font-medium text-slate-200">
-                        <x-gicon name="filter_list" class="text-[18px] text-slate-400" />
-                        Buscar y filtrar
-                        @if($hasActiveFilters)
-                            <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-indigo-500 text-white text-[11px] font-bold">{{ $activeFilterCount }}</span>
-                        @endif
-                    </span>
-                    <x-gicon name="expand_more" class="text-[20px] text-slate-500 transition-transform duration-200 group-open:rotate-180" />
-                </summary>
-
-                <div class="px-4 pb-4">
-                    @include('games._filters')
-                </div>
-            </details>
-
-            <div class="hidden md:block bg-slate-900 border border-slate-800 rounded-xl p-4">
-                @include('games._filters')
-            </div>
-        </div>
+        <button type="button" id="selection-mode-toggle" aria-pressed="false" aria-label="Seleccionar varios juegos"
+            class="flex items-center justify-center w-8 h-8 rounded-lg border border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-colors">
+            <x-gicon name="checklist" class="text-[16px]" />
+        </button>
     </div>
 
     <!-- Contenedor permanente: nunca se destruye, solo se le reemplaza el

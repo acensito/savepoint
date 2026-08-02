@@ -139,9 +139,9 @@
     </div>
 </div>
 
-<!-- Estado y valoración -->
+<!-- Estado y conservación -->
 <div class="pt-6 border-t border-slate-800 space-y-4">
-    <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Estado y valoración</h2>
+    <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Estado y conservación</h2>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
@@ -166,7 +166,7 @@
     </div>
 
     <div>
-        <label class="{{ $label }}">Valoración</label>
+        <label class="{{ $label }}">Conservación</label>
         <input type="hidden" name="rating" id="rating" value="{{ old('rating', $game?->rating) }}">
         <div class="flex items-center gap-3">
             <div id="rating-stars" class="flex items-center gap-1">
@@ -358,7 +358,7 @@
     })();
 
     (function () {
-        const ratingLabels = { 1: 'Malo', 2: 'Aceptable', 3: 'Regular', 4: 'Bueno', 5: 'Excelente' };
+        const ratingLabels = { 1: 'Malo', 2: 'Regular', 3: 'Bueno', 4: 'Muy bueno', 5: 'Nuevo / precintado' };
         const ratingInput = document.getElementById('rating');
         const ratingButtons = document.querySelectorAll('.rating-star');
         const ratingLabelEl = document.getElementById('rating-label');

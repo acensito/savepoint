@@ -1,13 +1,15 @@
 <form action="{{ route('web.games.index') }}" method="GET">
-    <div class="flex flex-wrap gap-3">
+    <!-- A todo el ancho del panel que lo envuelve: es el control principal de la
+         página, así que ocupa el espacio en vez de quedarse pequeño en una esquina. -->
+    <div class="flex gap-2">
         <input type="text" name="q" value="{{ $query ?? '' }}" placeholder="Buscar por título o EAN... (/)"
-            class="js-game-search js-live-search flex-1 min-w-[200px] rounded-lg border border-slate-700 bg-slate-800 text-slate-100 placeholder:text-slate-500 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-none text-sm">
+            class="js-game-search js-live-search flex-1 min-w-0 rounded-lg border border-slate-700 bg-slate-800 text-slate-100 placeholder:text-slate-500 px-4 py-3 focus:border-indigo-500 focus:ring-indigo-500 outline-none text-base">
 
-        <button type="button" class="js-advanced-toggle inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800 border border-slate-700 whitespace-nowrap transition-colors">
-            <x-gicon name="tune" class="text-[16px]" />
-            Avanzado
+        <button type="button" class="js-advanced-toggle relative flex-shrink-0 inline-flex items-center justify-center px-4 py-3 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 border border-slate-700 transition-colors"
+            aria-label="Filtros avanzados" title="Filtros avanzados">
+            <x-gicon name="tune" class="text-[18px]" />
             @if($hasAdvancedFilters)
-                <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                <span class="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
             @endif
         </button>
     </div>
@@ -43,7 +45,7 @@
             <option value="">Más recientes primero</option>
             <option value="title" {{ $sort === 'title' ? 'selected' : '' }}>Título</option>
             <option value="price_paid" {{ $sort === 'price_paid' ? 'selected' : '' }}>Precio</option>
-            <option value="rating" {{ $sort === 'rating' ? 'selected' : '' }}>Valoración</option>
+            <option value="rating" {{ $sort === 'rating' ? 'selected' : '' }}>Conservación</option>
             <option value="purchase_date" {{ $sort === 'purchase_date' ? 'selected' : '' }}>Fecha de compra</option>
         </select>
 

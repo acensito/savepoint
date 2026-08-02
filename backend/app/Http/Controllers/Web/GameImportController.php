@@ -58,7 +58,7 @@ class GameImportController extends Controller
     public function template(): Response
     {
         $rows = [
-            ['Título', 'EAN', 'Desarrollador', 'Plataforma', 'Edición', 'Fecha lanzamiento', 'Géneros', 'Propiedad', 'Estado de juego', 'Valoración', 'Precio pagado', 'Lugar de compra', 'Fecha de compra', 'Manual', 'Región', 'Clasificación por edad', 'Notas'],
+            ['Título', 'EAN', 'Desarrollador', 'Plataforma', 'Edición', 'Fecha lanzamiento', 'Géneros', 'Propiedad', 'Estado de juego', 'Conservación', 'Precio pagado', 'Lugar de compra', 'Fecha de compra', 'Manual', 'Región', 'Clasificación por edad', 'Notas'],
             ['Celeste', '0812872018012', 'Maddy Makes Games', 'Nintendo Switch', 'Normal', '2018-01-25', 'Plataformas, Indie', 'En colección', 'Terminado', '5', '19.99', 'Eshop', '2020-05-01', 'Sin Manual', 'PAL-ES', 'PEGI 7', 'Platinado'],
         ];
 
@@ -81,7 +81,7 @@ class GameImportController extends Controller
         'titulo' => 'Título', 'ean' => 'EAN', 'desarrollador' => 'Desarrollador',
         'plataforma' => 'Plataforma', 'edicion' => 'Edición', 'fecha lanzamiento' => 'Fecha lanzamiento',
         'generos' => 'Géneros', 'propiedad' => 'Propiedad', 'estado de juego' => 'Estado de juego',
-        'valoracion' => 'Valoración', 'precio pagado' => 'Precio pagado', 'lugar de compra' => 'Lugar de compra',
+        'conservacion' => 'Conservación', 'precio pagado' => 'Precio pagado', 'lugar de compra' => 'Lugar de compra',
         'fecha de compra' => 'Fecha de compra', 'manual' => 'Manual', 'region' => 'Región',
         'clasificacion por edad' => 'Clasificación por edad', 'notas' => 'Notas',
     ];
@@ -211,7 +211,7 @@ class GameImportController extends Controller
                     'genres' => $this->parseGenres($get('generos')),
                     'status' => $this->mapValue($get('propiedad'), self::STATUS_MAP, 'owned'),
                     'play_status' => $this->mapValue($get('estado de juego'), self::PLAY_STATUS_MAP, 'pending'),
-                    'rating' => $this->parseRating($get('valoracion')),
+                    'rating' => $this->parseRating($get('conservacion')),
                     'price_paid' => $this->parseDecimal($get('precio pagado')),
                     'purchase_place' => $get('lugar de compra') ?: null,
                     'purchase_date' => $this->parseDate($get('fecha de compra')),

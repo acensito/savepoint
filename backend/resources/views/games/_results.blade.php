@@ -98,7 +98,7 @@
                         <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Estado</th>
                         <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Región</th>
                         <th scope="col" class="px-6 py-3.5 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">Manual</th>
-                        <th scope="col" class="px-6 py-3.5 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">Valoración</th>
+                        <th scope="col" class="px-6 py-3.5 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">Conservación</th>
                         <th scope="col" class="px-6 py-3.5 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">Precio</th>
                         <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Fecha compra</th>
                         <th scope="col" class="px-6 py-3.5 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">Acciones</th>
@@ -166,7 +166,7 @@
                                 @endif
                             </td>
 
-                            <!-- Valoración (editable rápido: clic en una estrella) -->
+                            <!-- Conservación (editable rápido: clic en una estrella) -->
                             <td class="px-6 py-4 whitespace-nowrap text-center">
                                 <div class="js-quick-rating inline-flex justify-center" data-game-id="{{ $game->id }}" data-rating="{{ $game->rating }}">
                                     <x-star-rating :rating="$game->rating" class="justify-center" />

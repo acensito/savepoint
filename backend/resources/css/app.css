@@ -29,26 +29,42 @@
 
     /* Superficies y bordes: espejo de la escala alrededor del punto medio
        (950↔50, 900↔100, 800↔200...) para conservar la misma jerarquía de
-       "cuánto destaca" cada capa, pero en claro. */
+       "cuánto destaca" cada capa, pero en claro. Los valores van literales
+       (no var(--color-slate-100) etc.) a propósito: dos variables que se
+       referencian entre sí en direcciones opuestas (900→100 y 100→900) son
+       una dependencia circular, y CSS invalida TODAS las variables de ese
+       ciclo (quedan en blanco, no en su valor por defecto). Eso es lo que
+       hacía que paneles, bordes y el sidebar salieran transparentes en vez
+       de gris claro, dejando ver el morado de fondo del body a través: la
+       causa real de que el tema claro se viera "chillón", más que un tema
+       solo de gusto de color. Los números son los que Tailwind ya trae de
+       fábrica para el tono opuesto de cada uno (ver `@layer theme` en el
+       CSS compilado si hace falta reconfirmarlos tras actualizar Tailwind). */
     --color-slate-950: var(--color-slate-50);
-    --color-slate-900: var(--color-slate-100);
-    --color-slate-800: var(--color-slate-200);
-    --color-slate-700: var(--color-slate-300);
-    --color-slate-600: var(--color-slate-400);
-    --color-slate-400: var(--color-slate-600);
-    --color-slate-300: var(--color-slate-700);
-    --color-slate-200: var(--color-slate-800);
-    --color-slate-100: var(--color-slate-900);
+    --color-slate-900: oklch(96.8% .007 247.896); /* = slate-100 de fábrica */
+    --color-slate-800: oklch(92.9% .013 255.508); /* = slate-200 de fábrica */
+    --color-slate-700: oklch(86.9% .022 252.894); /* = slate-300 de fábrica */
+    --color-slate-600: oklch(70.4% .04 256.788);  /* = slate-400 de fábrica */
+    --color-slate-400: oklch(44.6% .043 257.281); /* = slate-600 de fábrica */
+    --color-slate-300: oklch(37.2% .044 257.287); /* = slate-700 de fábrica */
+    --color-slate-200: oklch(27.9% .041 260.031); /* = slate-800 de fábrica */
+    --color-slate-100: oklch(20.8% .042 265.755); /* = slate-900 de fábrica */
 
     /* Texto de color (enlaces, iconos de estado, avisos) que en oscuro usa
        tonos claros (400/300) para resaltar sobre fondos negros: sobre fondo
        claro esos mismos tonos no tienen contraste suficiente, así que se
        oscurecen. Los tonos 500/600 que se usan como fondo (botones, chips a
-       10-20% de opacidad) no se tocan: ya funcionan bien en los dos temas. */
-    --color-indigo-400: var(--color-indigo-600);
-    --color-indigo-300: var(--color-indigo-700);
-    --color-red-400: var(--color-red-600);
-    --color-red-300: var(--color-red-800);
+       10-20% de opacidad) no se tocan: ya funcionan bien en los dos temas.
+       Para indigo/red además se rebaja el chroma mezclando con un gris
+       (color-mix), porque el 600 de esas dos escalas es precisamente el
+       tono de MÁS saturación de toda la escala: usarlo tal cual como color
+       de texto/icono sobre blanco es lo que resultaba "a gritos" en vez de
+       simplemente vivo. Emerald/amber no lo necesitan: su 600 ya es más
+       apagado que el 400 que sustituye. */
+    --color-indigo-400: color-mix(in oklch, var(--color-indigo-700) 85%, var(--color-slate-500) 15%);
+    --color-indigo-300: color-mix(in oklch, var(--color-indigo-800) 85%, var(--color-slate-500) 15%);
+    --color-red-400: color-mix(in oklch, var(--color-red-700) 85%, var(--color-slate-500) 15%);
+    --color-red-300: color-mix(in oklch, var(--color-red-800) 85%, var(--color-slate-500) 15%);
     --color-emerald-400: var(--color-emerald-600);
     --color-emerald-300: var(--color-emerald-700);
     --color-amber-400: var(--color-amber-600);

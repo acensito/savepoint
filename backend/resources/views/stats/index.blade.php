@@ -17,7 +17,7 @@
             <p class="text-3xl font-semibold text-slate-100 mt-2">{{ number_format($totalSpent, 2, ',', '.') }} €</p>
         </div>
         <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
-            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Valoración media</p>
+            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Conservación media</p>
             <p class="text-3xl font-semibold text-slate-100 mt-2">
                 {{ $averageRating ? number_format($averageRating, 1, ',', '.') : '—' }}
             </p>
