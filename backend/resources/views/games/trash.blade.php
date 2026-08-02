@@ -12,6 +12,29 @@
         </a>
     </div>
 
+    <form action="{{ route('web.games.trash') }}" method="GET" class="flex flex-wrap gap-3 mb-6">
+        <input type="text" name="q" value="{{ $query ?? '' }}" placeholder="Buscar por título o EAN..."
+            class="flex-1 min-w-[200px] rounded-lg border border-slate-700 bg-slate-800 text-slate-100 placeholder:text-slate-500 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-none text-sm">
+
+        <select name="platform_id" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-none text-sm">
+            <option value="">Todas las plataformas</option>
+            @foreach($platforms as $platform)
+                <option value="{{ $platform->id }}" {{ (string) $platformId === (string) $platform->id ? 'selected' : '' }}>
+                    {{ $platform->name }}
+                </option>
+            @endforeach
+        </select>
+
+        <button type="submit" class="bg-slate-700 text-slate-100 px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-600 transition-colors whitespace-nowrap">
+            Filtrar
+        </button>
+        @if($query !== '' || $platformId !== '')
+            <a href="{{ route('web.games.trash') }}" class="flex items-center text-sm font-medium text-slate-400 hover:text-slate-100 whitespace-nowrap">
+                Limpiar
+            </a>
+        @endif
+    </form>
+
     <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-800">
             <thead class="bg-slate-800/50">
@@ -65,7 +88,11 @@
                 @empty
                     <tr>
                         <td colspan="4" class="px-6 py-12 text-center text-slate-500 text-sm">
-                            La papelera está vacía.
+                            @if(($query ?? '') !== '' || ($platformId ?? '') !== '')
+                                No hay juegos en la papelera que coincidan con la búsqueda o el filtro.
+                            @else
+                                La papelera está vacía.
+                            @endif
                         </td>
                     </tr>
                 @endforelse

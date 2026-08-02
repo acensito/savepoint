@@ -131,4 +131,45 @@ class GameImportControllerTest extends TestCase
         $this->actingAs($user)->post('/games/import', [])
             ->assertSessionHasErrors('file');
     }
+
+    public function test_preview_reports_matched_and_unmatched_columns_with_sample_rows(): void
+    {
+        $user = User::factory()->create();
+
+        $csv = "Título,Plataforma\r\nCeleste,Nintendo Switch\r\nHollow Knight,Nintendo Switch\r\n";
+
+        $response = $this->actingAs($user)->postJson('/games/import/preview', [
+            'file' => $this->csvFile($csv),
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('matchedColumns', ['Título', 'Plataforma']);
+        $this->assertContains('EAN', $response->json('unmatchedColumns'));
+        $this->assertCount(2, $response->json('rows'));
+        $response->assertJsonPath('rows.0.titulo', 'Celeste');
+        $response->assertJsonPath('rows.0.plataforma', 'Nintendo Switch');
+    }
+
+    public function test_preview_does_not_import_anything(): void
+    {
+        $user = User::factory()->create();
+
+        $csv = "Título,Plataforma\r\nCeleste,Nintendo Switch\r\n";
+
+        $this->actingAs($user)->postJson('/games/import/preview', ['file' => $this->csvFile($csv)])
+            ->assertOk();
+
+        $this->assertDatabaseCount('games', 0);
+        $this->assertDatabaseCount('platforms', 0);
+    }
+
+    public function test_preview_requires_a_title_column(): void
+    {
+        $user = User::factory()->create();
+
+        $csv = "Plataforma\r\nNintendo Switch\r\n";
+
+        $this->actingAs($user)->postJson('/games/import/preview', ['file' => $this->csvFile($csv)])
+            ->assertStatus(422);
+    }
 }

@@ -26,8 +26,16 @@ class GameController extends Controller
         'purchase_date' => 'purchase_date',
     ];
 
+    /**
+     * Tamaños de página permitidos desde ?per_page= en el listado web (a
+     * diferencia de la API, aquí se restringe a un puñado de valores fijos
+     * pensados para un selector, no un número libre).
+     */
+    private const PER_PAGE_OPTIONS = [10, 20, 50, 100];
+
     // Colección del usuario, con búsqueda por título/EAN, filtros por plataforma/estado
-    // (?q=, ?platform_id=, ?play_status=, ?status=) y orden (?sort=, ?dir=)
+    // (?q=, ?platform_id=, ?play_status=, ?status=), orden (?sort=, ?dir=) y
+    // tamaño de página (?per_page=)
     public function index(Request $request)
     {
         // ConvertEmptyStringsToNull (middleware por defecto) transforma los campos
@@ -40,6 +48,15 @@ class GameController extends Controller
         $sort = (string) $request->input('sort', '');
         $dir = $request->input('dir') === 'asc' ? 'asc' : 'desc';
         $sortColumn = self::SORTABLE_COLUMNS[$sort] ?? null;
+        $perPage = in_array((int) $request->input('per_page'), self::PER_PAGE_OPTIONS, true)
+            ? (int) $request->input('per_page')
+            : 20;
+
+        // Calculados aquí (no en la vista) porque los necesitan tanto la página
+        // completa como el fragmento que se devuelve por AJAX al buscar en vivo.
+        $hasActiveFilters = $query !== '' || $platformId !== '' || $playStatus !== '' || $status !== '';
+        $hasAdvancedFilters = $platformId !== '' || $playStatus !== '' || $status !== '';
+        $activeFilterCount = collect([$query !== '', $platformId !== '', $playStatus !== '', $status !== ''])->filter()->count();
 
         $games = Game::where('user_id', auth()->id())
             // Solo las columnas que pinta el listado: notes/data/genres/etc. serían
@@ -70,12 +87,29 @@ class GameController extends Controller
                 fn ($q) => $q->orderBy($sortColumn, $dir)->orderByDesc('id'),
                 fn ($q) => $q->latest(),
             )
-            ->paginate(20)
+            ->paginate($perPage)
             ->withQueryString();
 
         $platforms = Platform::orderBy('name')->get();
 
-        return view('games.index', compact('games', 'query', 'platforms', 'platformId', 'playStatus', 'status', 'sort', 'dir'));
+        // El buscador simple filtra en vivo (ver initGamesLiveSearch en app.js):
+        // en vez de la página completa, solo hace falta el fragmento con el
+        // listado/paginación, sin recalcular los totales de toda la colección.
+        if ($request->ajax()) {
+            return view('games._results', compact('games', 'hasActiveFilters'));
+        }
+
+        // Totales de TODA la colección (no del resultado filtrado/paginado actual),
+        // para la barra de estado discreta al pie del listado.
+        $collectionTotals = [
+            'count' => Game::where('user_id', auth()->id())->count(),
+            'spent' => (float) Game::where('user_id', auth()->id())->sum('price_paid'),
+        ];
+
+        return view('games.index', compact(
+            'games', 'query', 'platforms', 'platformId', 'playStatus', 'status', 'sort', 'dir', 'perPage',
+            'collectionTotals', 'hasActiveFilters', 'hasAdvancedFilters', 'activeFilterCount',
+        ));
     }
 
     // Muestra el formulario de alta
@@ -92,6 +126,12 @@ class GameController extends Controller
     {
         $validated = $this->validated($request);
 
+        if ($duplicate = $this->duplicateEan($request, $validated, null)) {
+            return back()->withInput()->withErrors([
+                'ean' => "Ya tienes «{$duplicate->title}» registrado con este EAN.",
+            ]);
+        }
+
         $validated['cover'] = $request->hasFile('cover')
             ? $request->file('cover')->store('covers', 'public')
             : null;
@@ -101,6 +141,45 @@ class GameController extends Controller
         Game::create($validated);
 
         return redirect()->route('web.games.index')->with('success', 'Juego añadido correctamente.');
+    }
+
+    /**
+     * Ficha de solo lectura de un juego: toda la información del modelo sin
+     * abrir el formulario de edición, para "solo mirar" un juego concreto.
+     */
+    public function show(Game $game)
+    {
+        Gate::authorize('view', $game);
+
+        $game->load(['platform.manufacturer', 'edition']);
+
+        return view('games.show', compact('game'));
+    }
+
+    /**
+     * Edición rápida de valoración y/o estado de juego desde la propia fila
+     * del listado (tabla, tarjetas o estantería), sin pasar por el
+     * formulario completo. Se valida y actualiza solo el campo que llega.
+     */
+    public function quickUpdate(Request $request, Game $game)
+    {
+        Gate::authorize('update', $game);
+
+        $validated = $request->validate([
+            'rating' => 'sometimes|nullable|integer|min:1|max:5',
+            'play_status' => 'sometimes|required|string|in:pending,playing,finished',
+        ]);
+
+        if ($validated === []) {
+            return response()->json(['message' => 'Nada que actualizar.'], 422);
+        }
+
+        $game->update($validated);
+
+        return response()->json([
+            'rating' => $game->rating,
+            'play_status' => $game->play_status,
+        ]);
     }
 
     /**
@@ -124,6 +203,12 @@ class GameController extends Controller
         Gate::authorize('update', $game);
 
         $validated = $this->validated($request);
+
+        if ($duplicate = $this->duplicateEan($request, $validated, $game)) {
+            return back()->withInput()->withErrors([
+                'ean' => "Ya tienes «{$duplicate->title}» registrado con este EAN.",
+            ]);
+        }
 
         if ($request->hasFile('cover')) {
             if ($game->cover) {
@@ -151,9 +236,16 @@ class GameController extends Controller
     {
         Gate::authorize('delete', $game);
 
+        $id = $game->id;
+        $title = $game->title;
+
         $game->delete();
 
-        return redirect()->route('web.games.index')->with('success', 'Juego enviado a la papelera.');
+        return redirect()->route('web.games.index')
+            ->with('success', "«{$title}» enviado a la papelera.")
+            // El toast lee esto para mostrar un botón "Deshacer" que llama a
+            // esta URL en vez de tener que ir a la papelera a restaurarlo.
+            ->with('undoUrl', route('web.games.restore', $id));
     }
 
     /**
@@ -210,20 +302,35 @@ class GameController extends Controller
     }
 
     /**
-     * Papelera: juegos borrados (soft delete) del usuario autenticado.
+     * Papelera: juegos borrados (soft delete) del usuario autenticado, con
+     * búsqueda por título/EAN y filtro por plataforma (?q=, ?platform_id=),
+     * igual que el listado principal.
      */
-    public function trash()
+    public function trash(Request $request)
     {
+        $query = trim((string) $request->input('q', ''));
+        $platformId = (string) $request->input('platform_id', '');
+
         $games = Game::onlyTrashed()
             ->where('user_id', auth()->id())
             ->with([
                 'platform:id,name,label,bg_color,text_color,border_color,manufacturer_id',
                 'platform.manufacturer:id,bg_color,text_color,border_color',
             ])
+            ->when($query !== '', function ($q) use ($query) {
+                $q->where(function ($sub) use ($query) {
+                    $sub->whereLike('title', '%' . $query . '%', caseSensitive: false)
+                        ->orWhere('ean', $query);
+                });
+            })
+            ->when($platformId !== '', fn ($q) => $q->where('platform_id', $platformId))
             ->orderByDesc('deleted_at')
-            ->paginate(20);
+            ->paginate(20)
+            ->withQueryString();
 
-        return view('games.trash', compact('games'));
+        $platforms = Platform::orderBy('name')->get();
+
+        return view('games.trash', compact('games', 'query', 'platformId', 'platforms'));
     }
 
     /**
@@ -293,6 +400,26 @@ class GameController extends Controller
         unset($validated['region_select'], $validated['region_other']);
 
         return $validated;
+    }
+
+    /**
+     * Busca otro juego del usuario con el mismo EAN (para avisar antes de
+     * duplicar sin querer). Muchos juegos antiguos no tienen EAN, así que
+     * nunca se compara cuando viene vacío: dos juegos sin EAN no son
+     * "duplicados" entre sí. El aviso se puede saltar mandando
+     * confirm_duplicate=1 (checkbox "Guardar de todos modos" en el formulario),
+     * para permitir el caso legítimo de tener dos copias físicas del mismo juego.
+     */
+    private function duplicateEan(Request $request, array $validated, ?Game $ignore): ?Game
+    {
+        if (blank($validated['ean'] ?? null) || $request->boolean('confirm_duplicate')) {
+            return null;
+        }
+
+        return Game::where('user_id', auth()->id())
+            ->where('ean', $validated['ean'])
+            ->when($ignore, fn ($q) => $q->where('id', '!=', $ignore->id))
+            ->first();
     }
 
     /**

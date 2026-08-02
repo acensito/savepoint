@@ -77,6 +77,24 @@ html.sidebar-collapsed #sidebar-toggle-icon {
     transform: rotate(180deg);
 }
 
+/* Barra de estado de la colección (games/index.blade.php): fija al fondo de
+   la pantalla en todo momento, no solo al llegar al final del scroll (por
+   eso 'position: fixed' y no 'sticky', que solo se activa una vez el
+   contenido anterior se ha desplazado). 'left' reproduce el ancho del
+   sidebar para no quedar debajo de él, con las mismas reglas de colapsado y
+   drawer móvil que .sidebar. */
+#games-status-bar {
+    position: fixed;
+    left: 15rem;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+}
+
+html.sidebar-collapsed #games-status-bar {
+    left: 4.5rem;
+}
+
 /* Drawer del sidebar en pantallas estrechas: por debajo del breakpoint `md`
    de Tailwind (768px) el sidebar sale de la caja de flex normal y se
    convierte en un panel superpuesto que entra/sale desde la izquierda. */
@@ -108,6 +126,13 @@ html.sidebar-collapsed #sidebar-toggle-icon {
     html.mobile-drawer-open body {
         overflow: hidden;
     }
+
+    /* En móvil el sidebar no ocupa espacio en el layout (es un drawer
+       superpuesto, fuera de pantalla salvo que esté abierto), así que la
+       barra de estado ocupa todo el ancho en vez de dejar hueco a su ancho. */
+    #games-status-bar {
+        left: 0;
+    }
 }
 
 /* El preflight de Tailwind resetea 'margin' a 0 en todos los elementos,
@@ -134,6 +159,36 @@ html.games-grid-view #view-list {
 
 html.games-grid-view #view-grid {
     display: grid;
+}
+
+/* Vista compacta: la misma tabla de siempre, solo con menos aire vertical
+   por fila. Igual que la estantería, es una clase en <html> que decide si
+   se aplica; list/compact/grid son mutuamente excluyentes (JS solo pone una
+   de las dos clases a la vez). */
+html.games-compact-view #view-list table td {
+    padding-top: 0.375rem;
+    padding-bottom: 0.375rem;
+}
+
+html.games-compact-view #view-list table th {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+}
+
+/* Casillas de selección de la colección (acciones en bloque): ocultas por
+   defecto para no ocupar espacio permanentemente en cada fila/tarjeta, solo
+   visibles al activar el "modo selección" (botón junto a "Añadir Juego"). */
+.js-bulk-checkbox,
+.js-bulk-select-col {
+    display: none;
+}
+
+html.selection-mode .js-bulk-checkbox {
+    display: inline-block;
+}
+
+html.selection-mode .js-bulk-select-col {
+    display: table-cell;
 }
 
 /* Quita el triángulo nativo del <summary> del panel de filtros colapsable

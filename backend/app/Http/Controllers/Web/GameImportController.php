@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Edition;
 use App\Models\Game;
 use App\Models\Platform;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -72,6 +74,76 @@ class GameImportController extends Controller
     }
 
     /**
+     * Cabeceras conocidas por el importador, con su etiqueta legible, para
+     * el resumen de columnas detectadas/no detectadas de preview().
+     */
+    private const KNOWN_COLUMNS = [
+        'titulo' => 'Título', 'ean' => 'EAN', 'desarrollador' => 'Desarrollador',
+        'plataforma' => 'Plataforma', 'edicion' => 'Edición', 'fecha lanzamiento' => 'Fecha lanzamiento',
+        'generos' => 'Géneros', 'propiedad' => 'Propiedad', 'estado de juego' => 'Estado de juego',
+        'valoracion' => 'Valoración', 'precio pagado' => 'Precio pagado', 'lugar de compra' => 'Lugar de compra',
+        'fecha de compra' => 'Fecha de compra', 'manual' => 'Manual', 'region' => 'Región',
+        'clasificacion por edad' => 'Clasificación por edad', 'notas' => 'Notas',
+    ];
+
+    /**
+     * Vista previa del CSV antes de importar de verdad: qué columnas
+     * conocidas se han detectado (y cuáles no) y las primeras filas, tal
+     * como las entendería el import real, para poder corregir el fichero
+     * antes de subirlo en firme si algo no cuadra.
+     */
+    public function preview(Request $request): JsonResponse
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:csv,txt', 'max:5120'],
+        ]);
+
+        $parsed = $this->openImportFile($request->file('file'));
+
+        if (isset($parsed['error'])) {
+            return response()->json(['error' => $parsed['error']], 422);
+        }
+
+        ['handle' => $handle, 'delimiter' => $delimiter, 'columns' => $columns] = $parsed;
+
+        $matched = [];
+        $unmatched = [];
+        foreach (self::KNOWN_COLUMNS as $key => $label) {
+            if (isset($columns[$key])) {
+                $matched[] = $label;
+            } else {
+                $unmatched[] = $label;
+            }
+        }
+
+        $rows = [];
+        while (count($rows) < 5 && ($row = fgetcsv($handle, 0, $delimiter)) !== false) {
+            if (count($row) === 1 && trim((string) $row[0]) === '') {
+                continue;
+            }
+
+            $get = fn (string $key): string => isset($columns[$key], $row[$columns[$key]])
+                ? trim((string) $row[$columns[$key]])
+                : '';
+
+            $rows[] = [
+                'titulo' => $get('titulo'),
+                'plataforma' => $get('plataforma'),
+                'ean' => $get('ean'),
+                'precio pagado' => $get('precio pagado'),
+            ];
+        }
+
+        fclose($handle);
+
+        return response()->json([
+            'matchedColumns' => $matched,
+            'unmatchedColumns' => $unmatched,
+            'rows' => $rows,
+        ]);
+    }
+
+    /**
      * Procesa el CSV subido: cada fila se guarda de forma independiente (si
      * una falla, no bloquea al resto) y las plataformas/ediciones que no
      * existan todavía en el catálogo se crean sobre la marcha.
@@ -82,35 +154,13 @@ class GameImportController extends Controller
             'file' => ['required', 'file', 'mimes:csv,txt', 'max:5120'],
         ]);
 
-        $handle = fopen($request->file('file')->getRealPath(), 'r');
+        $parsed = $this->openImportFile($request->file('file'));
 
-        if ($handle === false) {
-            return back()->withErrors(['file' => 'No se ha podido leer el fichero.']);
+        if (isset($parsed['error'])) {
+            return back()->withErrors(['file' => $parsed['error']]);
         }
 
-        $headerLine = fgets($handle);
-
-        if ($headerLine === false) {
-            fclose($handle);
-
-            return back()->withErrors(['file' => 'El fichero está vacío.']);
-        }
-
-        // Excel exporta CSV en UTF-8 con BOM; si no se quita, la primera cabecera
-        // ("Título") no coincide con ninguna columna esperada.
-        $headerLine = preg_replace('/^\xEF\xBB\xBF/', '', $headerLine);
-
-        // Excel en español suele exportar CSV con ';' en vez de ',' como separador.
-        $delimiter = substr_count($headerLine, ';') > substr_count($headerLine, ',') ? ';' : ',';
-
-        $header = array_map($this->normalizeHeader(...), str_getcsv($headerLine, $delimiter));
-        $columns = array_flip($header);
-
-        if (! isset($columns['titulo'])) {
-            fclose($handle);
-
-            return back()->withErrors(['file' => 'El CSV debe tener una columna "Título".']);
-        }
+        ['handle' => $handle, 'delimiter' => $delimiter, 'columns' => $columns] = $parsed;
 
         $imported = 0;
         $createdPlatforms = 0;
@@ -234,6 +284,48 @@ class GameImportController extends Controller
         }
 
         return $slug;
+    }
+
+    /**
+     * Abre el CSV, detecta separador y cabeceras (compartido entre store() y
+     * preview() para no duplicar la detección de BOM/delimiter/columnas).
+     * Devuelve ['handle' => resource, 'delimiter' => string, 'columns' => array]
+     * o ['error' => string] si el fichero no se puede leer/está vacío/no
+     * tiene columna "Título". El caller es responsable de cerrar el handle.
+     */
+    private function openImportFile(UploadedFile $file): array
+    {
+        $handle = fopen($file->getRealPath(), 'r');
+
+        if ($handle === false) {
+            return ['error' => 'No se ha podido leer el fichero.'];
+        }
+
+        $headerLine = fgets($handle);
+
+        if ($headerLine === false) {
+            fclose($handle);
+
+            return ['error' => 'El fichero está vacío.'];
+        }
+
+        // Excel exporta CSV en UTF-8 con BOM; si no se quita, la primera cabecera
+        // ("Título") no coincide con ninguna columna esperada.
+        $headerLine = preg_replace('/^\xEF\xBB\xBF/', '', $headerLine);
+
+        // Excel en español suele exportar CSV con ';' en vez de ',' como separador.
+        $delimiter = substr_count($headerLine, ';') > substr_count($headerLine, ',') ? ';' : ',';
+
+        $header = array_map($this->normalizeHeader(...), str_getcsv($headerLine, $delimiter));
+        $columns = array_flip($header);
+
+        if (! isset($columns['titulo'])) {
+            fclose($handle);
+
+            return ['error' => 'El CSV debe tener una columna "Título".'];
+        }
+
+        return ['handle' => $handle, 'delimiter' => $delimiter, 'columns' => $columns];
     }
 
     private function normalizeHeader(string $value): string

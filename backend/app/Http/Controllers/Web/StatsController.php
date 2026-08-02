@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Game;
 use App\Models\Platform;
+use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 
 class StatsController extends Controller
@@ -20,9 +21,14 @@ class StatsController extends Controller
         $byPlatform = $this->byPlatform(clone $base);
         $byPlayStatus = $this->byPlayStatus(clone $base, $totalGames);
         $byStatus = $this->byOwnershipStatus(clone $base, $totalGames);
+        $spendingByMonth = $this->spendingByMonth(clone $base);
+        $topGenres = $this->topGenres(clone $base);
+        $mostExpensive = (clone $base)->whereNotNull('price_paid')->with('platform')->orderByDesc('price_paid')->first();
+        $topRated = (clone $base)->whereNotNull('rating')->with('platform')->orderByDesc('rating')->orderByDesc('id')->first();
 
         return view('stats.index', compact(
             'totalGames', 'totalSpent', 'averageRating', 'byPlatform', 'byPlayStatus', 'byStatus',
+            'spendingByMonth', 'topGenres', 'mostExpensive', 'topRated',
         ));
     }
 
@@ -92,5 +98,52 @@ class StatsController extends Controller
             'total' => $key === '__unspecified' ? $unspecified : $counts->get($key, 0),
             'percent' => $total > 0 ? round(($key === '__unspecified' ? $unspecified : $counts->get($key, 0)) / $total * 100) : 0,
         ])->values()->all();
+    }
+
+    /**
+     * Gasto por mes de compra (últimos 12 meses con algún dato), para ver la
+     * evolución en vez de solo el total acumulado. Se agrupa en PHP (no con
+     * una función de fecha en SQL tipo to_char/strftime) para que funcione
+     * igual en Postgres (producción) y SQLite (tests).
+     */
+    private function spendingByMonth($base)
+    {
+        $grouped = $base->whereNotNull('purchase_date')
+            ->get(['purchase_date', 'price_paid'])
+            ->groupBy(fn (Game $game) => $game->purchase_date->format('Y-m'))
+            ->map(fn ($games) => (float) $games->sum('price_paid'))
+            ->sortKeys()
+            ->take(-12);
+
+        $max = (float) ($grouped->max() ?: 1);
+
+        return $grouped->map(fn (float $total, string $month) => [
+            'label' => Carbon::createFromFormat('Y-m', $month)->translatedFormat('M Y'),
+            'total' => $total,
+            'percent' => $max > 0 ? round($total / $max * 100) : 0,
+        ])->values();
+    }
+
+    /**
+     * Los géneros más repetidos en la colección (un juego puede tener
+     * varios), de mayor a menor.
+     */
+    private function topGenres($base)
+    {
+        $counts = $base->whereNotNull('genres')
+            ->pluck('genres')
+            ->flatMap(fn ($genres) => $genres ?? [])
+            ->filter()
+            ->countBy()
+            ->sortDesc()
+            ->take(8);
+
+        $max = $counts->max() ?: 1;
+
+        return $counts->map(fn ($total, $genre) => [
+            'genre' => $genre,
+            'total' => $total,
+            'percent' => round($total / $max * 100),
+        ])->values();
     }
 }

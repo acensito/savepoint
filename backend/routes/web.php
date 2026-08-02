@@ -53,6 +53,7 @@ Route::middleware('auth')->group(function () {
     // Importación masiva desde CSV (volcado inicial de la colección).
     Route::get('/games/import', [GameImportController::class, 'create'])->name('web.games.import');
     Route::post('/games/import', [GameImportController::class, 'store'])->name('web.games.import.store');
+    Route::post('/games/import/preview', [GameImportController::class, 'preview'])->name('web.games.import.preview');
     Route::get('/games/import/template', [GameImportController::class, 'template'])->name('web.games.import.template');
 
     // Papelera: juegos borrados (soft delete) del usuario, con opción de
@@ -67,8 +68,10 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/games', [GameController::class, 'store'])->name('web.games.store');
     Route::get('/games/{game}/edit', [GameController::class, 'edit'])->name('web.games.edit');
+    Route::patch('/games/{game}/quick-update', [GameController::class, 'quickUpdate'])->name('web.games.quick-update');
     Route::put('/games/{game}', [GameController::class, 'update'])->name('web.games.update');
     Route::delete('/games/{game}', [GameController::class, 'destroy'])->name('web.games.destroy');
+    Route::get('/games/{game}', [GameController::class, 'show'])->name('web.games.show');
 
     // Panel de catálogo: fabricantes, plataformas y ediciones (normal/especial/coleccionista/...)
     Route::resource('manufacturers', ManufacturerController::class)->except('show')->names('web.manufacturers');

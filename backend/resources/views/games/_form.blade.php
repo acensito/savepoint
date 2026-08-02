@@ -54,7 +54,14 @@
         <div>
             <label for="ean" class="{{ $label }}">EAN</label>
             <input type="text" name="ean" id="ean" value="{{ old('ean', $game?->ean) }}" class="{{ $input }}">
-            @error('ean') <span class="{{ $error }}">{{ $message }}</span> @enderror
+            @error('ean')
+                <span class="{{ $error }}">{{ $message }}</span>
+                <label class="flex items-center gap-2 text-sm text-slate-400 mt-1.5">
+                    <input type="checkbox" name="confirm_duplicate" value="1" {{ old('confirm_duplicate') ? 'checked' : '' }}
+                        class="rounded border-slate-600 bg-slate-800 text-indigo-600 focus:ring-indigo-500">
+                    Guardar de todos modos (ya tengo otra copia física)
+                </label>
+            @enderror
         </div>
         <div>
             <label for="developer" class="{{ $label }}">Desarrollador</label>

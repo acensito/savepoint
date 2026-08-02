@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>SavePoint - Mi Colección</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,8 +20,11 @@
                 if (localStorage.getItem('sp:theme') === 'light') {
                     document.documentElement.classList.add('light');
                 }
-                if (localStorage.getItem('sp:gamesView') === 'grid') {
+                var gamesView = localStorage.getItem('sp:gamesView');
+                if (gamesView === 'grid') {
                     document.documentElement.classList.add('games-grid-view');
+                } else if (gamesView === 'compact') {
+                    document.documentElement.classList.add('games-compact-view');
                 }
             } catch (e) {}
         })();
@@ -177,7 +181,7 @@
 
     @if(session('success'))
         <script>
-            document.addEventListener('DOMContentLoaded', () => window.showToast?.(@json(session('success')), 'success'));
+            document.addEventListener('DOMContentLoaded', () => window.showToast?.(@json(session('success')), 'success', @json(session('undoUrl'))));
         </script>
     @endif
 

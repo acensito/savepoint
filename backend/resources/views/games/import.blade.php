@@ -63,8 +63,35 @@
                 <div>
                     <label for="file" class="block font-medium text-sm text-slate-300 mb-1">Fichero CSV</label>
                     <input type="file" name="file" id="file" accept=".csv,text/csv" required
+                        data-preview-url="{{ route('web.games.import.preview') }}"
                         class="block w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-slate-800 file:text-slate-200 hover:file:bg-slate-700 cursor-pointer">
                     <p class="text-xs text-slate-500 mt-1">Máx. 5MB. Admite separador coma (,) o punto y coma (;).</p>
+                </div>
+
+                <!-- Vista previa: al elegir el fichero se manda a /games/import/preview (sin
+                     importar nada todavía) para enseñar qué columnas se han reconocido y
+                     cómo quedarían las primeras filas, antes de confirmar la subida real. -->
+                <div id="import-preview" class="hidden pt-4 border-t border-slate-800">
+                    <p id="import-preview-error" class="hidden text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2"></p>
+
+                    <div id="import-preview-content" class="hidden">
+                        <div id="import-preview-columns" class="text-xs text-slate-500 mb-3"></div>
+
+                        <div class="overflow-x-auto rounded-lg border border-slate-800">
+                            <table class="min-w-full divide-y divide-slate-800 text-sm">
+                                <thead class="bg-slate-800/50">
+                                    <tr>
+                                        <th class="px-3 py-2 text-left font-semibold text-slate-400">Título</th>
+                                        <th class="px-3 py-2 text-left font-semibold text-slate-400">Plataforma</th>
+                                        <th class="px-3 py-2 text-left font-semibold text-slate-400">EAN</th>
+                                        <th class="px-3 py-2 text-right font-semibold text-slate-400">Precio</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="import-preview-rows" class="divide-y divide-slate-800 text-slate-300"></tbody>
+                            </table>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-2">Primeras filas de ejemplo. La importación real no tiene límite de filas.</p>
+                    </div>
                 </div>
 
                 <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
