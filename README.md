@@ -123,11 +123,16 @@ Rápidas:
 - Buscador y filtro por plataforma en la papelera (`/games/trash`), igual que ya tiene el listado principal.
 - Paginación configurable en el listado web (la API ya admite `?per_page=`, la web no).
 - Botón "Deshacer" en el toast al enviar un juego a la papelera, sin tener que ir a `/games/trash`.
+- Vista compacta de la tabla de la colección (filas más bajas/densas), como alternativa a la actual junto a tarjetas y estantería.
+- Mejorar la estética de las tarjetas de la colección en móvil (el diseño actual es funcional pero mejorable).
+- Las casillas de selección de la colección (acciones en bloque) no deberían estar siempre visibles: que aparezcan solo al entrar en un "modo selección" (p. ej. con un botón "Seleccionar"), no todo el rato ocupando espacio en cada fila/tarjeta.
+- Barra de estado discreta en la parte inferior de la colección, con el nº de juegos y algún dato más que pueda interesar (gasto total, algo así), sin llamar la atención.
 
 Medias:
 - Ficha de detalle de solo lectura por juego (`/games/{id}`), en vez de tener que abrir el formulario de edición para "solo mirar".
 - Edición rápida (valoración/estado de juego) desde la propia fila del listado, por AJAX.
 - Vista previa del CSV antes de importar: primeras filas y a qué columna se ha mapeado cada una, antes de confirmar.
+- Rediseño del buscador/filtro de la colección: por defecto un buscador simple que filtra según se escribe (sin recargar la página), con un enlace "Avanzado" dentro del propio recuadro para desplegar el resto de filtros (plataforma, estado, orden...) cuando se necesiten. Implica filtrado en vivo (AJAX o similar), no solo un cambio visual.
 
 Grandes:
 - Buscador global tipo "Cmd+K" (paleta de comandos) para saltar a un juego/plataforma/sección sin ratón.
