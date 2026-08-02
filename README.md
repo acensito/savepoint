@@ -133,6 +133,7 @@ Medias:
 - Edición rápida (valoración/estado de juego) desde la propia fila del listado, por AJAX.
 - Vista previa del CSV antes de importar: primeras filas y a qué columna se ha mapeado cada una, antes de confirmar.
 - Rediseño del buscador/filtro de la colección: por defecto un buscador simple que filtra según se escribe (sin recargar la página), con un enlace "Avanzado" dentro del propio recuadro para desplegar el resto de filtros (plataforma, estado, orden...) cuando se necesiten. Implica filtrado en vivo (AJAX o similar), no solo un cambio visual.
+- Escanear el código de barras (EAN) con la cámara al dar de alta un juego, en vez de teclearlo a mano: botón junto al campo EAN que abre la cámara en un diálogo y lo rellena solo al detectar el código. Usar `@zxing/library` (no la `BarcodeDetector` nativa del navegador, que no funciona en Safari/iOS) para que funcione igual en escritorio y móvil. Necesita HTTPS en producción para acceder a la cámara (en local con `localhost` no hay problema).
 
 Grandes:
 - Buscador global tipo "Cmd+K" (paleta de comandos) para saltar a un juego/plataforma/sección sin ratón.
