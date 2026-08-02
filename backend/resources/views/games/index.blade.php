@@ -13,24 +13,14 @@
 
 @section('content')
     <div class="mb-5 sm:mb-8 flex items-center justify-between gap-3">
-        <div class="min-w-0">
-            <h1 class="text-xl sm:text-3xl font-bold text-slate-100 tracking-tight truncate">Mi Colección</h1>
-            <p class="text-xs sm:text-base text-slate-400 mt-0.5 sm:mt-1">
+        <div class="min-w-0 flex items-baseline gap-2">
+            <h1 class="text-xl sm:text-3xl font-bold text-slate-100 tracking-tight truncate min-w-0">Mi Colección</h1>
+            <span class="text-xs sm:text-base text-slate-400 whitespace-nowrap flex-shrink-0">
                 {{ $games->total() }} {{ \Illuminate\Support\Str::plural('juego', $games->total()) }} {{ \Illuminate\Support\Str::plural('registrado', $games->total()) }}.
-            </p>
+            </span>
         </div>
 
         <div class="flex-shrink-0 flex items-center gap-2">
-            <a href="{{ route('web.games.import') }}" aria-label="Importar colección"
-                class="flex items-center justify-center w-10 h-10 rounded-full border border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-colors">
-                <x-gicon name="upload_file" class="text-[20px]" />
-            </a>
-
-            <a href="{{ route('web.games.trash') }}" aria-label="Papelera de reciclaje"
-                class="flex items-center justify-center w-10 h-10 rounded-full border border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-colors">
-                <x-gicon name="delete" class="text-[20px]" />
-            </a>
-
             <a href="{{ route('web.games.create') }}" aria-label="Añadir juego"
                 class="hidden sm:flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 transition-colors">
                 <x-gicon name="add" class="text-[18px]" />
@@ -78,41 +68,44 @@
         </button>
     </div>
 
-    <!-- Buscador y filtros: colapsados tras un botón en móvil para no comerse la pantalla -->
-    <details class="group md:hidden bg-slate-900 border border-slate-800 rounded-xl mb-6" {{ $hasActiveFilters ? 'open' : '' }}>
-        <summary class="flex items-center justify-between gap-2 px-4 py-3 cursor-pointer select-none">
-            <span class="flex items-center gap-2 text-sm font-medium text-slate-200">
-                <x-gicon name="filter_list" class="text-[18px] text-slate-400" />
-                Buscar y filtrar
-                @if($hasActiveFilters)
-                    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-indigo-500 text-white text-[11px] font-bold">{{ $activeFilterCount }}</span>
-                @endif
-            </span>
-            <x-gicon name="expand_more" class="text-[20px] text-slate-500 transition-transform duration-200 group-open:rotate-180" />
-        </summary>
-
-        <div class="px-4 pb-4">
-            @include('games._filters')
-        </div>
-    </details>
-
-    <div class="hidden md:block bg-slate-900 border border-slate-800 rounded-xl p-4 mb-6">
-        @include('games._filters')
-    </div>
-
-    <!-- Vista habitual (tarjetas/tabla) vs. estantería (grid de carátulas grandes):
-         cuál de las dos se ve lo decide app.css según la clase 'games-grid-view' en
-         <html>, que este botón alterna y persiste en localStorage. -->
-    <div class="flex justify-end mb-4">
-        <div class="inline-flex items-center gap-1 bg-slate-900 border border-slate-800 rounded-lg p-1">
+    <!-- Buscador/filtros, con el toggle de vista (tabla/tarjetas vs. estantería) a su
+         izquierda en la misma línea, en vez de ocupar una línea aparte. Cuál de las dos
+         vistas se ve lo decide app.css según la clase 'games-grid-view' en <html>, que
+         este botón alterna y persiste en localStorage. -->
+    <div class="flex items-start gap-3 mb-6">
+        <div class="flex-shrink-0 inline-flex items-stretch h-[42px] bg-slate-900 border border-slate-800 rounded-lg overflow-hidden divide-x divide-slate-800">
             <button type="button" id="games-view-list-btn" aria-label="Ver como lista" aria-pressed="true"
-                class="flex items-center justify-center w-8 h-8 rounded-md text-indigo-400 hover:bg-slate-800 transition-colors">
+                class="flex items-center justify-center w-10 text-indigo-400 hover:bg-slate-800 transition-colors">
                 <x-gicon name="view_list" class="text-[18px]" />
             </button>
             <button type="button" id="games-view-grid-btn" aria-label="Ver como estantería" aria-pressed="false"
-                class="flex items-center justify-center w-8 h-8 rounded-md text-slate-500 hover:bg-slate-800 transition-colors">
+                class="flex items-center justify-center w-10 text-slate-500 hover:bg-slate-800 transition-colors">
                 <x-gicon name="grid_view" class="text-[18px]" />
             </button>
+        </div>
+
+        <div class="flex-1 min-w-0">
+            <!-- Buscador y filtros: colapsados tras un botón en móvil para no comerse la pantalla -->
+            <details class="group md:hidden bg-slate-900 border border-slate-800 rounded-xl" {{ $hasActiveFilters ? 'open' : '' }}>
+                <summary class="flex items-center justify-between gap-2 px-4 py-3 cursor-pointer select-none">
+                    <span class="flex items-center gap-2 text-sm font-medium text-slate-200">
+                        <x-gicon name="filter_list" class="text-[18px] text-slate-400" />
+                        Buscar y filtrar
+                        @if($hasActiveFilters)
+                            <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-indigo-500 text-white text-[11px] font-bold">{{ $activeFilterCount }}</span>
+                        @endif
+                    </span>
+                    <x-gicon name="expand_more" class="text-[20px] text-slate-500 transition-transform duration-200 group-open:rotate-180" />
+                </summary>
+
+                <div class="px-4 pb-4">
+                    @include('games._filters')
+                </div>
+            </details>
+
+            <div class="hidden md:block bg-slate-900 border border-slate-800 rounded-xl p-4">
+                @include('games._filters')
+            </div>
         </div>
     </div>
 
