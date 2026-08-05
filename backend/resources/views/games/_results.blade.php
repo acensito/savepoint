@@ -100,7 +100,6 @@
                         <th scope="col" class="px-6 py-3.5 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">Conservación</th>
                         <th scope="col" class="px-6 py-3.5 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">Precio</th>
                         <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Fecha compra</th>
-                        <th scope="col" class="px-6 py-3.5 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">Acciones</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-800">
@@ -165,29 +164,10 @@
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
                                 {{ $game->purchase_date?->format('d/m/Y') ?? '—' }}
                             </td>
-
-                            <!-- Acciones (Editar y Borrar) -->
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <div class="flex items-center justify-end gap-3">
-                                    <a href="{{ route('web.games.edit', $game->id) }}" class="text-indigo-400 hover:text-indigo-300 transition-colors">
-                                        Editar
-                                    </a>
-
-                                    <form action="{{ route('web.games.destroy', $game->id) }}" method="POST" class="inline js-confirm-delete"
-                                        data-confirm-title="Enviar a la papelera"
-                                        data-confirm-message="«{{ $game->title }}» se moverá a la papelera. Podrás restaurarlo más tarde.">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="text-red-400 hover:text-red-300 transition-colors">
-                                            Borrar
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="10" class="px-6 py-12 text-center text-slate-500 text-sm">
+                            <td colspan="9" class="px-6 py-12 text-center text-slate-500 text-sm">
                                 @if($hasActiveFilters)
                                     No hay juegos que coincidan con la búsqueda o los filtros aplicados.
                                 @else
