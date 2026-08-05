@@ -1,7 +1,16 @@
 @if($query === '')
     <p class="px-4 py-10 text-center text-sm text-slate-500">Escribe para buscar un juego por título o EAN.</p>
 @elseif($games->isEmpty())
-    <p class="px-4 py-10 text-center text-sm text-slate-500">Sin resultados para «{{ $query }}».</p>
+    <div class="px-4 py-10 text-center">
+        <p class="text-sm text-slate-500">
+            {{ $isEan ? 'Ningún juego con ese código de barras en tu colección.' : "Sin resultados para «{$query}»." }}
+        </p>
+        <a href="{{ route('web.games.create', $isEan ? ['ean' => $query] : ['title' => $query]) }}"
+            class="inline-flex items-center gap-1.5 mt-3 text-sm font-medium text-indigo-400 hover:text-indigo-300">
+            <x-gicon name="add_circle" class="text-[16px]" />
+            Dar de alta «{{ $query }}»
+        </a>
+    </div>
 @else
     <ul class="py-2">
         @foreach($games as $game)

@@ -15,7 +15,7 @@
         <div class="bg-slate-900 border border-slate-800 rounded-xl p-8">
             <form action="{{ route('web.games.store') }}" method="POST" enctype="multipart/form-data" class="space-y-6">
                 @csrf
-                @include('games._form', ['game' => null])
+                @include('games._form', ['game' => null, 'prefill' => $prefill])
 
                 <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
                     <a href="{{ route('web.games.index') }}" class="text-slate-400 hover:text-slate-100 text-sm font-medium px-4 py-2">Cancelar</a>

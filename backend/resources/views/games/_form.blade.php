@@ -3,6 +3,12 @@
     $label = 'block font-medium text-sm text-slate-300 mb-1';
     $error = 'text-red-400 text-sm mt-1 block';
 
+    // Solo llega en el alta (nunca en la edición, donde ya hay un $game real):
+    // viene de la búsqueda rápida (Ctrl+K) cuando un EAN escaneado/buscado no
+    // coincide con ningún juego existente, para no tener que volver a
+    // teclearlo aquí.
+    $prefill ??= [];
+
     $defaultPurchaseDate = $game ? $game->purchase_date?->format('Y-m-d') : now()->format('Y-m-d');
 
     $regionPresets = ['PAL-ES', 'PAL-EU', 'PAL-UK', 'PAL-FR', 'PAL-DE', 'PAL-IT', 'NTSC-U', 'NTSC-J'];
@@ -46,14 +52,14 @@
 
     <div>
         <label for="title" class="{{ $label }}">Título</label>
-        <input type="text" name="title" id="title" value="{{ old('title', $game?->title) }}" required autofocus class="{{ $input }}">
+        <input type="text" name="title" id="title" value="{{ old('title', $game?->title ?? $prefill['title'] ?? null) }}" required autofocus class="{{ $input }}">
         @error('title') <span class="{{ $error }}">{{ $message }}</span> @enderror
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
             <label for="ean" class="{{ $label }}">EAN</label>
-            <input type="text" name="ean" id="ean" value="{{ old('ean', $game?->ean) }}" class="{{ $input }}">
+            <input type="text" name="ean" id="ean" value="{{ old('ean', $game?->ean ?? $prefill['ean'] ?? null) }}" class="{{ $input }}">
             @error('ean')
                 <span class="{{ $error }}">{{ $message }}</span>
                 <label class="flex items-center gap-2 text-sm text-slate-400 mt-1.5">

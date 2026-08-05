@@ -770,3 +770,69 @@ function initQuickSearch() {
 }
 
 initQuickSearch();
+
+/**
+ * Escaneo de código de barras (EAN) con la cámara, para no tener que
+ * teclearlo en la búsqueda rápida. Usa @zxing/library, cargada solo al
+ * pulsar el botón (import() dinámico) para no meter esa dependencia en el
+ * bundle inicial de todo el mundo, la mayoría de veces sin usarla.
+ */
+function initBarcodeScanner() {
+    const trigger = document.getElementById('barcode-scan-trigger');
+    const dialog = document.getElementById('barcode-scan-dialog');
+    const video = document.getElementById('barcode-scan-video');
+    const cancelBtn = document.getElementById('barcode-scan-cancel');
+    const errorEl = document.getElementById('barcode-scan-error');
+    const searchInput = document.getElementById('quick-search-input');
+
+    if (!trigger || !dialog || !video || !searchInput) return;
+
+    let reader = null;
+
+    const showError = (message) => {
+        errorEl.textContent = message;
+        errorEl.classList.remove('hidden');
+    };
+
+    const stop = () => {
+        reader?.reset();
+        reader = null;
+    };
+
+    const close = () => {
+        stop();
+        if (dialog.open) dialog.close();
+    };
+
+    trigger.addEventListener('click', async () => {
+        errorEl.classList.add('hidden');
+        dialog.showModal();
+
+        try {
+            const { BrowserMultiFormatReader } = await import('@zxing/library');
+            reader = new BrowserMultiFormatReader();
+
+            await reader.decodeFromVideoDevice(undefined, video, (result) => {
+                if (!result) return; // Sin detección en este frame: no es un error, sigue intentando.
+
+                const code = result.getText();
+                close();
+                searchInput.value = code;
+                searchInput.dispatchEvent(new Event('input'));
+            });
+        } catch (e) {
+            showError('No se ha podido acceder a la cámara. Comprueba los permisos del navegador.');
+        }
+    });
+
+    cancelBtn.addEventListener('click', close);
+    dialog.addEventListener('close', stop);
+
+    // Mismo truco que en quick-search-dialog: sin padding propio, un click
+    // cuyo target sea el <dialog> en sí solo puede venir del backdrop.
+    dialog.addEventListener('click', (e) => {
+        if (e.target === dialog) close();
+    });
+}
+
+initBarcodeScanner();

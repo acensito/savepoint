@@ -42,6 +42,12 @@ class SearchController extends Controller
                 ->limit(self::MAX_RESULTS)
                 ->get();
 
-        return view('games._quick-search-results', compact('games', 'query'));
+        // Un código escaneado (o tecleado) que parece un EAN/UPC real, para
+        // decidir qué campo del alta de juego rellenar cuando no hay
+        // resultados: EAN si parece un código de barras, título en cualquier
+        // otro caso.
+        $isEan = ctype_digit($query) && strlen($query) >= 8;
+
+        return view('games._quick-search-results', compact('games', 'query', 'isEan'));
     }
 }

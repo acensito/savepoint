@@ -112,13 +112,23 @@ class GameController extends Controller
         ));
     }
 
-    // Muestra el formulario de alta
+    /**
+     * Muestra el formulario de alta. Acepta ?ean= y/o ?title= para
+     * prellenar esos campos: los usa la búsqueda rápida (Ctrl+K) cuando un
+     * código escaneado o buscado no coincide con ningún juego ya registrado,
+     * para no tener que volver a teclearlo aquí.
+     */
     public function create(Request $request)
     {
         $platforms = Platform::orderBy('name')->get();
         $editions = Edition::with('platforms')->orderBy('name')->get();
 
-        return view('games.create', compact('platforms', 'editions'));
+        $prefill = [
+            'ean' => $request->query('ean'),
+            'title' => $request->query('title'),
+        ];
+
+        return view('games.create', compact('platforms', 'editions', 'prefill'));
     }
 
     // Guarda el juego en la base de datos

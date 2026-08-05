@@ -197,10 +197,41 @@
             <input type="text" id="quick-search-input" autocomplete="off" spellcheck="false"
                 class="flex-1 min-w-0 bg-transparent text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none"
                 placeholder="Buscar por título o EAN…">
+            <button type="button" id="barcode-scan-trigger"
+                class="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-lg text-slate-500 hover:bg-slate-800 hover:text-slate-100 transition-colors"
+                aria-label="Escanear código de barras" title="Escanear código de barras">
+                <x-gicon name="qr_code_scanner" class="text-[18px]" />
+            </button>
             <kbd class="flex-shrink-0 text-[10px] font-semibold text-slate-500 border border-slate-700 rounded px-1.5 py-0.5">Esc</kbd>
         </div>
 
         <div id="quick-search-results" class="max-h-[60vh] overflow-y-auto"></div>
+    </dialog>
+
+    <!-- Escaneo de código de barras (EAN) con la cámara, ver initBarcodeScanner
+         en app.js: al detectar un código lo vuelca en el buscador rápido de
+         arriba, que ya sabe proponer dar de alta el juego si no hay ninguna
+         coincidencia. Se abre encima del diálogo de búsqueda (dos <dialog>
+         apilados es válido). -->
+    <dialog id="barcode-scan-dialog" class="rounded-xl border border-slate-800 bg-slate-900 text-slate-100 p-0 backdrop:bg-black/70 w-full max-w-sm">
+        <div class="p-4">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-sm font-semibold text-slate-100 flex items-center gap-1.5">
+                    <x-gicon name="qr_code_scanner" class="text-[18px]" />
+                    Escanear código de barras
+                </h2>
+                <button type="button" id="barcode-scan-cancel"
+                    class="flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-colors"
+                    aria-label="Cancelar">
+                    <x-gicon name="close" class="text-[18px]" />
+                </button>
+            </div>
+
+            <video id="barcode-scan-video" class="w-full aspect-video rounded-lg bg-black object-cover" muted playsinline></video>
+
+            <p id="barcode-scan-error" class="hidden mt-3 text-sm text-red-400"></p>
+            <p class="mt-3 text-xs text-slate-500 text-center">Apunta la cámara al código de barras (EAN) de la caja del juego.</p>
+        </div>
     </dialog>
 
     @if(session('success'))
