@@ -83,10 +83,11 @@ El stack (`docker-compose.yml`) levanta `postgres`, `redis`, `app` (PHP-FPM), `q
 Primer arranque:
 
 ```bash
-cp backend/.env.example backend/.env   # y ajustar DB_HOST/REDIS_HOST a postgres/redis, DB_* a los del compose
+cp backend/.env.example backend/.env   # ya trae los valores del docker-compose.yml (host/usuario/password de postgres y redis); solo falta APP_KEY
 docker compose up -d --build
 
 docker compose exec app composer install
+docker compose exec app php artisan key:generate
 docker compose exec app npm install
 docker compose exec app npm run build       # o npm run dev si se expone el puerto 5173 para HMR
 
@@ -128,10 +129,14 @@ Medias:
 - Escanear el código de barras (EAN) con la cámara al dar de alta un juego, en vez de teclearlo a mano: botón junto al campo EAN que abre la cámara en un diálogo y lo rellena solo al detectar el código. Usar `@zxing/library` (no la `BarcodeDetector` nativa del navegador, que no funciona en Safari/iOS) para que funcione igual en escritorio y móvil. Necesita HTTPS en producción para acceder a la cámara (en local con `localhost` no hay problema).
 
 Grandes:
-- Buscador global tipo "Cmd+K" (paleta de comandos) para saltar a un juego/plataforma/sección sin ratón.
-- Verificación de email / 2FA (el modelo `User` ya tiene `MustVerifyEmail` comentado en el código); opcional para uso personal, interesante si la cuenta se comparte con más gente.
+- Verificación de email / 2FA: el modelo `User` ya tiene `MustVerifyEmail` comentado en el código, pero deliberadamente no se activa — la app la usa una sola persona para su propia colección, así que no aporta nada de seguridad real hoy. Se deja preparado (comentado, no borrado) por si el proyecto se hace público/se forkea y alguien añade más usuarios o lo despliega en abierto.
 
 ## Changelog
+
+### 2026-08-05
+- Búsqueda rápida global (Ctrl+K / Cmd+K, `/search/quick`): abre un `<dialog>` centrado ("spotlight", más cerca de arriba que el resto de diálogos) con resultados en vivo por título/EAN mientras se escribe; Enter abre el primer resultado, click abre cualquier otro. Los resultados son enlaces normales a la ficha del juego.
+- Rediseño visual de la ficha de detalle de un juego (`/games/{id}`): los campos pasan de una rejilla plana a "tarjetas" agrupadas en dos secciones (Detalles / Compra) con icono por campo, carátula más grande con sombra y notas en un bloque destacado.
+- Arreglado un bug de aislamiento de tests que llegó a machacar la base de datos real de desarrollo (usuarios, colección y catálogo a cero): los contenedores `app`/`queue` habían quedado arrancados con variables de entorno de Postgres "grabadas" desde antes de quitar `env_file` de `docker-compose.yml` (Docker no relee `env_file` de un contenedor ya corriendo, solo al recrearlo), así que `php artisan test` seguía viendo `DB_CONNECTION=pgsql` pese a que `phpunit.xml` fuerza SQLite en memoria. Se soluciona recreando los contenedores (`docker compose up -d --force-recreate app queue`) tras cualquier cambio en `env_file`/`environment` del compose.
 
 ### 2026-08-02
 - Campo "Valoración" renombrado a "Conservación" en toda la interfaz (tabla, tarjetas, orden, formulario de alta/edición, estadísticas) y en la importación CSV (columna de la plantilla y del importador): refleja mejor su uso real como estado físico de conservación de la copia, no una valoración subjetiva del juego. Las palabras que aparecían al pasar el ratón por las estrellas del formulario ("Excelente", "Aceptable"...) también se actualizaron a la misma escala (Malo/Regular/Bueno/Muy bueno/Nuevo o precintado).
