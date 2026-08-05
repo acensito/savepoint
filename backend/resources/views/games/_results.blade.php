@@ -148,11 +148,9 @@
                                 @endif
                             </td>
 
-                            <!-- Conservación (editable rápido: clic en una estrella) -->
+                            <!-- Conservación (solo lectura: se cambia desde el formulario de edición) -->
                             <td class="px-6 py-4 whitespace-nowrap text-center">
-                                <div class="js-quick-rating inline-flex justify-center" data-game-id="{{ $game->id }}" data-rating="{{ $game->rating }}">
-                                    <x-star-rating :rating="$game->rating" size="text-[10px]" class="justify-center" />
-                                </div>
+                                <x-star-rating :rating="$game->rating" size="text-[10px]" class="justify-center" />
                             </td>
 
                             <!-- Precio -->
