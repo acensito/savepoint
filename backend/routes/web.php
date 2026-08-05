@@ -8,6 +8,7 @@ use App\Http\Controllers\Web\ManufacturerController;
 use App\Http\Controllers\Web\PasswordResetController;
 use App\Http\Controllers\Web\PlatformController;
 use App\Http\Controllers\Web\ProfileController;
+use App\Http\Controllers\Web\SearchController;
 use App\Http\Controllers\Web\StatsController;
 use Illuminate\Support\Facades\Route;
 
@@ -44,6 +45,9 @@ Route::middleware('auth')->group(function () {
 
     // Estadísticas de la colección
     Route::get('/stats', [StatsController::class, 'index'])->name('web.stats.index');
+
+    // Búsqueda rápida global (Ctrl+K): unos pocos resultados en vivo por título/EAN.
+    Route::get('/search/quick', [SearchController::class, 'quick'])->name('web.search.quick');
 
     // OJO con el orden: las rutas estáticas van ANTES que las que llevan
     // un parámetro {game}, o '/games/create' acabaría entrando por

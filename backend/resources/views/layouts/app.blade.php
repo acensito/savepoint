@@ -53,6 +53,12 @@
             </div>
 
             <div class="flex items-center gap-4 flex-shrink-0">
+                <button type="button" id="quick-search-trigger"
+                    class="flex items-center justify-center w-8 h-8 rounded-lg text-indigo-100 hover:bg-white/10 hover:text-white transition-colors"
+                    aria-label="Buscar (Ctrl+K)" title="Buscar (Ctrl+K)">
+                    <x-gicon name="search" class="text-[20px]" />
+                </button>
+
                 <button type="button" class="js-theme-toggle flex items-center justify-center w-8 h-8 rounded-lg text-indigo-100 hover:bg-white/10 hover:text-white transition-colors"
                     aria-label="Cambiar tema">
                     <x-gicon name="light_mode" class="text-[20px]" />
@@ -179,6 +185,22 @@
                 <button type="button" id="confirm-dialog-accept" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-500 transition-colors">Confirmar</button>
             </div>
         </div>
+    </dialog>
+
+    <!-- Búsqueda rápida (Ctrl+K / Cmd+K): resultados en vivo por título/EAN, ver
+         initQuickSearch en app.js. Los resultados son enlaces normales a la
+         ficha del juego, sin navegación por JS. -->
+    <dialog id="quick-search-dialog" data-url="{{ route('web.search.quick') }}"
+        class="rounded-xl border border-slate-800 bg-slate-900 text-slate-100 p-0 backdrop:bg-black/60 w-full max-w-lg">
+        <div class="flex items-center gap-3 px-4 py-3 border-b border-slate-800">
+            <x-gicon name="search" class="text-[20px] text-slate-500 flex-shrink-0" />
+            <input type="text" id="quick-search-input" autocomplete="off" spellcheck="false"
+                class="flex-1 min-w-0 bg-transparent text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none"
+                placeholder="Buscar por título o EAN…">
+            <kbd class="flex-shrink-0 text-[10px] font-semibold text-slate-500 border border-slate-700 rounded px-1.5 py-0.5">Esc</kbd>
+        </div>
+
+        <div id="quick-search-results" class="max-h-[60vh] overflow-y-auto"></div>
     </dialog>
 
     @if(session('success'))

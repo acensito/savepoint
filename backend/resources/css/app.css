@@ -159,6 +159,16 @@ dialog {
     margin: auto;
 }
 
+/* Búsqueda rápida (Ctrl+K): más cerca de la parte superior de la pantalla
+   ("spotlight", como Cmd+K de macOS o la paleta de comandos de VS Code) en
+   vez del centrado vertical exacto que usa el resto de diálogos. Se pisan
+   solo margin-top/bottom: el margin-left/right auto de la regla `dialog` de
+   arriba sigue aplicando, así que se mantiene centrado en horizontal. */
+#quick-search-dialog {
+    margin-top: 12vh;
+    margin-bottom: auto;
+}
+
 /* Vista de estantería de la colección (games/index.blade.php): alternativa en
    grid de carátulas grandes a la tabla/tarjetas habituales. Los selectores de
    ID pesan más que las utilidades de Tailwind (evita depender del orden de

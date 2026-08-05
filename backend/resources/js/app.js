@@ -689,3 +689,84 @@ function initConfirmDialogs() {
 }
 
 initConfirmDialogs();
+
+const QUICK_SEARCH_DEBOUNCE_MS = 200;
+
+/**
+ * Búsqueda rápida global (Ctrl+K / Cmd+K): abre un <dialog> centrado con un
+ * campo de texto que busca en la colección según se escribe. El servidor
+ * devuelve el fragmento ya renderizado (mismo patrón que refreshGamesResults
+ * más arriba) para reutilizar los componentes de carátula/chip/estrellas;
+ * los resultados son enlaces normales a la ficha del juego, sin navegación
+ * por JS.
+ */
+function initQuickSearch() {
+    const dialog = document.getElementById('quick-search-dialog');
+    const input = document.getElementById('quick-search-input');
+    const results = document.getElementById('quick-search-results');
+    const trigger = document.getElementById('quick-search-trigger');
+    const url = dialog?.dataset.url;
+
+    if (!dialog || !input || !results || !url) return;
+
+    let debounceTimer = null;
+
+    const runSearch = async () => {
+        const params = new URLSearchParams({ q: input.value.trim() });
+
+        try {
+            const response = await fetch(`${url}?${params.toString()}`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin',
+            });
+            if (!response.ok) return;
+
+            results.innerHTML = await response.text();
+        } catch (e) {
+            // Sin conexión o similar: se deja el resultado anterior en pantalla.
+        }
+    };
+
+    const open = () => {
+        input.value = '';
+        dialog.showModal();
+        input.focus();
+        runSearch();
+    };
+
+    trigger?.addEventListener('click', open);
+
+    // Atajo global: funciona aunque el foco esté en otro campo de texto (a
+    // diferencia de "/" para el buscador de la colección), como en cualquier
+    // paleta de comandos. preventDefault() también evita que el navegador
+    // enfoque la barra de direcciones con este mismo atajo.
+    document.addEventListener('keydown', (e) => {
+        if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 'k') return;
+
+        e.preventDefault();
+        dialog.open ? dialog.close() : open();
+    });
+
+    input.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(runSearch, QUICK_SEARCH_DEBOUNCE_MS);
+    });
+
+    // Enter navega directamente al primer resultado, sin tener que soltar el
+    // teclado para hacer click.
+    input.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        results.querySelector('a')?.click();
+    });
+
+    // Clic en el fondo (backdrop) cierra el diálogo: el <dialog> no tiene
+    // padding propio (todo el contenido vive en hijos que lo cubren entero),
+    // así que un click cuyo target sea el propio <dialog> solo puede venir
+    // del backdrop.
+    dialog.addEventListener('click', (e) => {
+        if (e.target === dialog) dialog.close();
+    });
+}
+
+initQuickSearch();
