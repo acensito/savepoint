@@ -95,7 +95,6 @@
                         <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Título</th>
                         <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Plataforma</th>
                         <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Edición</th>
-                        <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Estado</th>
                         <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Región</th>
                         <th scope="col" class="px-6 py-3.5 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">Manual</th>
                         <th scope="col" class="px-6 py-3.5 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">Conservación</th>
@@ -130,22 +129,6 @@
                             <!-- Edición -->
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
                                 {{ $game->edition?->name ?? '—' }}
-                            </td>
-
-                            <!-- Estado (editable rápido: clic para pasar al siguiente estado) -->
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <button type="button" class="js-quick-play-status flex items-center gap-1.5 rounded px-1.5 py-0.5 -mx-1.5 hover:bg-slate-800 transition-colors {{ $game->play_status === 'finished' ? 'text-emerald-400' : 'text-slate-400' }}"
-                                    data-game-id="{{ $game->id }}" data-play-status="{{ $game->play_status }}"
-                                    aria-label="Cambiar estado de {{ $game->title }}">
-                                    @if($game->play_status === 'finished')
-                                        <x-gicon name="check_circle" class="text-[20px]" />
-                                    @else
-                                        <x-gicon name="schedule" class="text-[20px]" />
-                                    @endif
-                                    <span class="text-sm font-medium capitalize">
-                                        {{ $game->play_status ?? 'Pendiente' }}
-                                    </span>
-                                </button>
                             </td>
 
                             <!-- Región -->
@@ -204,7 +187,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="11" class="px-6 py-12 text-center text-slate-500 text-sm">
+                            <td colspan="10" class="px-6 py-12 text-center text-slate-500 text-sm">
                                 @if($hasActiveFilters)
                                     No hay juegos que coincidan con la búsqueda o los filtros aplicados.
                                 @else
