@@ -139,7 +139,7 @@ Grandes:
 - Corregido `.env.example`: traía los valores por defecto del scaffold de Laravel (sqlite, sin locale es, sin redis) en vez de los que el proyecto necesita (Postgres/Redis del `docker-compose.yml`, `APP_LOCALE=es`, `QUEUE_CONNECTION=redis`).
 - Escaneo de código de barras (EAN) con la cámara desde la búsqueda rápida (`@zxing/library`): si el código no coincide con ningún juego de la colección, propone darlo de alta con el EAN ya relleno en vez de solo decir "sin resultados".
 - Quitada la columna "Estado" (pendiente/jugando/terminado) de la tabla de escritorio: en portátiles con pantalla 1080p no cabía entera y obligaba a hacer scroll horizontal. Sigue disponible como filtro, en las tarjetas de móvil y en la ficha de detalle.
-- Reducidas las estrellas de conservación de la tabla de escritorio (13px → 12px): era el único sitio de la app donde `<x-star-rating>` no fijaba un tamaño explícito.
+- Reducidas las estrellas de conservación de la tabla de escritorio (13px por defecto → 12px → 10px, a gusto): era el único sitio de la app donde `<x-star-rating>` no fijaba un tamaño explícito.
 - Quitada también la columna "Acciones" (Editar/Borrar) de la tabla de escritorio: esas acciones quedan relegadas a la ficha de detalle de cada juego, que ya las tenía.
 
 ### 2026-08-02
