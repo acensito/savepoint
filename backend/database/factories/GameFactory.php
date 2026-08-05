@@ -22,7 +22,11 @@ class GameFactory extends Factory
             'release_date' => fake()->date(),
             'developer' => fake()->company(),
             'genres' => [fake()->word(), fake()->word()],
-            'status' => fake()->randomElement(['owned', 'wishlist', 'sold']),
+            // 'owned' por defecto: la mayoría de tests no les importa la Propiedad
+            // y esperan que el juego aparezca en la colección principal, que
+            // excluye los "wishlist" (ver GameController::index). Los tests que sí
+            // necesitan wishlist/sold lo indican explícitamente al crear el juego.
+            'status' => 'owned',
             'play_status' => fake()->randomElement(['pending', 'playing', 'finished']),
             'condition' => fake()->randomElement(['mint', 'good', 'fair', 'poor']),
             'edition_id' => null,

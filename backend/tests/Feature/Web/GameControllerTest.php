@@ -7,6 +7,7 @@ use App\Models\Platform;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -27,6 +28,53 @@ class GameControllerTest extends TestCase
         $response->assertOk();
         $response->assertSee('Mi juego');
         $response->assertDontSee('Juego ajeno');
+    }
+
+    public function test_index_never_lists_wishlist_games_even_when_filtered_by_status(): void
+    {
+        $user = User::factory()->create();
+        Game::factory()->for($user)->create(['title' => 'Deseado', 'status' => 'wishlist']);
+        Game::factory()->for($user)->create(['title' => 'Mío', 'status' => 'owned']);
+
+        $response = $this->actingAs($user)->get('/?status=wishlist');
+
+        $response->assertSee('No hay juegos', false);
+        $response->assertDontSee('Deseado');
+    }
+
+    public function test_collection_totals_exclude_wishlist_games(): void
+    {
+        $user = User::factory()->create();
+        Game::factory()->for($user)->create(['status' => 'owned', 'price_paid' => 20]);
+        Game::factory()->for($user)->create(['status' => 'wishlist', 'price_paid' => null]);
+
+        $response = $this->actingAs($user)->get('/');
+
+        $this->assertSame(1, $response->viewData('collectionTotals')['count']);
+        $this->assertSame(20.0, $response->viewData('collectionTotals')['spent']);
+    }
+
+    public function test_editing_with_convert_to_owned_preselects_owned_status_and_todays_purchase_date(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['status' => 'wishlist', 'purchase_date' => null]);
+
+        $response = $this->actingAs($user)->get(route('web.games.edit', ['game' => $game->id, 'convert_to_owned' => 1]));
+
+        $response->assertOk();
+        $response->assertSee('value="owned" selected', false);
+        $response->assertSee('value="' . now()->format('Y-m-d') . '"', false);
+    }
+
+    public function test_editing_normally_keeps_the_games_current_status(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['status' => 'wishlist']);
+
+        $response = $this->actingAs($user)->get(route('web.games.edit', $game->id));
+
+        $response->assertOk();
+        $response->assertSee('value="wishlist" selected', false);
     }
 
     public function test_index_sorts_by_title_ascending(): void
@@ -207,6 +255,93 @@ class GameControllerTest extends TestCase
         $this->assertSame($user->id, $game->user_id);
         $this->assertNotNull($game->cover);
         Storage::disk('public')->assertExists($game->cover);
+    }
+
+    public function test_creating_a_game_downloads_the_suggested_cover_from_an_allowed_host(): void
+    {
+        Storage::fake('public');
+        Http::fake(['es.static.webuy.com/*' => Http::response('fake-jpeg-bytes', 200, ['Content-Type' => 'image/jpeg'])]);
+
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post('/games', [
+            'title' => 'Hollow Knight',
+            'play_status' => 'pending',
+            'cover_url' => 'https://es.static.webuy.com/product_images/hollow_knight_l.jpg',
+        ]);
+
+        $response->assertRedirect(route('web.games.index'));
+
+        $game = Game::where('title', 'Hollow Knight')->firstOrFail();
+        $this->assertNotNull($game->cover);
+        $this->assertStringEndsWith('.jpg', $game->cover);
+        Storage::disk('public')->assertExists($game->cover);
+    }
+
+    public function test_creating_a_game_ignores_a_cover_url_from_a_host_that_is_not_allowlisted(): void
+    {
+        Storage::fake('public');
+        Http::fake();
+
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post('/games', [
+            'title' => 'Juego SSRF',
+            'play_status' => 'pending',
+            // Un host cualquiera que no sea el CDN de CEX: ni siquiera debe
+            // intentarse la petición (protección SSRF en downloadExternalCover).
+            'cover_url' => 'https://169.254.169.254/latest/meta-data/',
+        ]);
+
+        $response->assertRedirect(route('web.games.index'));
+
+        $game = Game::where('title', 'Juego SSRF')->firstOrFail();
+        $this->assertNull($game->cover);
+        Http::assertNothingSent();
+    }
+
+    public function test_creating_a_game_ignores_cover_url_when_remove_cover_is_checked(): void
+    {
+        Storage::fake('public');
+        Http::fake();
+
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post('/games', [
+            'title' => 'Sin carátula',
+            'play_status' => 'pending',
+            'cover_url' => 'https://es.static.webuy.com/product_images/x_l.jpg',
+            'remove_cover' => '1',
+        ]);
+
+        $response->assertRedirect(route('web.games.index'));
+
+        $game = Game::where('title', 'Sin carátula')->firstOrFail();
+        $this->assertNull($game->cover);
+        Http::assertNothingSent();
+    }
+
+    public function test_creating_a_wishlist_game_saves_priority_estimated_price_and_store(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post('/games', [
+            'title' => 'Hollow Knight: Silksong',
+            'play_status' => 'pending',
+            'status' => 'wishlist',
+            'wishlist_priority' => 1,
+            'wishlist_estimated_price' => 39.99,
+            'wishlist_store' => 'Tienda X',
+        ]);
+
+        $response->assertRedirect(route('web.games.index'));
+
+        $game = Game::where('title', 'Hollow Knight: Silksong')->firstOrFail();
+
+        $this->assertSame('wishlist', $game->status);
+        $this->assertSame(1, $game->wishlist_priority);
+        $this->assertEquals(39.99, $game->wishlist_estimated_price);
+        $this->assertSame('Tienda X', $game->wishlist_store);
     }
 
     public function test_creating_a_game_requires_title_and_play_status(): void

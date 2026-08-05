@@ -26,6 +26,9 @@ class Game extends Model
         'developer',
         'genres',
         'status',
+        'wishlist_priority',
+        'wishlist_estimated_price',
+        'wishlist_store',
         'play_status',
         'condition',
         'edition_id',
@@ -50,6 +53,8 @@ class Game extends Model
             'genres' => 'array', // Laravel convierte el JSON de Postgres a un array de PHP automáticamente
             'price_paid' => 'decimal:2',
             'rating' => 'integer',
+            'wishlist_priority' => 'integer',
+            'wishlist_estimated_price' => 'decimal:2',
         ];
     }
 

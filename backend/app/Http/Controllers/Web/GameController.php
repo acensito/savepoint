@@ -9,8 +9,10 @@ use App\Models\Platform;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Throwable;
 
 class GameController extends Controller
 {
@@ -59,6 +61,10 @@ class GameController extends Controller
         $activeFilterCount = collect([$query !== '', $platformId !== '', $playStatus !== '', $status !== ''])->filter()->count();
 
         $games = Game::where('user_id', auth()->id())
+            // La lista de deseos tiene su propia página (/wishlist): un juego
+            // deseado todavía no forma parte de "tu colección", así que nunca
+            // aparece aquí, ni siquiera con el filtro de Propiedad a mano.
+            ->where('status', '!=', 'wishlist')
             // Solo las columnas que pinta el listado: notes/data/genres/etc. serían
             // peso muerto en una tabla paginada y no se usan aquí.
             ->select([
@@ -100,10 +106,11 @@ class GameController extends Controller
         }
 
         // Totales de TODA la colección (no del resultado filtrado/paginado actual),
-        // para la barra de estado discreta al pie del listado.
+        // para la barra de estado discreta al pie del listado. Igual que arriba,
+        // la wishlist no cuenta: todavía no es parte de la colección.
         $collectionTotals = [
-            'count' => Game::where('user_id', auth()->id())->count(),
-            'spent' => (float) Game::where('user_id', auth()->id())->sum('price_paid'),
+            'count' => Game::where('user_id', auth()->id())->where('status', '!=', 'wishlist')->count(),
+            'spent' => (float) Game::where('user_id', auth()->id())->where('status', '!=', 'wishlist')->sum('price_paid'),
         ];
 
         return view('games.index', compact(
@@ -126,6 +133,11 @@ class GameController extends Controller
         $prefill = [
             'ean' => $request->query('ean'),
             'title' => $request->query('title'),
+            // Llega desde la ficha de comprobación de una sugerencia externa
+            // (CEX) en la búsqueda rápida: la carátula no se descarga hasta
+            // que se guarda el formulario (ver store()), aquí solo se
+            // previsualiza.
+            'cover_url' => $request->query('cover_url'),
         ];
 
         return view('games.create', compact('platforms', 'editions', 'prefill'));
@@ -142,9 +154,16 @@ class GameController extends Controller
             ]);
         }
 
-        $validated['cover'] = $request->hasFile('cover')
-            ? $request->file('cover')->store('covers', 'public')
-            : null;
+        if ($request->hasFile('cover')) {
+            $validated['cover'] = $request->file('cover')->store('covers', 'public');
+        } elseif (!$request->boolean('remove_cover') && $request->filled('cover_url')) {
+            // Carátula sugerida desde la ficha de comprobación de una
+            // búsqueda externa (CEX): se descarga aquí, no antes, para no
+            // dejar ficheros huérfanos si el usuario nunca llega a guardar.
+            $validated['cover'] = $this->downloadExternalCover((string) $request->input('cover_url'));
+        } else {
+            $validated['cover'] = null;
+        }
 
         $validated['user_id'] = auth()->id();
 
@@ -195,14 +214,20 @@ class GameController extends Controller
     /**
      * Muestra el formulario para editar un juego existente.
      */
-    public function edit(Game $game)
+    public function edit(Request $request, Game $game)
     {
         Gate::authorize('update', $game);
 
         $platforms = Platform::orderBy('name')->get();
         $editions = Edition::with('platforms')->orderBy('name')->get();
 
-        return view('games.edit', compact('game', 'platforms', 'editions'));
+        // Llega en ?convert_to_owned=1 desde la acción "Pasar a la colección"
+        // de la wishlist: mismo formulario de edición de siempre, con todos
+        // los datos ya insertados, pero con Propiedad y fecha de compra
+        // preseleccionadas para no tener que cambiarlas a mano.
+        $convertToOwned = $request->boolean('convert_to_owned');
+
+        return view('games.edit', compact('game', 'platforms', 'editions', 'convertToOwned'));
     }
 
     /**
@@ -391,6 +416,9 @@ class GameController extends Controller
             'release_date'   => 'nullable|date',
             'genres'         => 'nullable|string|max:500',
             'status'         => 'nullable|string|in:owned,wishlist,sold',
+            'wishlist_priority' => 'nullable|integer|min:1|max:3',
+            'wishlist_estimated_price' => 'nullable|numeric|min:0',
+            'wishlist_store' => 'nullable|string|max:255',
             'play_status'    => 'required|string|in:pending,playing,finished',
             'rating'         => 'nullable|integer|min:1|max:5',
             'price_paid'     => 'nullable|numeric|min:0',
@@ -410,6 +438,54 @@ class GameController extends Controller
         unset($validated['region_select'], $validated['region_other']);
 
         return $validated;
+    }
+
+    /**
+     * Descarga la carátula sugerida por una búsqueda externa (CEX) cuando el
+     * usuario confirma el alta desde su ficha de comprobación, en vez de
+     * subir un fichero a mano. El campo llega como texto en el propio
+     * formulario (input oculto), así que se valida contra una lista de hosts
+     * permitidos (config('services.cex.image_hosts')) antes de pedirlo: sin
+     * eso, cualquiera podría manipular ese campo para convertir el alta de
+     * un juego en un proxy hacia una URL interna (SSRF). Si algo falla (host
+     * no permitido, timeout, no es una imagen...) se devuelve null en vez de
+     * lanzar: el juego se crea igualmente, solo sin carátula.
+     */
+    private function downloadExternalCover(string $url): ?string
+    {
+        $host = parse_url($url, PHP_URL_HOST);
+        $scheme = parse_url($url, PHP_URL_SCHEME);
+        $allowedHosts = config('services.cex.image_hosts', []);
+
+        if ($scheme !== 'https' || $host === null || !in_array($host, $allowedHosts, true)) {
+            return null;
+        }
+
+        try {
+            $response = Http::timeout(5)->withOptions(['allow_redirects' => false])->get($url);
+        } catch (Throwable $e) {
+            return null;
+        }
+
+        if (!$response->ok() || strlen($response->body()) > 3 * 1024 * 1024) {
+            return null;
+        }
+
+        $extension = match (true) {
+            str_starts_with((string) $response->header('Content-Type'), 'image/jpeg') => 'jpg',
+            str_starts_with((string) $response->header('Content-Type'), 'image/png') => 'png',
+            str_starts_with((string) $response->header('Content-Type'), 'image/webp') => 'webp',
+            default => null,
+        };
+
+        if ($extension === null) {
+            return null;
+        }
+
+        $path = 'covers/' . Str::random(40) . '.' . $extension;
+        Storage::disk('public')->put($path, $response->body());
+
+        return $path;
     }
 
     /**

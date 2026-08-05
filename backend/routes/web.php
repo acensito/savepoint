@@ -10,6 +10,7 @@ use App\Http\Controllers\Web\PlatformController;
 use App\Http\Controllers\Web\ProfileController;
 use App\Http\Controllers\Web\SearchController;
 use App\Http\Controllers\Web\StatsController;
+use App\Http\Controllers\Web\WishlistController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -45,6 +46,14 @@ Route::middleware('auth')->group(function () {
 
     // Estadísticas de la colección
     Route::get('/stats', [StatsController::class, 'index'])->name('web.stats.index');
+
+    // Lista de deseos: juegos con Propiedad = "wishlist", en su propia página
+    // (nunca en la colección principal, ver GameController::index). Ruta
+    // estática /wishlist/create antes de la resource-like /wishlist por el
+    // mismo motivo que las de /games más abajo.
+    Route::get('/wishlist/create', [WishlistController::class, 'create'])->name('web.wishlist.create');
+    Route::post('/wishlist', [WishlistController::class, 'store'])->name('web.wishlist.store');
+    Route::get('/wishlist', [WishlistController::class, 'index'])->name('web.wishlist.index');
 
     // Búsqueda rápida global (Ctrl+K): unos pocos resultados en vivo por título/EAN.
     Route::get('/search/quick', [SearchController::class, 'quick'])->name('web.search.quick');

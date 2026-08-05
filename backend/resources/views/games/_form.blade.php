@@ -9,13 +9,26 @@
     // teclearlo aquí.
     $prefill ??= [];
 
-    $defaultPurchaseDate = $game ? $game->purchase_date?->format('Y-m-d') : now()->format('Y-m-d');
+    // Llega en true desde la acción "Pasar a la colección" de la wishlist
+    // (GameController::edit, ?convert_to_owned=1): mismo formulario de
+    // siempre, pero con Propiedad y fecha de compra ya puestas a "En
+    // colección"/hoy en vez de mostrar todavía "Lista de deseos".
+    $convertToOwned ??= false;
+
+    $defaultStatus = $convertToOwned ? 'owned' : ($game ? $game->status : 'owned');
+    $defaultPurchaseDate = $game?->purchase_date?->format('Y-m-d')
+        ?? ($convertToOwned || !$game ? now()->format('Y-m-d') : null);
 
     $regionPresets = ['PAL-ES', 'PAL-EU', 'PAL-UK', 'PAL-FR', 'PAL-DE', 'PAL-IT', 'NTSC-U', 'NTSC-J'];
     $defaultRegionSelect = $game ? ($game->region ?? '') : 'PAL-ES';
     $currentRegionSelect = old('region_select', $defaultRegionSelect);
     $isCustomRegion = $currentRegionSelect !== '' && $currentRegionSelect !== 'other' && !in_array($currentRegionSelect, $regionPresets, true);
     $regionSelectValue = $isCustomRegion ? 'other' : $currentRegionSelect;
+
+    // Carátula sugerida desde la ficha de comprobación de una búsqueda
+    // externa (CEX): solo aplica al alta ($game null), nunca a la edición.
+    // No se descarga hasta que se guarda el formulario (GameController::store).
+    $externalCoverUrl = $game ? null : ($prefill['cover_url'] ?? null);
 @endphp
 
 <!-- Carátula -->
@@ -23,6 +36,8 @@
     <div id="cover-wrapper" class="w-24 flex-shrink-0">
         @if($game?->cover)
             <img id="cover-preview-img" src="{{ $game->coverUrl() }}" alt="Carátula" class="w-24 h-auto rounded-xl border border-slate-700">
+        @elseif($externalCoverUrl)
+            <img id="cover-preview-img" src="{{ $externalCoverUrl }}" alt="Carátula" class="w-24 h-auto rounded-xl border border-slate-700">
         @else
             <div id="cover-preview-img" class="w-24 aspect-square rounded-xl flex items-center justify-center bg-slate-800 border border-slate-700 text-slate-400 font-bold text-2xl">
                 <span id="cover-initials">{{ $game?->coverInitials() ?? '?' }}</span>
@@ -34,13 +49,23 @@
         <label for="cover" class="{{ $label }}">Carátula</label>
         <input type="file" name="cover" id="cover" accept="image/*"
             class="block w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-slate-800 file:text-slate-200 hover:file:bg-slate-700 cursor-pointer">
-        <p class="text-xs text-slate-500 mt-1">JPG, PNG o WEBP, máx. 1MB. Si no subes ninguna, se muestran las iniciales del título.</p>
+        <p class="text-xs text-slate-500 mt-1">
+            @if($externalCoverUrl)
+                Carátula sugerida desde CEX. Sube un fichero aquí si prefieres reemplazarla.
+            @else
+                JPG, PNG o WEBP, máx. 1MB. Si no subes ninguna, se muestran las iniciales del título.
+            @endif
+        </p>
         @error('cover') <span class="{{ $error }}">{{ $message }}</span> @enderror
 
-        @if($game?->cover)
+        @if($externalCoverUrl)
+            <input type="hidden" name="cover_url" value="{{ $externalCoverUrl }}">
+        @endif
+
+        @if($game?->cover || $externalCoverUrl)
             <label class="flex items-center gap-2 text-sm text-slate-400 mt-2">
                 <input type="checkbox" name="remove_cover" value="1" class="rounded border-slate-600 bg-slate-800 text-red-500 focus:ring-red-500">
-                Quitar carátula actual
+                Quitar carátula {{ $game?->cover ? 'actual' : 'sugerida' }}
             </label>
         @endif
     </div>
@@ -154,9 +179,9 @@
             <label for="status" class="{{ $label }}">Propiedad</label>
             <select name="status" id="status" class="{{ $input }}">
                 <option value="">—</option>
-                <option value="owned" {{ old('status', $game ? $game->status : 'owned') == 'owned' ? 'selected' : '' }}>En colección</option>
-                <option value="wishlist" {{ old('status', $game?->status) == 'wishlist' ? 'selected' : '' }}>Lista de deseos</option>
-                <option value="sold" {{ old('status', $game?->status) == 'sold' ? 'selected' : '' }}>Vendido</option>
+                <option value="owned" {{ old('status', $defaultStatus) == 'owned' ? 'selected' : '' }}>En colección</option>
+                <option value="wishlist" {{ old('status', $defaultStatus) == 'wishlist' ? 'selected' : '' }}>Lista de deseos</option>
+                <option value="sold" {{ old('status', $defaultStatus) == 'sold' ? 'selected' : '' }}>Vendido</option>
             </select>
             @error('status') <span class="{{ $error }}">{{ $message }}</span> @enderror
         </div>
@@ -185,6 +210,38 @@
             <span id="rating-label" class="text-sm text-slate-400"></span>
         </div>
         @error('rating') <span class="{{ $error }}">{{ $message }}</span> @enderror
+    </div>
+</div>
+
+<!-- Lista de deseos: solo tiene sentido mientras el juego no se ha comprado
+     todavía (Propiedad = "Lista de deseos"), pero se deja siempre visible en
+     vez de ocultarla con JS según el desplegable de arriba, igual que la
+     sección "Compra" tampoco se oculta cuando el juego SÍ está en colección. -->
+<div class="pt-6 border-t border-slate-800 space-y-4">
+    <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Lista de deseos</h2>
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div>
+            <label for="wishlist_priority" class="{{ $label }}">Prioridad</label>
+            <select name="wishlist_priority" id="wishlist_priority" class="{{ $input }}">
+                <option value="">—</option>
+                <option value="1" {{ (string) old('wishlist_priority', $game?->wishlist_priority) === '1' ? 'selected' : '' }}>Alta</option>
+                <option value="2" {{ (string) old('wishlist_priority', $game?->wishlist_priority) === '2' ? 'selected' : '' }}>Media</option>
+                <option value="3" {{ (string) old('wishlist_priority', $game?->wishlist_priority) === '3' ? 'selected' : '' }}>Baja</option>
+            </select>
+            @error('wishlist_priority') <span class="{{ $error }}">{{ $message }}</span> @enderror
+        </div>
+        <div>
+            <label for="wishlist_estimated_price" class="{{ $label }}">Precio estimado</label>
+            <input type="number" step="0.01" min="0" name="wishlist_estimated_price" id="wishlist_estimated_price"
+                value="{{ old('wishlist_estimated_price', $game?->wishlist_estimated_price) }}" class="{{ $input }}">
+            @error('wishlist_estimated_price') <span class="{{ $error }}">{{ $message }}</span> @enderror
+        </div>
+        <div>
+            <label for="wishlist_store" class="{{ $label }}">Dónde comprarlo</label>
+            <input type="text" name="wishlist_store" id="wishlist_store" value="{{ old('wishlist_store', $game?->wishlist_store) }}" class="{{ $input }}">
+            @error('wishlist_store') <span class="{{ $error }}">{{ $message }}</span> @enderror
+        </div>
     </div>
 </div>
 

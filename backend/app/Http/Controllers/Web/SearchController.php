@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Game;
+use App\Services\GameLookup\GameLookupInterface;
 use Illuminate\Http\Request;
 
 class SearchController extends Controller
@@ -16,11 +17,27 @@ class SearchController extends Controller
     private const MAX_RESULTS = 8;
 
     /**
+     * Por debajo de esta longitud no merece la pena consultar el catálogo
+     * externo: recorta las primeras pulsaciones mientras el usuario todavía
+     * está escribiendo un título (un EAN escaneado siempre la supera de
+     * sobra, son 8+ dígitos).
+     */
+    private const MIN_EXTERNAL_QUERY_LENGTH = 3;
+
+    public function __construct(private readonly GameLookupInterface $gameLookup)
+    {
+    }
+
+    /**
      * Resultados en vivo para la búsqueda rápida (Ctrl+K): mismo criterio de
      * coincidencia que el buscador de la colección (título o EAN exacto),
      * acotado al usuario autenticado. Devuelve un fragmento Blade (no JSON)
      * para poder reutilizar los mismos componentes de carátula/chip/estrellas
      * que el resto de la app.
+     *
+     * Cuando el juego no está en la colección, se ofrecen además sugerencias
+     * de un catálogo externo (ver GameLookupInterface) para autorrellenar el
+     * alta: es una ayuda opcional, nunca sustituye a "dar de alta a mano".
      */
     public function quick(Request $request)
     {
@@ -48,6 +65,10 @@ class SearchController extends Controller
         // otro caso.
         $isEan = ctype_digit($query) && strlen($query) >= 8;
 
-        return view('games._quick-search-results', compact('games', 'query', 'isEan'));
+        $externalResults = $games->isEmpty() && mb_strlen($query) >= self::MIN_EXTERNAL_QUERY_LENGTH
+            ? $this->gameLookup->search($query)
+            : [];
+
+        return view('games._quick-search-results', compact('games', 'query', 'isEan', 'externalResults'));
     }
 }

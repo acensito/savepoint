@@ -772,6 +772,59 @@ function initQuickSearch() {
 initQuickSearch();
 
 /**
+ * Ficha de comprobación de una sugerencia externa (CEX) dentro de la
+ * búsqueda rápida (ver _quick-search-results.blade.php): los datos ya viven
+ * en el data-* del botón pulsado, así que mostrarla es solo alternar qué
+ * bloque se ve, sin otra petición al servidor. Delegado sobre
+ * #quick-search-results (nunca se destruye, solo se le reemplaza el
+ * innerHTML en cada búsqueda) por el mismo motivo que el resto de listeners
+ * delegados de la app.
+ */
+function initExternalResultPreview() {
+    const results = document.getElementById('quick-search-results');
+    if (!results) return;
+
+    results.addEventListener('click', (e) => {
+        const resultBtn = e.target.closest('.js-cex-result');
+        if (resultBtn) {
+            const list = document.getElementById('cex-results-list');
+            const preview = document.getElementById('cex-preview');
+            if (!preview) return;
+
+            const { title, ean, cover } = resultBtn.dataset;
+
+            preview.querySelector('#cex-preview-title').textContent = title || '';
+            preview.querySelector('#cex-preview-ean').textContent = ean ? `EAN ${ean}` : '';
+
+            const img = preview.querySelector('#cex-preview-cover');
+            if (cover) {
+                img.src = cover;
+                img.classList.remove('hidden');
+            } else {
+                img.classList.add('hidden');
+            }
+
+            const params = new URLSearchParams();
+            if (title) params.set('title', title);
+            if (ean) params.set('ean', ean);
+            if (cover) params.set('cover_url', cover);
+            preview.querySelector('#cex-preview-add-link').href = `${preview.dataset.createUrl}?${params.toString()}`;
+
+            list?.classList.add('hidden');
+            preview.classList.remove('hidden');
+            return;
+        }
+
+        if (e.target.closest('.js-cex-preview-back')) {
+            document.getElementById('cex-preview')?.classList.add('hidden');
+            document.getElementById('cex-results-list')?.classList.remove('hidden');
+        }
+    });
+}
+
+initExternalResultPreview();
+
+/**
  * Escaneo de código de barras (EAN) con la cámara, para no tener que
  * teclearlo en la búsqueda rápida. Usa @zxing/library, cargada solo al
  * pulsar el botón (import() dinámico) para no meter esa dependencia en el

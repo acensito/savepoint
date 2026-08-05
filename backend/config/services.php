@@ -35,4 +35,24 @@ return [
         ],
     ],
 
+    /*
+    | Búsqueda externa de CEX (webuy.com) para autorrellenar el alta de un
+    | juego (EAN, título, carátula) cuando no está en la colección. No es una
+    | API oficial de CEX: reutiliza el mismo índice de Algolia que su propia
+    | web/app, con una clave "search-only" pensada por Algolia para exponerse
+    | en cliente (no es un secreto real). Vive en config, no hardcodeada en
+    | App\Services\GameLookup\CexGameLookupService, porque el endpoint/índice
+    | podría cambiar sin aviso al no ser una integración oficial.
+    */
+    'cex' => [
+        'host' => env('CEX_ALGOLIA_HOST', 'search.webuy.io'),
+        'app_id' => env('CEX_ALGOLIA_APP_ID', 'LNNFEEWZVA'),
+        'api_key' => env('CEX_ALGOLIA_API_KEY', 'bf79f2b6699e60a18ae330a1248b452c'),
+        'index' => env('CEX_ALGOLIA_INDEX', 'prod_cex_es'),
+        // Hosts permitidos para descargar la carátula sugerida al dar de alta
+        // (GameController::downloadExternalCover): evita que ese campo del
+        // formulario se pueda usar como proxy hacia una URL arbitraria (SSRF).
+        'image_hosts' => array_values(array_filter(explode(',', env('CEX_IMAGE_HOSTS', 'es.static.webuy.com')))),
+    ],
+
 ];
