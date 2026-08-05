@@ -75,6 +75,8 @@ El proyecto está construido como backend Laravel que sirve tanto una interfaz w
 - Tres formas de ver la colección, alternables con los iconos de la esquina superior derecha (persistido en `localStorage`, igual mecanismo que el tema): la habitual (tarjetas en móvil, tabla en escritorio), una tabla compacta (filas más bajas, mismos datos) y una estantería (grid de carátulas grandes). La compacta es la que se usa por defecto la primera vez que se entra sin preferencia guardada.
 - Barra de estado discreta al pie de la colección (pegada al fondo del área de scroll): número total de juegos en la colección y gasto total invertido, sin depender de los filtros activos en cada momento.
 - Vista de estantería: alternativa en grid de carátulas grandes al listado habitual (tabla/tarjetas), con el mismo botón de alternancia persistido en `localStorage` que el tema.
+- Búsqueda rápida global (`Ctrl+K`/`Cmd+K`, botón de lupa en el header): abre un `<dialog>` centrado con resultados en vivo por título o EAN mientras se escribe; Enter abre el primer resultado, click abre cualquier otro. Si no hay ninguna coincidencia, propone dar de alta un juego nuevo con lo buscado ya prellenado (EAN o título, según el propio texto parezca un código de barras o no).
+- Escaneo de código de barras (EAN) desde la propia búsqueda rápida: el icono de cámara abre un `<dialog>` con la cámara (vía `@zxing/library`, no la `BarcodeDetector` nativa del navegador porque no funciona en Safari/iOS; cargada solo al pulsar el botón para no meterla en el bundle inicial) y, al detectar un código, lo vuelca en el buscador —si el juego ya está en la colección aparece como resultado, si no, sale la propuesta de darlo de alta con el EAN ya relleno—. Necesita HTTPS en producción para que el navegador dé acceso a la cámara (en local con `localhost` no hay problema).
 
 ## Desarrollo con Docker
 
@@ -125,9 +127,6 @@ Cobertura actual:
 
 ### Ideas de interfaz/funcionalidad sin priorizar
 
-Medias:
-- Escanear el código de barras (EAN) con la cámara al dar de alta un juego, en vez de teclearlo a mano: botón junto al campo EAN que abre la cámara en un diálogo y lo rellena solo al detectar el código. Usar `@zxing/library` (no la `BarcodeDetector` nativa del navegador, que no funciona en Safari/iOS) para que funcione igual en escritorio y móvil. Necesita HTTPS en producción para acceder a la cámara (en local con `localhost` no hay problema).
-
 Grandes:
 - Verificación de email / 2FA: el modelo `User` ya tiene `MustVerifyEmail` comentado en el código, pero deliberadamente no se activa — la app la usa una sola persona para su propia colección, así que no aporta nada de seguridad real hoy. Se deja preparado (comentado, no borrado) por si el proyecto se hace público/se forkea y alguien añade más usuarios o lo despliega en abierto.
 
@@ -137,6 +136,8 @@ Grandes:
 - Búsqueda rápida global (Ctrl+K / Cmd+K, `/search/quick`): abre un `<dialog>` centrado ("spotlight", más cerca de arriba que el resto de diálogos) con resultados en vivo por título/EAN mientras se escribe; Enter abre el primer resultado, click abre cualquier otro. Los resultados son enlaces normales a la ficha del juego.
 - Rediseño visual de la ficha de detalle de un juego (`/games/{id}`): los campos pasan de una rejilla plana a "tarjetas" agrupadas en dos secciones (Detalles / Compra) con icono por campo, carátula más grande con sombra y notas en un bloque destacado.
 - Arreglado un bug de aislamiento de tests que llegó a machacar la base de datos real de desarrollo (usuarios, colección y catálogo a cero): los contenedores `app`/`queue` habían quedado arrancados con variables de entorno de Postgres "grabadas" desde antes de quitar `env_file` de `docker-compose.yml` (Docker no relee `env_file` de un contenedor ya corriendo, solo al recrearlo), así que `php artisan test` seguía viendo `DB_CONNECTION=pgsql` pese a que `phpunit.xml` fuerza SQLite en memoria. Se soluciona recreando los contenedores (`docker compose up -d --force-recreate app queue`) tras cualquier cambio en `env_file`/`environment` del compose.
+- Corregido `.env.example`: traía los valores por defecto del scaffold de Laravel (sqlite, sin locale es, sin redis) en vez de los que el proyecto necesita (Postgres/Redis del `docker-compose.yml`, `APP_LOCALE=es`, `QUEUE_CONNECTION=redis`).
+- Escaneo de código de barras (EAN) con la cámara desde la búsqueda rápida (`@zxing/library`): si el código no coincide con ningún juego de la colección, propone darlo de alta con el EAN ya relleno en vez de solo decir "sin resultados".
 
 ### 2026-08-02
 - Campo "Valoración" renombrado a "Conservación" en toda la interfaz (tabla, tarjetas, orden, formulario de alta/edición, estadísticas) y en la importación CSV (columna de la plantilla y del importador): refleja mejor su uso real como estado físico de conservación de la copia, no una valoración subjetiva del juego. Las palabras que aparecían al pasar el ratón por las estrellas del formulario ("Excelente", "Aceptable"...) también se actualizaron a la misma escala (Malo/Regular/Bueno/Muy bueno/Nuevo o precintado).
