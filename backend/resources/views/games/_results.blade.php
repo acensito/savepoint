@@ -152,7 +152,7 @@
                             <!-- Conservación (editable rápido: clic en una estrella) -->
                             <td class="px-6 py-4 whitespace-nowrap text-center">
                                 <div class="js-quick-rating inline-flex justify-center" data-game-id="{{ $game->id }}" data-rating="{{ $game->rating }}">
-                                    <x-star-rating :rating="$game->rating" class="justify-center" />
+                                    <x-star-rating :rating="$game->rating" size="text-[12px]" class="justify-center" />
                                 </div>
                             </td>
 
