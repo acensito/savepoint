@@ -101,22 +101,21 @@ Todo lo que hace falta es Docker y Docker Compose. El stack (`docker-compose.yml
 
 ```bash
 git clone <url-del-repo> savepoint && cd savepoint
-cp .env.example .env       # credenciales/puertos de docker-compose.yml; los valores por defecto ya funcionan sin tocar nada
 docker compose up -d --build
 
 docker compose exec app npm install
 docker compose exec app npm run build      # o "npm run dev" si expones el puerto 5173 para hot-reload
 ```
 
-⚠️ **No te saltes el `cp .env.example .env`** antes del primer `docker compose up`: si ese fichero no existe cuando arranca el contenedor, Docker crea en su lugar un **directorio vacío** llamado `.env` (comportamiento por defecto de un bind mount contra una ruta que no existe), y a partir de ahí el `cp` falla hasta que se borra ese directorio a mano (`rmdir .env`) y se repite el paso.
-
-La app queda disponible en **`http://localhost:8081`**, ya con la base de datos migrada y dos usuarios de prueba (`admin@savepoint.test` / `test@example.com`, contraseña `password`). Todo eso (instalar dependencias de Composer, generar la clave de la app, migrar y sembrar la base de datos, enlazar el almacenamiento de las carátulas) lo hace automáticamente `docker/entrypoint.sh` en cada arranque del contenedor `app` — solo `npm install`/`npm run build` quedan fuera, porque compilar los assets en cada arranque sería lento y no hace falta salvo que cambies CSS/JS.
+Sin más pasos: no hace falta ni copiar un `.env` a mano. La app queda disponible en **`http://localhost:8081`**, ya con la base de datos migrada y dos usuarios de prueba (`admin@savepoint.test` / `test@example.com`, contraseña `password`). Todo eso (instalar dependencias de Composer, generar la clave de la app, migrar y sembrar la base de datos, enlazar el almacenamiento de las carátulas) lo hace automáticamente `docker/entrypoint.sh` en cada arranque del contenedor `app` — solo `npm install`/`npm run build` quedan fuera, porque compilar los assets en cada arranque sería lento y no hace falta salvo que cambies CSS/JS.
 
 Tras cualquier cambio en las vistas Blade basta con recargar el navegador (no hay paso de build). Tras un cambio en CSS/JS (`resources/css`, `resources/js`) hace falta repetir `docker compose exec app npm run build` para que Tailwind/Vite regeneren el bundle.
 
 ### Personalizar puertos y credenciales
 
-El `.env` de la raíz del proyecto (no `backend/.env`, que se gestiona solo) es el único fichero que hace falta tocar: contraseña de Postgres y los cuatro puertos publicados en el host (Postgres, Redis, HTTP y HTTPS de nginx), por si ya los tienes ocupados. Después de cambiarlo, `docker compose up -d --build` para que se aplique.
+Por defecto todo funciona con los valores hardcodeados en `docker-compose.yml` (contraseña `secreto123`, puertos 5432/6379/8081/8043). Si algún puerto ya lo tienes ocupado, o vas a hacer un despliegue real y quieres cambiar la contraseña de Postgres, copia `.env.example` a `.env` en la raíz del proyecto y ajusta lo que necesites — es el único fichero que hace falta tocar (no `backend/.env`, que se gestiona solo). Tras cambiarlo, `docker compose up -d --build` para que se aplique.
+
+⚠️ Haz ese `cp .env.example .env` **antes** del primer `docker compose up`, no después: `docker-compose.yml` monta ese fichero dentro de `app`/`queue`, y si no existe cuando el contenedor arranca por primera vez, Docker crea en su lugar un **directorio vacío** llamado `.env` (comportamiento por defecto de un bind mount contra una ruta que no existe). Si ya te ha pasado, bórralo con `rmdir .env` y repite el `cp`.
 
 ### Exponer la app fuera de `localhost`
 
