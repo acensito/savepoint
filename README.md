@@ -171,9 +171,3 @@ Savepoint es, hoy, un proyecto de uso personal (una sola persona catalogando su 
 - **Tests**: cualquier cambio de comportamiento (no solo visual) debería llevar test y pasar `docker compose exec app php artisan test` en verde antes de proponerlo.
 - **Idioma**: la interfaz, los mensajes de validación y la documentación del proyecto están en español; se mantiene así para no mezclar idiomas a medias.
 - **Documentación**: los cambios de comportamiento visible (nueva función, fix de UI, etc.) se documentan como una entrada nueva en [`CHANGELOG.md`](CHANGELOG.md) con la fecha del día, y si añaden o cambian una característica ya descrita, la sección correspondiente de "Características" en este README se actualiza a la vez para no dejarla desincronizada.
-
-## Licencia
-
-[PolyForm Noncommercial 1.0.0](LICENSE): puedes usar, copiar, modificar y redistribuir Savepoint (y cualquier derivado) libremente para cualquier fin **no comercial**. No está permitido ningún uso comercial (venderlo, ofrecerlo como servicio de pago, usarlo dentro de una empresa con ánimo de lucro, etc.).
-
-¿Interesado en un uso comercial? Como autor y único titular de los derechos, puedo conceder una licencia comercial aparte bajo petición — escribe a [acenforos@gmail.com](mailto:acenforos@gmail.com).
