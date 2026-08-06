@@ -3,9 +3,9 @@ services:
     image: postgres:16-alpine
     container_name: savepoint_db
     restart: unless-stopped
-    # Lee las credenciales de base de datos directamente desde tu .env de Laravel
+    # Lee las credenciales de base de datos directamente desde el .env de la raíz
     env_file:
-      - ./backend/.env
+      - ./.env
     environment:
       # Mantenemos estas como fallback por si el .env no carga a tiempo en el arranque inicial
       POSTGRES_DB: ${DB_DATABASE:-savepoint}
@@ -48,32 +48,24 @@ services:
     container_name: savepoint_app
     restart: unless-stopped
     working_dir: /app
-    # Laravel carga backend/.env por su cuenta en cada arranque (dotenv); NO
-    # se pasan DB_*/REDIS_HOST como "environment:" del contenedor porque esas
-    # variables quedarían fijas a nivel de proceso para CUALQUIER comando
-    # futuro (incluido "docker compose exec app php artisan test": el exec
-    # hereda el entorno definido aquí, no lo que entrypoint.sh haya tocado
-    # en su propio proceso). Eso rompe el aislamiento de tests igual que el
-    # env_file que este comentario descartaba antes: PHPUnit fuerza
-    # DB_CONNECTION/DB_DATABASE con force="true" en phpunit.xml, pero eso
-    # solo pisa el valor que ve env()/config() cuando NO hay ya una variable
-    # de entorno real del contenedor con el mismo nombre; si la hay (como
-    # pasaba aquí con DB_DATABASE), env() la sigue devolviendo aunque
-    # getenv() ya esté forzado a otra cosa, y los tests dejan de usar sqlite
-    # en memoria de verdad. Esto ya causó que un "docker compose up" con la
-    # base de datos real conectada acabara borrándola (ver CHANGELOG).
-    #
-    # En su lugar, se monta el .env de la raíz como fichero de solo lectura y
-    # entrypoint.sh lo fuente ahí dentro (solo en su propio proceso) para
-    # sincronizar backend/.env, que es la única fuente que Laravel consulta
-    # en el resto de comandos.
+    # Laravel carga el .env de la raíz del repo por su cuenta en cada
+    # arranque (dotenv) porque es el mismo .env que Docker Compose usa aquí
+    # arriba para sustituir ${DB_DATABASE}/etc.: no hay dos ficheros que
+    # sincronizar, así que no van como "environment:" del contenedor a
+    # propósito. Si lo estuvieran, quedarían fijas a nivel de proceso para
+    # CUALQUIER comando futuro (incluido "docker compose exec app php
+    # artisan test": el exec hereda el entorno definido aquí, no lo que
+    # entrypoint.sh haya tocado en su propio proceso), y eso rompería el
+    # aislamiento de los tests (phpunit.xml fuerza SQLite en memoria, pero
+    # perdería esa fuerza si ya hubiera una variable real del contenedor con
+    # el mismo nombre). Ver CHANGELOG del 2026-08-06 para el incidente real
+    # que causó esto la primera vez.
     # ROLE=web: este es el único contenedor que ejecuta el entrypoint con
     # instalación de Laravel + migraciones (ver docker/entrypoint.sh).
     environment:
       ROLE: web
     volumes:
-      - ./backend:/app
-      - ./.env:/root.env:ro
+      - .:/app
     depends_on:
       postgres:
         condition: service_healthy
@@ -100,13 +92,11 @@ services:
     working_dir: /app
     # Ejecuta el worker en lugar de PHP-FPM
     command: php artisan queue:work redis --sleep=3 --tries=3 --max-time=3600
-    # Ver el comentario en "app" sobre por qué DB_*/REDIS_HOST no van aquí
-    # como "environment:" del contenedor.
+    # Ver el comentario en "app" sobre por qué no hay DB_*/REDIS_HOST aquí.
     environment:
       ROLE: queue
     volumes:
-      - ./backend:/app
-      - ./.env:/root.env:ro
+      - .:/app
     depends_on:
       app:
         condition: service_healthy
@@ -125,7 +115,7 @@ services:
       - "${HTTP_PORT:-8081}:8081"
       - "${HTTPS_PORT:-8043}:8043"
     volumes:
-      - ./backend:/app
+      - .:/app
       - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf
     depends_on:
       - app

@@ -4,33 +4,13 @@ set -e
 cd /app
 
 # ---------------------------------------------------------------------------
-# 0. Leer el .env de la raíz del proyecto (montado como fichero de solo
-#    lectura en /root.env, ver docker-compose.yml) SOLO en este proceso: a
-#    propósito no son "environment:" del contenedor, para que no queden
-#    fijas para cualquier comando futuro (p.ej. "docker compose exec app
-#    php artisan test", que heredaría el entorno del contenedor tal cual
-#    esté definido en compose, no lo que este script toque aquí). Opcional:
-#    si no existe (repo recién clonado sin "cp .env.example .env" todavía),
-#    se usan los valores por defecto de cada sed de abajo.
-#    Se pasa por tr -d '\r' antes de fuentearlo porque el fichero se edita
-#    normalmente desde Windows (CRLF), que rompe ". archivo" en el sh de
-#    Alpine ("línea N: : not found" con cada línea en blanco/comentario).
-# ---------------------------------------------------------------------------
-if [ -f /root.env ]; then
-    tr -d '\r' < /root.env > /tmp/root.env
-    set -a
-    . /tmp/root.env
-    set +a
-fi
-
-# ---------------------------------------------------------------------------
 # 1. Si /app está vacío (primer arranque, volumen recién montado), instalamos
 #    Laravel desde cero. Como composer create-project no puede instalar en un
 #    directorio no vacío, instalamos en una carpeta temporal y movemos el
 #    contenido.
 # ---------------------------------------------------------------------------
 if [ ! -f "composer.json" ]; then
-    echo "📦 No hay proyecto Laravel en ./backend. Instalando Laravel..."
+    echo "📦 No hay proyecto Laravel en el repo. Instalando Laravel..."
     composer create-project laravel/laravel tmp_laravel --no-interaction --prefer-dist
     cp -r tmp_laravel/. .
     rm -rf tmp_laravel
@@ -43,25 +23,15 @@ fi
 composer install --no-interaction --prefer-dist --optimize-autoloader
 
 # ---------------------------------------------------------------------------
-# 3. Crear .env si no existe todavía
+# 3. Crear .env si no existe todavía. Es el mismo .env que usa Docker
+#    Compose (ver docker-compose.yml): no hay un .env de Laravel aparte que
+#    sincronizar, así que lo que se ponga aquí es directamente lo que
+#    Laravel usa.
 # ---------------------------------------------------------------------------
 if [ ! -f ".env" ]; then
     echo "⚙️  Creando .env a partir de .env.example..."
     cp .env.example .env
 fi
-
-# ---------------------------------------------------------------------------
-# 3b. Sincronizar credenciales de BD/Redis en backend/.env con las leídas en
-#     el paso 0 desde el .env de la raíz del proyecto. Así nunca hay que
-#     tocar backend/.env a mano ni puede haber desajuste con postgres/redis.
-# ---------------------------------------------------------------------------
-sed -i "s/^DB_CONNECTION=.*/DB_CONNECTION=pgsql/" .env
-sed -i "s/^DB_HOST=.*/DB_HOST=${DB_HOST:-postgres}/" .env
-sed -i "s/^DB_PORT=.*/DB_PORT=${DB_PORT:-5432}/" .env
-sed -i "s/^DB_DATABASE=.*/DB_DATABASE=${DB_DATABASE:-savepoint}/" .env
-sed -i "s/^DB_USERNAME=.*/DB_USERNAME=${DB_USERNAME:-savepoint}/" .env
-sed -i "s/^DB_PASSWORD=.*/DB_PASSWORD=${DB_PASSWORD:-secreto123}/" .env
-sed -i "s/^REDIS_HOST=.*/REDIS_HOST=${REDIS_HOST:-redis}/" .env
 
 # ---------------------------------------------------------------------------
 # 4. Generar APP_KEY solo si falta (evita regenerarla en cada reinicio,

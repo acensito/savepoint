@@ -1,7 +1,18 @@
 # Normaliza los finales de línea a LF en el repositorio, sin importar desde
 # qué lado (Windows/WSL) se haga el checkout o el commit. Antes de esto,
-# .gitignore/docker-compose.yml/docker/Dockerfile/docker/nginx.conf/docs/SETUP.md
-# tenían CRLF colado en el repo: invisible desde git de Windows (autocrlf=true
-# lo normaliza al vuelo) pero salía como "modificado" (la línea entera) al
-# tocar el repo con git nativo de WSL, por la comparación estricta byte a byte.
+# varios ficheros de config (.gitignore, docker-compose.yml, docker/Dockerfile,
+# docker/nginx.conf...) tenían CRLF colado en el repo: invisible desde git de
+# Windows (autocrlf=true lo normaliza al vuelo) pero salía como "modificado"
+# (la línea entera) al tocar el repo con git nativo de WSL, por la comparación
+# estricta byte a byte.
 * text=auto eol=lf
+
+*.blade.php diff=html
+*.css diff=css
+*.html diff=html
+*.md diff=markdown
+*.php diff=php
+
+/.github export-ignore
+CHANGELOG.md export-ignore
+.styleci.yml export-ignore

@@ -1,30 +1,32 @@
-# Backend Laravel
-backend/vendor/
-backend/.env
-backend/.env.local
-backend/.env.*.local
-backend/storage/
-backend/bootstrap/cache/
-backend/node_modules/
-backend/public/hot
-backend/.DS_Store
-backend/*.log
-backend/Thumbs.db
-
-# Flutter / Dart
-mobile/build/
-mobile/.dart_tool/
-mobile/.flutter-plugins
-mobile/.flutter-plugins-dependencies
-mobile/.packages
-mobile/pubspec.lock (opcional - subir para reproducibilidad)
-mobile/.idea/
-mobile/.vscode/
-mobile/coverage/
+# Laravel
+/vendor
+/node_modules
+.env
+.env.backup
+.env.production
+.env.local
+.env.*.local
+.phpactor.json
+.phpunit.result.cache
+/.codex
+/.cursor/
+/.idea
+/.nova
+/.phpunit.cache
+/.vscode
+/.zed
+/auth.json
+/public/build
+/public/fonts-manifest.dev.json
+/public/hot
+/public/storage
+/storage/*.key
+/storage/pail
+_ide_helper.php
+Homestead.json
+Homestead.yaml
 
 # IDEs
-.vscode/
-.idea/
 *.sublime-project
 *.sublime-workspace
 *.swp
@@ -33,21 +35,15 @@ mobile/coverage/
 .DS_Store
 Thumbs.db
 
-# Docker: .env de la raíz (junto a docker-compose.yml) con las credenciales/
-# puertos reales de Postgres/Redis para docker compose; equivalente a
-# backend/.env, mismo motivo para no subirlo. Ver .env.example.
-.env
+# Docker: .env de la raíz (junto a docker-compose.yml), que ahora es
+# también el .env que lee Laravel directamente (ver README, sección
+# "Desplegar para uso propio"). Ver .env.example para la plantilla.
 .env.docker
 docker-compose.override.yml
 
 # OS
 *.log
 *.tmp
-.env.production
-
-# Desarrollo local
-.env.local
-.env.*.local
 
 # Claude Code: settings.local.json es local por máquina (permisos, etc.),
 # no debe compartirse entre quien clone el repo.

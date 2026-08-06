@@ -113,9 +113,7 @@ Tras cualquier cambio en las vistas Blade basta con recargar el navegador (no ha
 
 ### Personalizar puertos y credenciales
 
-Por defecto todo funciona con los valores hardcodeados en `docker-compose.yml` (contraseña `secreto123`, puertos 5432/6379/8081/8043). Si algún puerto ya lo tienes ocupado, o vas a hacer un despliegue real y quieres cambiar la contraseña de Postgres, copia `.env.example` a `.env` en la raíz del proyecto y ajusta lo que necesites — es el único fichero que hace falta tocar (no `backend/.env`, que se gestiona solo). Tras cambiarlo, `docker compose up -d --build` para que se aplique.
-
-⚠️ Haz ese `cp .env.example .env` **antes** del primer `docker compose up`, no después: `docker-compose.yml` monta ese fichero dentro de `app`/`queue`, y si no existe cuando el contenedor arranca por primera vez, Docker crea en su lugar un **directorio vacío** llamado `.env` (comportamiento por defecto de un bind mount contra una ruta que no existe). Si ya te ha pasado, bórralo con `rmdir .env` y repite el `cp`.
+Por defecto todo funciona con los valores de `.env.example` (contraseña `secreto123`, puertos 5432/6379/8081/8043). Si algún puerto ya lo tienes ocupado, o vas a hacer un despliegue real y quieres cambiar la contraseña de Postgres, copia `.env.example` a `.env` en la raíz del proyecto (si no lo has hecho ya) y edita lo que necesites — es el **único** `.env` del proyecto: el mismo fichero que lee Docker Compose para las credenciales de Postgres/Redis y los puertos es, directamente, el que carga Laravel. Tras cambiarlo, `docker compose up -d --build` para que se aplique.
 
 ### Exponer la app fuera de `localhost`
 
@@ -125,7 +123,9 @@ Por defecto la app sirve por HTTP plano en el puerto 8081, sin TLS — de sobra 
 - **mkcert + nginx**: certificado local de confianza, si el acceso es solo dentro de tu LAN.
 - **Caddy** como reverse proxy delante de nginx: certificados Let's Encrypt automáticos si tienes un dominio propio.
 
-Para un despliegue "en serio" en un servidor, además del dominio/HTTPS de arriba, ajusta en tu `.env` de la raíz (y en `backend/.env`, que lo sincroniza) `APP_ENV=production`, `APP_DEBUG=false` y `APP_URL` con el dominio final.
+Para un despliegue "en serio" en un servidor, además del dominio/HTTPS de arriba, ajusta en tu `.env` `APP_ENV=production`, `APP_DEBUG=false` y `APP_URL` con el dominio final.
+
+> Cambiar `DB_PASSWORD` en el `.env` solo tiene efecto en un volumen de Postgres **nuevo**: si ya tenías el stack levantado antes con otra contraseña, Postgres la guarda en su propio volumen de datos y no se actualiza sola al cambiar el `.env`. Para que coincidan, cambia también la contraseña real: `docker compose exec postgres psql -U savepoint -d savepoint -c "ALTER USER savepoint WITH PASSWORD 'nueva_contraseña';"`.
 
 <details>
 <summary>Detalle técnico: por qué el arranque automático usa <code>migrate</code> y no <code>migrate:fresh</code></summary>
