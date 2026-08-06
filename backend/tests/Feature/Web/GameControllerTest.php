@@ -194,27 +194,6 @@ class GameControllerTest extends TestCase
         $this->assertCount(1, $response->viewData('games'));
     }
 
-    public function test_user_can_print_their_own_games_detail_page(): void
-    {
-        $user = User::factory()->create();
-        $game = Game::factory()->for($user)->create(['title' => 'Hollow Knight']);
-
-        $response = $this->actingAs($user)->get("/games/{$game->id}/print");
-
-        $response->assertOk();
-        $response->assertSee('Hollow Knight');
-    }
-
-    public function test_user_cannot_print_another_users_games_detail_page(): void
-    {
-        $owner = User::factory()->create();
-        $game = Game::factory()->for($owner)->create();
-
-        $response = $this->actingAs(User::factory()->create())->get("/games/{$game->id}/print");
-
-        $response->assertForbidden();
-    }
-
     public function test_user_can_bulk_delete_their_own_games(): void
     {
         $user = User::factory()->create();

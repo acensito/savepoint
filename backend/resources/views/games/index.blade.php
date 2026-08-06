@@ -95,16 +95,6 @@
             class="flex items-center justify-center w-8 h-8 rounded-lg border border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-colors">
             <x-gicon name="checklist" class="text-[16px]" />
         </button>
-
-        <!-- Exportación imprimible/PDF del listado con los filtros actuales
-             (ver GameController::print): se abre en pestaña nueva porque es
-             una vista independiente del layout de la app, no una navegación
-             dentro de la colección. -->
-        <a href="{{ route('web.games.print', request()->query()) }}" target="_blank" rel="noopener"
-            aria-label="Imprimir / exportar a PDF"
-            class="flex items-center justify-center w-8 h-8 rounded-lg border border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-colors">
-            <x-gicon name="print" class="text-[16px]" />
-        </a>
     </div>
 
     <!-- Contenedor permanente: nunca se destruye, solo se le reemplaza el

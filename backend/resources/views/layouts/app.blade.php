@@ -140,16 +140,10 @@
                 </nav>
 
                 <div class="px-3 py-4 border-t border-slate-800 space-y-1">
-                    <a href="{{ route('web.games.import') }}" title="Importar colección"
-                        class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('web.games.import*') ? 'bg-indigo-500/10 text-indigo-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' }}">
-                        <x-gicon name="upload_file" class="text-[20px]" />
-                        <span class="sidebar-label">Importar</span>
-                    </a>
-
-                    <a href="{{ route('web.games.trash') }}" title="Papelera de reciclaje"
-                        class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('web.games.trash') ? 'bg-indigo-500/10 text-indigo-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' }}">
-                        <x-gicon name="delete" class="text-[20px]" />
-                        <span class="sidebar-label">Papelera</span>
+                    <a href="{{ route('web.panel.index') }}" title="Panel de control"
+                        class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('web.panel.*', 'web.games.import*', 'web.games.trash') ? 'bg-indigo-500/10 text-indigo-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' }}">
+                        <x-gicon name="settings" class="text-[20px]" />
+                        <span class="sidebar-label">Panel de control</span>
                     </a>
 
                     <a href="{{ route('web.games.create') }}" title="Añadir Juego"

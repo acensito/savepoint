@@ -174,20 +174,6 @@ class GameController extends Controller
     }
 
     /**
-     * Ficha imprimible/PDF de un solo juego (botón "Imprimir" de la ficha de
-     * detalle), mismo motivo que print(): vista independiente del layout de
-     * la app para que el navegador la imprima con normalidad.
-     */
-    public function printOne(Game $game)
-    {
-        Gate::authorize('view', $game);
-
-        $game->load(['platform.manufacturer', 'edition']);
-
-        return view('games.print-show', compact('game'));
-    }
-
-    /**
      * Muestra el formulario de alta. Acepta ?ean= y/o ?title= para
      * prellenar esos campos: los usa la búsqueda rápida (Ctrl+K) cuando un
      * código escaneado o buscado no coincide con ningún juego ya registrado,

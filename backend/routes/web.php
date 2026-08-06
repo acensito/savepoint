@@ -5,6 +5,7 @@ use App\Http\Controllers\Web\EditionController;
 use App\Http\Controllers\Web\GameController;
 use App\Http\Controllers\Web\GameImportController;
 use App\Http\Controllers\Web\ManufacturerController;
+use App\Http\Controllers\Web\PanelController;
 use App\Http\Controllers\Web\PasswordResetController;
 use App\Http\Controllers\Web\PlatformController;
 use App\Http\Controllers\Web\ProfileController;
@@ -47,6 +48,11 @@ Route::middleware('auth')->group(function () {
     // Estadísticas de la colección
     Route::get('/stats', [StatsController::class, 'index'])->name('web.stats.index');
 
+    // Panel de control: punto de entrada único a importar/exportar la
+    // colección, la papelera de reciclaje y el perfil del usuario (antes
+    // sueltos como iconos propios del sidebar).
+    Route::get('/panel', [PanelController::class, 'index'])->name('web.panel.index');
+
     // Lista de deseos: juegos con Propiedad = "wishlist", en su propia página
     // (nunca en la colección principal, ver GameController::index). Ruta
     // estática /wishlist/create antes de la resource-like /wishlist por el
@@ -88,7 +94,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/games/{game}/edit', [GameController::class, 'edit'])->name('web.games.edit');
     Route::patch('/games/{game}/quick-update', [GameController::class, 'quickUpdate'])->name('web.games.quick-update');
     Route::get('/games/{game}/cover-lookup', [GameController::class, 'coverLookup'])->name('web.games.cover-lookup');
-    Route::get('/games/{game}/print', [GameController::class, 'printOne'])->name('web.games.print-one');
     Route::put('/games/{game}', [GameController::class, 'update'])->name('web.games.update');
     Route::delete('/games/{game}', [GameController::class, 'destroy'])->name('web.games.destroy');
     Route::get('/games/{game}', [GameController::class, 'show'])->name('web.games.show');
