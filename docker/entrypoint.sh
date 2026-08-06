@@ -1,70 +1,40 @@
 #!/bin/sh
 set -e
 
-cd /app
-
 # ---------------------------------------------------------------------------
-# 1. Si /app está vacío (primer arranque, volumen recién montado), instalamos
-#    Laravel desde cero. Como composer create-project no puede instalar en un
-#    directorio no vacío, instalamos en una carpeta temporal y movemos el
-#    contenido.
+# 1. El contenedor arranca como root (ver Dockerfile: sin USER). Si /app (el
+#    repo montado desde el host) no pertenece ya al usuario "developer", lo
+#    corregimos aquí — así el contenedor se autocorrige sin depender de que
+#    el UID del host coincida con el $uid con el que se construyó la imagen
+#    (p. ej. un servidor donde el repo se clonó como root: sin esto,
+#    "developer" no podía ni crear vendor/, y git rechazaba el repo entero
+#    por "dubious ownership"). Si /app YA es de "developer" (el caso normal
+#    tras el primer arranque), el chown no tiene nada que hacer y esto es
+#    prácticamente gratis.
 # ---------------------------------------------------------------------------
-if [ ! -f "composer.json" ]; then
-    echo "📦 No hay proyecto Laravel en el repo. Instalando Laravel..."
-    composer create-project laravel/laravel tmp_laravel --no-interaction --prefer-dist
-    cp -r tmp_laravel/. .
-    rm -rf tmp_laravel
+if [ "$(id -u)" = "0" ]; then
+    chown -R developer:developer /app
 fi
 
 # ---------------------------------------------------------------------------
-# 2. Instalar/actualizar dependencias PHP (idempotente: si vendor/ ya existe
-#    y no hay cambios, es casi instantáneo)
+# 2. Preparar la app (composer install, .env, migraciones...) como
+#    "developer", nunca como root — ver setup.sh.
 # ---------------------------------------------------------------------------
-composer install --no-interaction --prefer-dist --optimize-autoloader
+su-exec developer /usr/local/bin/setup.sh
 
 # ---------------------------------------------------------------------------
-# 3. Crear .env si no existe todavía. Es el mismo .env que usa Docker
-#    Compose (ver docker-compose.yml): no hay un .env de Laravel aparte que
-#    sincronizar, así que lo que se ponga aquí es directamente lo que
-#    Laravel usa.
+# 3. Arrancar el proceso principal del contenedor. El MAESTRO de php-fpm se
+#    deja arrancar como root a propósito: así lo espera esta imagen base
+#    (su error_log apunta a /proc/self/fd/2, que un maestro no-root no
+#    puede reabrir) y son sus WORKERS —los que de verdad atienden
+#    peticiones, nunca el maestro— los que bajan a "developer" solos, por
+#    la directiva "user"/"group" de php-fpm.d/www.conf (ver Dockerfile).
+#    Para cualquier otro comando (p. ej. "queue:work" del contenedor
+#    "queue", un proceso normal sin ese mecanismo propio de privilegios)
+#    bajamos aquí mismo con su-exec.
 # ---------------------------------------------------------------------------
-if [ ! -f ".env" ]; then
-    echo "⚙️  Creando .env a partir de .env.example..."
-    cp .env.example .env
+if [ "$1" = "php-fpm" ]; then
+    exec "$@"
+else
+    exec su-exec developer "$@"
 fi
-
-# ---------------------------------------------------------------------------
-# 4. Generar APP_KEY solo si falta (evita regenerarla en cada reinicio,
-#    lo que invalidaría sesiones/cookies cifradas)
-# ---------------------------------------------------------------------------
-if ! grep -q "^APP_KEY=base64" .env; then
-    echo "🔑 Generando APP_KEY..."
-    php artisan key:generate --force
-fi
-
-# ---------------------------------------------------------------------------
-# 5. Migraciones: SOLO el contenedor "app" las ejecuta (ROLE=web), para que
-#    no se disparen a la vez desde "app" y "queue" y choquen entre sí.
-#    depends_on + healthcheck de postgres ya garantizan que la BD está lista.
-#
-#    A PROPÓSITO "migrate" y NUNCA "migrate:fresh": fresh hace DROP de todas
-#    las tablas en cada arranque del contenedor, incluidos reinicios sobre
-#    una base de datos con datos reales ya cargados (esto llegó a borrar la
-#    colección real de un desarrollador). "migrate" en cambio solo aplica
-#    migraciones pendientes y jamás borra nada. En una base de datos vacía
-#    (primer arranque de verdad) el resultado es el mismo que "fresh": crea
-#    todas las tablas desde cero. --seed es seguro de repetir en cada
-#    arranque porque DatabaseSeeder usa updateOrCreate en todas partes (no
-#    duplica ni pisa datos ajenos al propio seed).
-# ---------------------------------------------------------------------------
-if [ "$ROLE" = "web" ]; then
-    echo "🚀 Ejecutando migraciones..."
-    php artisan migrate --seed --force
-    php artisan storage:link || true
-fi
-
-# ---------------------------------------------------------------------------
-# 6. Arrancar el proceso principal del contenedor (php-fpm, o el comando
-#    que se le pase, p.ej. queue:work)
-# ---------------------------------------------------------------------------
-exec "$@"

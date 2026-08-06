@@ -5,6 +5,11 @@ sección al final de `README.md`; se separó a este fichero para que el README
 pueda ser un documento de presentación del proyecto en vez de una lista que
 crece sin parar.
 
+## 2026-08-06 (5)
+- **El contenedor `app`/`queue` se autocorrige si el repo pertenece a otro UID en el host** (típico al clonar/desplegar en un servidor como root): antes, si `/app` no era ya del usuario `developer` de la imagen (UID 1000 por defecto), `composer install` fallaba con `/app/vendor does not exist and could not be created` y Git rechazaba el repo por "dubious ownership". Ahora `docker/entrypoint.sh` arranca como root, corrige la propiedad de `/app` con `chown` y solo entonces prepara la app (`docker/setup.sh`, nuevo) como `developer`, vía `su-exec`.
+  - El proceso de PHP-FPM se deja arrancar como root a propósito (así lo espera la imagen base, cuyo `error_log` apunta a `/proc/self/fd/2`, que un maestro no-root no puede reabrir — forzarlo con `su-exec` rompía el arranque con "Permission denied"); son sus *workers*, los que de verdad atienden peticiones, los que bajan de privilegios solos, vía las directivas `user`/`group` de `php-fpm.d/www.conf` (parcheadas en el `Dockerfile` para apuntar a `developer` en vez del `www-data` por defecto).
+  - `developer` pasa a tener su propio grupo (antes compartía el grupo `root`): PHP-FPM no permite que ni el usuario ni el grupo de sus *workers* sean root/0 cuando el maestro arranca como root.
+
 ## 2026-08-06 (4)
 - **Simplificado el punto anterior**: se descarta que nginx gestione certificados TLS él mismo. El TLS lo pone un proxy inverso delante (Cloudflare Tunnel, Tailscale Funnel, mkcert o Caddy — las mismas opciones que ya recomendaba el README), que habla HTTP normal con nginx por detrás; nginx nunca necesita saber de certificados. Se quitan `nginx-prod`, `docker/nginx.prod.conf`, el perfil `COMPOSE_PROFILES` y el montaje de `./certs/`: vuelve a haber un único servicio `nginx`, con dos líneas alternativas (una comentada) en su `ports:` — `HTTP_PORT` (8081, desarrollo/testeo) o `HTTPS_PORT` (8443, el puerto al que apunta el proxy inverso en producción) — que se elige comentando/descomentando a mano en `docker-compose.yml`, en vez de con un mecanismo de perfiles.
 
