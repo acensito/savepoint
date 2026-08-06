@@ -66,32 +66,33 @@
                 Quitar carátula {{ $game?->cover ? 'actual' : 'sugerida' }}
             </label>
         @endif
-
-        @if($game)
-            <button type="button" id="cex-cover-lookup-btn" data-url="{{ route('web.games.cover-lookup', $game) }}"
-                class="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-indigo-400 hover:text-indigo-300">
-                <x-gicon name="search" class="text-[14px]" />
-                Buscar carátula y EAN en CEX
-            </button>
-            <p id="cex-cover-status" class="hidden text-xs text-slate-500 mt-1.5 max-w-sm"></p>
-            <ul id="cex-cover-results" class="hidden mt-1.5 space-y-1 max-h-48 overflow-y-auto rounded-lg border border-slate-700 bg-slate-800/50 p-1.5 max-w-sm"></ul>
-
-            <!-- Búsqueda manual: se muestra sin resultados (título mal
-                 escrito, subtítulo distinto al que usa CEX...) o para
-                 refinar una búsqueda que sí dio resultados pero no el
-                 esperado. max-w-sm en este bloque y en los de arriba para
-                 que el desplegable no se estire al ancho completo del
-                 formulario (mucho más ancho que el propio botón que lo
-                 abre) y quede proporcionado a su disparador. -->
-            <div id="cex-cover-manual" class="hidden mt-1.5 flex gap-1.5 max-w-sm">
-                <input type="text" id="cex-cover-manual-input" placeholder="Buscar con otras palabras…"
-                    class="flex-1 min-w-0 rounded-lg border border-slate-700 bg-slate-800 text-slate-100 text-xs px-2.5 py-1.5 focus:border-indigo-500 focus:ring-indigo-500 outline-none">
-                <button type="button" id="cex-cover-manual-btn"
-                    class="flex-shrink-0 text-xs font-medium text-indigo-400 hover:text-indigo-300 px-2">Buscar</button>
-            </div>
-        @endif
     </div>
 </div>
+
+@if($game)
+    <!-- Fuera de la columna estrecha de arriba (junto a la miniatura) para
+         que ocupe el ancho completo del formulario, igual que el resto de
+         campos (Título, EAN...) en vez de quedar desplazado a la derecha. -->
+    <div class="mt-3">
+        <button type="button" id="cex-cover-lookup-btn" data-url="{{ route('web.games.cover-lookup', $game) }}"
+            class="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-400 hover:text-indigo-300">
+            <x-gicon name="search" class="text-[14px]" />
+            Buscar carátula y EAN en CEX
+        </button>
+        <p id="cex-cover-status" class="hidden text-xs text-slate-500 mt-1.5"></p>
+        <ul id="cex-cover-results" class="hidden mt-1.5 space-y-1 max-h-48 overflow-y-auto rounded-lg border border-slate-700 bg-slate-800/50 p-1.5"></ul>
+
+        <!-- Búsqueda manual: se muestra sin resultados (título mal escrito,
+             subtítulo distinto al que usa CEX...) o para refinar una
+             búsqueda que sí dio resultados pero no el esperado. -->
+        <div id="cex-cover-manual" class="hidden mt-1.5 flex gap-1.5">
+            <input type="text" id="cex-cover-manual-input" placeholder="Buscar con otras palabras…"
+                class="flex-1 min-w-0 rounded-lg border border-slate-700 bg-slate-800 text-slate-100 text-xs px-2.5 py-1.5 focus:border-indigo-500 focus:ring-indigo-500 outline-none">
+            <button type="button" id="cex-cover-manual-btn"
+                class="flex-shrink-0 text-xs font-medium text-indigo-400 hover:text-indigo-300 px-2">Buscar</button>
+        </div>
+    </div>
+@endif
 
 <!-- Datos básicos -->
 <div class="pt-6 border-t border-slate-800 space-y-4">
