@@ -114,7 +114,7 @@ docker compose exec app npm install
 docker compose exec app npm run build       # o npm run dev si se expone el puerto 5173 para HMR
 
 docker compose exec app php artisan migrate
-docker compose exec app php artisan db:seed  # usuarios de prueba: felipe@savepoint.test / test@example.com, contraseña "password"
+docker compose exec app php artisan db:seed  # usuarios de prueba: admin@savepoint.test / test@example.com, contraseña "password"
 docker compose exec app php artisan storage:link
 ```
 

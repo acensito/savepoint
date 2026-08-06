@@ -26,15 +26,15 @@ class DatabaseSeeder extends Seeder
      * Usuarios de desarrollo.
      *
      * El segundo usuario existe para poder comprobar el aislamiento entre
-     * colecciónes: entrando como Felipe no deberías ver nada suyo.
+     * colecciónes: entrando como Admin no deberías ver nada suyo.
      */
     private function seedUsers(): void
     {
         // updateOrCreate para poder relanzar el seeder sin petar por el unique del email.
         User::updateOrCreate(
-            ['email' => 'felipe@savepoint.test'],
+            ['email' => 'admin@savepoint.test'],
             [
-                'name'              => 'Felipe',
+                'name'              => 'Admin',
                 'password'          => Hash::make('password'),
                 'email_verified_at' => now(),
             ]
@@ -97,11 +97,11 @@ class DatabaseSeeder extends Seeder
     }
 
     /**
-     * Juegos de prueba en la colección de Felipe.
+     * Juegos de prueba en la colección de Admin.
      */
     private function seedGames(): void
     {
-        $user   = User::where('email', 'felipe@savepoint.test')->firstOrFail();
+        $user   = User::where('email', 'admin@savepoint.test')->firstOrFail();
         $switch = Platform::where('slug', 'nintendo-switch')->firstOrFail();
 
         $games = [
