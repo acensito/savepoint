@@ -57,20 +57,13 @@ services:
     working_dir: /app
     # Laravel carga el .env de la raíz del repo por su cuenta en cada
     # arranque (dotenv) porque es el mismo .env que Docker Compose usa aquí
-    # arriba para sustituir ${DB_DATABASE}/etc.: no hay dos ficheros que
-    # sincronizar, así que no van como "environment:" del contenedor a
-    # propósito. Si lo estuvieran, quedarían fijas a nivel de proceso para
+    # arriba para sustituir ${DB_DATABASE}/etc. No van como "environment:"
+    # del contenedor a propósito: quedarían fijas a nivel de proceso para
     # CUALQUIER comando futuro (incluido "docker compose exec app php
-    # artisan test": el exec hereda el entorno definido aquí, no lo que
-    # entrypoint.sh haya tocado en su propio proceso), y eso rompería el
-    # aislamiento de los tests (phpunit.xml fuerza SQLite en memoria, pero
-    # perdería esa fuerza si ya hubiera una variable real del contenedor con
-    # el mismo nombre). Ver CHANGELOG del 2026-08-06 para el incidente real
-    # que causó esto la primera vez.
-    # ROLE=web: este es el único contenedor que ejecuta el entrypoint con
-    # instalación de Laravel + migraciones (ver docker/entrypoint.sh).
-    environment:
-      ROLE: web
+    # artisan test"), y eso rompería el aislamiento de los tests (phpunit.xml
+    # fuerza SQLite en memoria, pero perdería esa fuerza si ya hubiera una
+    # variable real del contenedor con el mismo nombre). Ver CHANGELOG del
+    # 2026-08-06 para el incidente real que causó esto.
     volumes:
       - .:/app
     depends_on:
@@ -79,13 +72,10 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      # El entrypoint corre "migrate" ANTES de lanzar php-fpm, así que si
-      # el puerto 9000 responde, las migraciones ya han terminado.
       test: ["CMD", "nc", "-z", "127.0.0.1", "9000"]
       interval: 10s
       timeout: 5s
-      retries: 10
-      start_period: 60s
+      retries: 5
     networks:
       - savepoint_net
 
@@ -103,14 +93,9 @@ services:
     working_dir: /app
     # Ejecuta el worker en lugar de PHP-FPM
     command: php artisan queue:work redis --sleep=3 --tries=3 --max-time=3600
-    # Ver el comentario en "app" sobre por qué no hay DB_*/REDIS_HOST aquí.
-    environment:
-      ROLE: queue
     volumes:
       - .:/app
     depends_on:
-      app:
-        condition: service_healthy
       redis:
         condition: service_healthy
       postgres:

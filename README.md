@@ -97,19 +97,27 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 
 ### Arranque rápido con Docker
 
-Todo lo que hace falta es Docker y Docker Compose. El stack (`docker-compose.yml`) levanta cinco contenedores: `postgres`, `redis`, `app` (PHP-FPM), `queue` (worker de Redis) y `nginx`.
+Todo lo que hace falta es Docker y Docker Compose. El stack (`docker-compose.yml`) levanta cinco contenedores: `postgres`, `redis`, `app` (PHP-FPM), `queue` (worker de Redis) y `nginx`. La imagen de `app`/`queue` (`docker/Dockerfile`) solo prepara el entorno (PHP + extensiones, Composer, Node/npm) — no instala ni configura la app, eso se hace a mano, un paso cada vez, para que quede claro qué hace falta y qué está pasando en cada momento:
 
 ```bash
 git clone <url-del-repo> savepoint && cd savepoint
+cp .env.example .env   # valores por defecto ya funcionan sin tocar nada; ver "Personalizar puertos y credenciales"
+
 docker compose up -d --build
 
+docker compose exec app composer install
+docker compose exec app php artisan key:generate
 docker compose exec app npm install
-docker compose exec app npm run build      # o "npm run dev" si expones el puerto 5173 para hot-reload
+docker compose exec app npm run build       # o "npm run dev" si expones el puerto 5173 para hot-reload
+
+docker compose exec app php artisan migrate
+docker compose exec app php artisan db:seed   # usuarios de prueba: admin@savepoint.test / test@example.com, contraseña "password"
+docker compose exec app php artisan storage:link
 ```
 
-Sin más pasos: no hace falta ni copiar un `.env` a mano. La app queda disponible en **`http://localhost:8081`**, ya con la base de datos migrada y dos usuarios de prueba (`admin@savepoint.test` / `test@example.com`, contraseña `password`). Todo eso (instalar dependencias de Composer, generar la clave de la app, migrar y sembrar la base de datos, enlazar el almacenamiento de las carátulas) lo hace automáticamente `docker/entrypoint.sh` en cada arranque del contenedor `app` — solo `npm install`/`npm run build` quedan fuera, porque compilar los assets en cada arranque sería lento y no hace falta salvo que cambies CSS/JS.
+La app queda disponible en **`http://localhost:8081`**.
 
-Tras cualquier cambio en las vistas Blade basta con recargar el navegador (no hay paso de build). Tras un cambio en CSS/JS (`resources/css`, `resources/js`) hace falta repetir `docker compose exec app npm run build` para que Tailwind/Vite regeneren el bundle.
+Tras cualquier cambio en las vistas Blade basta con recargar el navegador (no hay paso de build). Tras un cambio en CSS/JS (`resources/css`, `resources/js`) hace falta repetir `docker compose exec app npm run build`. Tras añadir una migración nueva, `docker compose exec app php artisan migrate`.
 
 ### Personalizar puertos y credenciales
 
@@ -130,12 +138,7 @@ Para un despliegue "en serio" en un servidor, además de lo anterior:
 - Ajusta en tu `.env` `APP_ENV=production`, `APP_DEBUG=false` y `APP_URL` con el dominio final.
 - Cambia `DB_PASSWORD` por una contraseña real (`openssl rand -base64 24`, por ejemplo) — la de `.env.example` es solo para desarrollo local. Esto **solo tiene efecto en un volumen de Postgres nuevo**: si vas a reutilizar un volumen que ya tenía otra contraseña, Postgres la guarda en sus propios datos y no se actualiza sola al cambiar el `.env`. Para que coincidan, cambia también la contraseña real: `docker compose exec postgres psql -U savepoint -d savepoint -c "ALTER USER savepoint WITH PASSWORD 'nueva_contraseña';"`.
 
-<details>
-<summary>Detalle técnico: por qué el arranque automático usa <code>migrate</code> y no <code>migrate:fresh</code></summary>
-
-`docker/entrypoint.sh` ejecuta `php artisan migrate --seed` en cada arranque del contenedor `app`, nunca `migrate:fresh`. En una base de datos vacía (primer arranque de verdad) el resultado es el mismo que `fresh` — crea todas las tablas desde cero —, pero en cualquier arranque posterior con datos ya cargados `migrate` solo aplica lo pendiente y **nunca borra nada**, mientras que `migrate:fresh` habría hecho `DROP` de todas las tablas en cada reinicio del contenedor. `--seed` es seguro de repetir siempre porque `DatabaseSeeder` usa `updateOrCreate` en todas partes. Ver el CHANGELOG del 2026-08-06 para el porqué de este detalle tan concreto.
-
-</details>
+⚠️ Para aplicar migraciones nuevas usa siempre `php artisan migrate`, **nunca `migrate:fresh`** en un entorno con datos reales: `migrate:fresh` hace `DROP` de todas las tablas antes de recrearlas. `migrate` a secas solo aplica lo pendiente y no borra nada — el resultado en una base de datos vacía es el mismo que `fresh` de todas formas, así que no hay ninguna razón para usar `fresh` salvo que quieras borrarlo todo a propósito. Esto ya causó una pérdida de datos real durante el desarrollo del proyecto (ver CHANGELOG del 2026-08-06).
 
 ## Tests
 

@@ -5,6 +5,9 @@ sección al final de `README.md`; se separó a este fichero para que el README
 pueda ser un documento de presentación del proyecto en vez de una lista que
 crece sin parar.
 
+## 2026-08-07
+- **Se retira la automatización de `docker/entrypoint.sh`** (y `docker/setup.sh`, el usuario no-root `developer`, `su-exec`...): tras varios intentos de arreglarla para un despliegue real (ver las entradas del 2026-08-06 más abajo — incidente de pérdida de datos, bug de aislamiento de tests, permisos de `/app` según el UID del host, el maestro de PHP-FPM no pudiendo reabrir su log de errores al bajar de privilegios...), la conclusión es que la automatización no compensaba la complejidad ni la fragilidad frente a un despliegue manual, paso a paso. `docker/` se queda solo con `Dockerfile` (prepara el entorno: PHP + extensiones, Composer, Node/npm; ya no instala ni configura la app) y `nginx.conf`. `docker-compose.yml` se queda solo con la orquestación (puertos, base de datos, volúmenes); `composer install`, `php artisan key:generate`/`migrate`/`db:seed`/`storage:link` y `npm install`/`npm run build` vuelven a ser pasos manuales, documentados en el README.
+
 ## 2026-08-06 (6)
 - **`app` y `queue` comparten imagen** (`image: savepoint-app` en ambos, `docker-compose.yml`): construyen el mismo `Dockerfile`/contexto, pero sin un nombre de imagen explícito Compose las trataba como dos imágenes distintas (`savepoint-app`/`savepoint-queue`) y las construía dos veces por separado — el doble de tiempo compilando las mismas extensiones de PHP para nada. Con el mismo nombre se construye una sola vez y `queue` reutiliza esa imagen.
 
