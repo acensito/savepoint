@@ -16,35 +16,31 @@
         <!-- Tarjetas: listado en pantallas estrechas, sin scroll horizontal -->
         <div class="md:hidden space-y-2.5">
             @forelse($games as $game)
-                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 flex items-start gap-3 shadow-sm shadow-black/10 active:border-slate-700 transition-colors">
+                <div class="js-game-card bg-slate-900 border border-slate-800 rounded-2xl p-3.5 flex items-center gap-3 shadow-sm shadow-black/10 active:border-slate-700 transition-colors cursor-pointer"
+                    data-href="{{ route('web.games.show', $game->id) }}">
                     <input type="checkbox" form="bulk-form" name="game_ids[]" value="{{ $game->id }}"
-                        class="js-bulk-checkbox mt-1 w-4 h-4 flex-shrink-0 rounded border-slate-600 bg-slate-800 text-indigo-600 focus:ring-indigo-500"
+                        class="js-bulk-checkbox self-start mt-1 w-4 h-4 flex-shrink-0 rounded border-slate-600 bg-slate-800 text-indigo-600 focus:ring-indigo-500"
                         aria-label="Seleccionar {{ $game->title }}">
 
                     <x-game-cover :game="$game" size="lg" class="!w-16 !rounded-xl !text-xl shadow-sm shadow-black/20" />
 
                     <div class="flex-1 min-w-0">
-                        <a href="{{ route('web.games.show', $game->id) }}" class="block text-[15px] font-bold text-slate-100 truncate leading-snug">{{ $game->title }}</a>
-
-                        <div class="mt-1.5 flex items-center gap-1.5 flex-wrap">
-                            <x-platform-chip :platform="$game->platform" class="!px-2 !py-0.5 !text-[10px]" />
-
-                            <button type="button" class="js-quick-play-status inline-flex items-center gap-1 text-[11px] font-medium rounded px-1 -mx-1 hover:bg-slate-800 transition-colors {{ $game->play_status === 'finished' ? 'text-emerald-400' : 'text-slate-500' }}"
-                                data-game-id="{{ $game->id }}" data-play-status="{{ $game->play_status }}"
-                                aria-label="Cambiar estado de {{ $game->title }}">
-                                @if($game->play_status === 'finished')
-                                    <x-gicon name="check_circle" class="text-[13px]" />
-                                @else
-                                    <x-gicon name="schedule" class="text-[13px]" />
-                                @endif
-                                {{ $game->play_status ? ucfirst($game->play_status) : 'Pendiente' }}
-                            </button>
+                        <div class="flex items-start justify-between gap-2">
+                            <a href="{{ route('web.games.show', $game->id) }}" class="min-w-0 text-[15px] font-bold text-slate-100 line-clamp-2 leading-snug">{{ $game->title }}</a>
+                            <x-platform-chip :platform="$game->platform" class="!px-2 !py-0.5 !text-[10px] flex-shrink-0" />
                         </div>
 
-                        <div class="mt-2 flex items-center gap-2">
+                        <div class="mt-1.5">
                             <div class="js-quick-rating" data-game-id="{{ $game->id }}" data-rating="{{ $game->rating }}">
                                 <x-star-rating :rating="$game->rating" size="text-[11px]" />
                             </div>
+                        </div>
+
+                        <div class="mt-2 flex items-center justify-between gap-2">
+                            <span class="inline-flex items-center gap-1 text-[11px] text-slate-500">
+                                <x-gicon name="event" class="text-[13px]" />
+                                {{ $game->purchase_date?->format('d/m/Y') ?? '—' }}
+                            </span>
                             @if($game->price_paid !== null)
                                 <span class="text-[11px] font-semibold text-emerald-400 tabular-nums bg-emerald-500/10 px-1.5 py-0.5 rounded-md">{{ number_format($game->price_paid, 2, ',', '.') }} €</span>
                             @endif
@@ -94,9 +90,9 @@
 
                             <!-- Título -->
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="flex items-start gap-3">
+                                <div class="flex items-center gap-3">
                                     <x-game-cover :game="$game" size="sm" />
-                                    <a href="{{ route('web.games.show', $game->id) }}" class="text-sm font-bold text-slate-100 hover:text-indigo-300 transition-colors pt-1.5">{{ $game->title }}</a>
+                                    <a href="{{ route('web.games.show', $game->id) }}" class="text-sm font-bold text-slate-100 hover:text-indigo-300 transition-colors">{{ $game->title }}</a>
                                 </div>
                             </td>
 

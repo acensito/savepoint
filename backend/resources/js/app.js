@@ -365,7 +365,7 @@ function initGamesLiveSearch() {
 initGamesLiveSearch();
 
 /**
- * Edición rápida de valoración/estado de juego desde la propia fila/tarjeta
+ * Edición rápida de valoración de juego desde la propia fila/tarjeta
  * (tabla, tarjetas o estantería), sin abrir el formulario completo.
  * Delegado sobre #games-results por el mismo motivo que las acciones en
  * bloque: sobrevive a los refrescos del buscador en vivo sin tener que
@@ -374,8 +374,6 @@ initGamesLiveSearch();
 function initQuickEdit() {
     const results = document.getElementById('games-results');
     if (!results) return;
-
-    const NEXT_PLAY_STATUS = { pending: 'playing', playing: 'finished', finished: 'pending' };
 
     const quickUpdate = async (gameId, payload) => {
         const token = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
@@ -405,13 +403,6 @@ function initQuickEdit() {
     };
 
     results.addEventListener('click', (e) => {
-        const statusBtn = e.target.closest('.js-quick-play-status');
-        if (statusBtn) {
-            const next = NEXT_PLAY_STATUS[statusBtn.dataset.playStatus] || 'pending';
-            quickUpdate(statusBtn.dataset.gameId, { play_status: next });
-            return;
-        }
-
         const star = e.target.closest('.material-symbols-outlined');
         const ratingWrapper = e.target.closest('.js-quick-rating');
         if (star && ratingWrapper) {
@@ -425,6 +416,29 @@ function initQuickEdit() {
 }
 
 initQuickEdit();
+
+/**
+ * Tarjetas de la colección en móvil (games/_results.blade.php): tocar
+ * cualquier parte de la tarjeta abre la ficha de detalle, salvo los
+ * controles interactivos que ya tienen su propio comportamiento (casilla
+ * de selección, cambio rápido de estado/valoración, enlace del título).
+ * Delegado sobre #games-results por el mismo motivo que el resto de
+ * acciones de esta vista.
+ */
+function initGameCardTap() {
+    const results = document.getElementById('games-results');
+    if (!results) return;
+
+    results.addEventListener('click', (e) => {
+        const card = e.target.closest('.js-game-card');
+        if (!card) return;
+        if (e.target.closest('a, button, input, .js-quick-rating')) return;
+
+        window.location.href = card.dataset.href;
+    });
+}
+
+initGameCardTap();
 
 /**
  * Vista previa del CSV de importación (games/import.blade.php): al elegir un

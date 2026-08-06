@@ -47,7 +47,7 @@
 
         <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
             <div class="p-6 sm:p-8 bg-gradient-to-b from-slate-800/40 to-transparent">
-                <div class="flex flex-col sm:flex-row gap-6">
+                <div class="flex flex-col sm:flex-row sm:items-center gap-6">
                     <x-game-cover :game="$game" size="lg" class="!w-36 !rounded-2xl !text-4xl mx-auto sm:mx-0 flex-shrink-0 shadow-lg shadow-black/30" />
 
                     <div class="flex-1 min-w-0 flex flex-col justify-center">
