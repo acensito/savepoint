@@ -71,7 +71,7 @@
             <button type="button" id="cex-cover-lookup-btn" data-url="{{ route('web.games.cover-lookup', $game) }}"
                 class="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-indigo-400 hover:text-indigo-300">
                 <x-gicon name="search" class="text-[14px]" />
-                Buscar carátula en CEX
+                Buscar carátula y EAN en CEX
             </button>
             <p id="cex-cover-status" class="hidden text-xs text-slate-500 mt-1.5"></p>
             <ul id="cex-cover-results" class="hidden mt-1.5 space-y-1 max-h-48 overflow-y-auto rounded-lg border border-slate-700 bg-slate-800/50 p-1.5"></ul>
@@ -473,7 +473,9 @@
      * catálogo externo y deja elegir una carátula entre los resultados. No
      * se descarga hasta guardar el formulario (mismo mecanismo que la
      * carátula sugerida desde la búsqueda rápida): aquí solo se rellena el
-     * campo oculto cover_url y se actualiza la vista previa.
+     * campo oculto cover_url y se actualiza la vista previa. Al elegir un
+     * resultado también se rellena el campo EAN (visible, editable, no se
+     * guarda hasta enviar el formulario como el resto de campos).
      */
     (function () {
         const btn = document.getElementById('cex-cover-lookup-btn');
@@ -484,6 +486,7 @@
         const coverUrlInput = document.getElementById('cover_url_input');
         const coverFileInput = document.getElementById('cover');
         const removeCoverCheckbox = document.querySelector('input[name="remove_cover"]');
+        const eanInput = document.getElementById('ean');
 
         btn.addEventListener('click', async () => {
             btn.disabled = true;
@@ -509,7 +512,10 @@
                             ${r.cover_url
                                 ? `<img src="${r.cover_url}" alt="" class="w-8 h-8 object-cover rounded border border-slate-700 flex-shrink-0">`
                                 : `<div class="w-8 h-8 rounded bg-slate-800 border border-slate-700 flex-shrink-0"></div>`}
-                            <span class="flex-1 min-w-0 text-xs text-slate-200 truncate">${r.title}</span>
+                            <span class="flex-1 min-w-0">
+                                <span class="block text-xs text-slate-200 truncate">${r.title}</span>
+                                ${r.ean ? `<span class="block text-[10px] text-slate-500">EAN ${r.ean}</span>` : ''}
+                            </span>
                             ${r.platform ? `<span class="text-[9px] font-semibold uppercase text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 rounded px-1 py-0.5 flex-shrink-0">${r.platform}</span>` : ''}
                         </button>
                     </li>
@@ -519,13 +525,19 @@
                 resultsEl.querySelectorAll('.js-cex-cover-pick').forEach((el) => {
                     el.addEventListener('click', () => {
                         const result = results[Number(el.dataset.index)];
-                        if (!result.cover_url) return;
 
-                        document.getElementById('cover-wrapper').innerHTML =
-                            `<img id="cover-preview-img" src="${result.cover_url}" alt="Carátula" class="w-24 h-auto rounded-xl border border-slate-700">`;
-                        coverUrlInput.value = result.cover_url;
-                        if (coverFileInput) coverFileInput.value = '';
-                        if (removeCoverCheckbox) removeCoverCheckbox.checked = false;
+                        if (result.cover_url) {
+                            document.getElementById('cover-wrapper').innerHTML =
+                                `<img id="cover-preview-img" src="${result.cover_url}" alt="Carátula" class="w-24 h-auto rounded-xl border border-slate-700">`;
+                            coverUrlInput.value = result.cover_url;
+                            if (coverFileInput) coverFileInput.value = '';
+                            if (removeCoverCheckbox) removeCoverCheckbox.checked = false;
+                        }
+
+                        if (result.ean && eanInput) {
+                            eanInput.value = result.ean;
+                        }
+
                         resultsEl.classList.add('hidden');
                     });
                 });
