@@ -73,14 +73,17 @@
                 <x-gicon name="search" class="text-[14px]" />
                 Buscar carátula y EAN en CEX
             </button>
-            <p id="cex-cover-status" class="hidden text-xs text-slate-500 mt-1.5"></p>
-            <ul id="cex-cover-results" class="hidden mt-1.5 space-y-1 max-h-48 overflow-y-auto rounded-lg border border-slate-700 bg-slate-800/50 p-1.5"></ul>
+            <p id="cex-cover-status" class="hidden text-xs text-slate-500 mt-1.5 max-w-sm"></p>
+            <ul id="cex-cover-results" class="hidden mt-1.5 space-y-1 max-h-48 overflow-y-auto rounded-lg border border-slate-700 bg-slate-800/50 p-1.5 max-w-sm"></ul>
 
             <!-- Búsqueda manual: se muestra sin resultados (título mal
                  escrito, subtítulo distinto al que usa CEX...) o para
                  refinar una búsqueda que sí dio resultados pero no el
-                 esperado. -->
-            <div id="cex-cover-manual" class="hidden mt-1.5 flex gap-1.5">
+                 esperado. max-w-sm en este bloque y en los de arriba para
+                 que el desplegable no se estire al ancho completo del
+                 formulario (mucho más ancho que el propio botón que lo
+                 abre) y quede proporcionado a su disparador. -->
+            <div id="cex-cover-manual" class="hidden mt-1.5 flex gap-1.5 max-w-sm">
                 <input type="text" id="cex-cover-manual-input" placeholder="Buscar con otras palabras…"
                     class="flex-1 min-w-0 rounded-lg border border-slate-700 bg-slate-800 text-slate-100 text-xs px-2.5 py-1.5 focus:border-indigo-500 focus:ring-indigo-500 outline-none">
                 <button type="button" id="cex-cover-manual-btn"
