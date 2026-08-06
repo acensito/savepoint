@@ -564,6 +564,18 @@ class GameControllerTest extends TestCase
         Http::assertSent(fn ($request) => str_contains($request['params'], 'query=Celeste'));
     }
 
+    public function test_cover_lookup_uses_the_manual_query_instead_of_the_games_ean_when_given(): void
+    {
+        Http::fake(['search.webuy.io/*' => Http::response(['hits' => []], 200)]);
+
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['title' => 'Zelda mal escrito', 'ean' => '5060146467315']);
+
+        $this->actingAs($user)->getJson("/games/{$game->id}/cover-lookup?q=Breath+of+the+Wild")->assertOk();
+
+        Http::assertSent(fn ($request) => str_contains($request['params'], 'query=Breath+of+the+Wild'));
+    }
+
     public function test_cover_lookup_is_forbidden_for_another_users_game(): void
     {
         Http::fake();

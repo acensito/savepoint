@@ -219,16 +219,22 @@ class GameController extends Controller
     /**
      * Busca en el catálogo externo (ver GameLookupInterface) un juego que
      * YA está en la colección, para poder sacarle una carátula sin tener
-     * que teclear el título a mano en la búsqueda rápida. Prioriza el EAN
-     * del propio juego (identifica la copia exacta) y solo cae al título si
-     * no tiene uno registrado, que es más ambiguo (mismo título en varias
-     * plataformas, ediciones distintas...).
+     * que teclear el título a mano en la búsqueda rápida. Por defecto
+     * prioriza el EAN del propio juego (identifica la copia exacta) y solo
+     * cae al título si no tiene uno registrado, que es más ambiguo (mismo
+     * título en varias plataformas, ediciones distintas...). Admite ?q= para
+     * que el usuario busque a mano con otras palabras cuando el título
+     * guardado no da con ningún resultado (mal escrito, subtítulo distinto
+     * al que usa CEX, etc.).
      */
-    public function coverLookup(Game $game)
+    public function coverLookup(Request $request, Game $game)
     {
         Gate::authorize('update', $game);
 
-        $query = $game->ean ?: $game->title;
+        $query = trim((string) $request->query('q', ''));
+        if ($query === '') {
+            $query = $game->ean ?: $game->title;
+        }
 
         $results = collect($this->gameLookup->search($query))
             ->map(fn ($result) => [

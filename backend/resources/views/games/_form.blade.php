@@ -75,6 +75,17 @@
             </button>
             <p id="cex-cover-status" class="hidden text-xs text-slate-500 mt-1.5"></p>
             <ul id="cex-cover-results" class="hidden mt-1.5 space-y-1 max-h-48 overflow-y-auto rounded-lg border border-slate-700 bg-slate-800/50 p-1.5"></ul>
+
+            <!-- Búsqueda manual: se muestra sin resultados (título mal
+                 escrito, subtítulo distinto al que usa CEX...) o para
+                 refinar una búsqueda que sí dio resultados pero no el
+                 esperado. -->
+            <div id="cex-cover-manual" class="hidden mt-1.5 flex gap-1.5">
+                <input type="text" id="cex-cover-manual-input" placeholder="Buscar con otras palabras…"
+                    class="flex-1 min-w-0 rounded-lg border border-slate-700 bg-slate-800 text-slate-100 text-xs px-2.5 py-1.5 focus:border-indigo-500 focus:ring-indigo-500 outline-none">
+                <button type="button" id="cex-cover-manual-btn"
+                    class="flex-shrink-0 text-xs font-medium text-indigo-400 hover:text-indigo-300 px-2">Buscar</button>
+            </div>
         @endif
     </div>
 </div>
@@ -476,6 +487,11 @@
      * campo oculto cover_url y se actualiza la vista previa. Al elegir un
      * resultado también se rellena el campo EAN (visible, editable, no se
      * guarda hasta enviar el formulario como el resto de campos).
+     *
+     * Por defecto busca por el EAN/título ya guardados (?q= vacío, ver
+     * GameController::coverLookup), pero si no da resultados o el usuario
+     * quiere afinar, se puede repetir la búsqueda a mano con otras palabras
+     * (input "Buscar con otras palabras").
      */
     (function () {
         const btn = document.getElementById('cex-cover-lookup-btn');
@@ -483,29 +499,38 @@
 
         const resultsEl = document.getElementById('cex-cover-results');
         const statusEl = document.getElementById('cex-cover-status');
+        const manualWrapper = document.getElementById('cex-cover-manual');
+        const manualInput = document.getElementById('cex-cover-manual-input');
+        const manualBtn = document.getElementById('cex-cover-manual-btn');
         const coverUrlInput = document.getElementById('cover_url_input');
         const coverFileInput = document.getElementById('cover');
         const removeCoverCheckbox = document.querySelector('input[name="remove_cover"]');
         const eanInput = document.getElementById('ean');
+        const titleInput = document.getElementById('title');
 
-        btn.addEventListener('click', async () => {
+        async function search(query) {
             btn.disabled = true;
+            manualBtn.disabled = true;
             resultsEl.classList.add('hidden');
             resultsEl.innerHTML = '';
             statusEl.classList.remove('hidden');
             statusEl.textContent = 'Buscando en CEX…';
 
             try {
-                const response = await fetch(btn.dataset.url, { headers: { 'Accept': 'application/json' } });
+                const url = query ? `${btn.dataset.url}?q=${encodeURIComponent(query)}` : btn.dataset.url;
+                const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
                 if (!response.ok) throw new Error('request failed');
                 const { results } = await response.json();
 
                 if (!results.length) {
-                    statusEl.textContent = 'Sin resultados en CEX para este juego.';
+                    statusEl.textContent = 'Sin resultados en CEX. Prueba con otras palabras del título:';
+                    manualWrapper.classList.remove('hidden');
+                    if (!manualInput.value) manualInput.value = query || titleInput.value;
                     return;
                 }
 
                 statusEl.classList.add('hidden');
+                manualWrapper.classList.remove('hidden');
                 resultsEl.innerHTML = results.map((r, i) => `
                     <li>
                         <button type="button" class="js-cex-cover-pick w-full flex items-center gap-2 p-1.5 rounded-lg hover:bg-slate-700 text-left" data-index="${i}">
@@ -539,6 +564,7 @@
                         }
 
                         resultsEl.classList.add('hidden');
+                        manualWrapper.classList.add('hidden');
                     });
                 });
             } catch (err) {
@@ -546,6 +572,21 @@
                 statusEl.textContent = 'No se pudo buscar en CEX. Comprueba tu conexión e inténtalo de nuevo.';
             } finally {
                 btn.disabled = false;
+                manualBtn.disabled = false;
+            }
+        }
+
+        btn.addEventListener('click', () => search());
+
+        manualBtn.addEventListener('click', () => {
+            const query = manualInput.value.trim();
+            if (query) search(query);
+        });
+
+        manualInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                manualBtn.click();
             }
         });
     })();
