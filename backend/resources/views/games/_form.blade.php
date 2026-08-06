@@ -58,15 +58,23 @@
         </p>
         @error('cover') <span class="{{ $error }}">{{ $message }}</span> @enderror
 
-        @if($externalCoverUrl)
-            <input type="hidden" name="cover_url" value="{{ $externalCoverUrl }}">
-        @endif
+        <input type="hidden" name="cover_url" id="cover_url_input" value="{{ $externalCoverUrl }}">
 
         @if($game?->cover || $externalCoverUrl)
             <label class="flex items-center gap-2 text-sm text-slate-400 mt-2">
                 <input type="checkbox" name="remove_cover" value="1" class="rounded border-slate-600 bg-slate-800 text-red-500 focus:ring-red-500">
                 Quitar carátula {{ $game?->cover ? 'actual' : 'sugerida' }}
             </label>
+        @endif
+
+        @if($game)
+            <button type="button" id="cex-cover-lookup-btn" data-url="{{ route('web.games.cover-lookup', $game) }}"
+                class="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-indigo-400 hover:text-indigo-300">
+                <x-gicon name="search" class="text-[14px]" />
+                Buscar carátula en CEX
+            </button>
+            <p id="cex-cover-status" class="hidden text-xs text-slate-500 mt-1.5"></p>
+            <ul id="cex-cover-results" class="hidden mt-1.5 space-y-1 max-h-48 overflow-y-auto rounded-lg border border-slate-700 bg-slate-800/50 p-1.5"></ul>
         @endif
     </div>
 </div>
@@ -459,5 +467,76 @@
 
         paintRating(Number(ratingInput.value) || 0);
     })();
+
+    /**
+     * "Buscar carátula en CEX": busca este juego (ya guardado) en el
+     * catálogo externo y deja elegir una carátula entre los resultados. No
+     * se descarga hasta guardar el formulario (mismo mecanismo que la
+     * carátula sugerida desde la búsqueda rápida): aquí solo se rellena el
+     * campo oculto cover_url y se actualiza la vista previa.
+     */
+    (function () {
+        const btn = document.getElementById('cex-cover-lookup-btn');
+        if (!btn) return;
+
+        const resultsEl = document.getElementById('cex-cover-results');
+        const statusEl = document.getElementById('cex-cover-status');
+        const coverUrlInput = document.getElementById('cover_url_input');
+        const coverFileInput = document.getElementById('cover');
+        const removeCoverCheckbox = document.querySelector('input[name="remove_cover"]');
+
+        btn.addEventListener('click', async () => {
+            btn.disabled = true;
+            resultsEl.classList.add('hidden');
+            resultsEl.innerHTML = '';
+            statusEl.classList.remove('hidden');
+            statusEl.textContent = 'Buscando en CEX…';
+
+            try {
+                const response = await fetch(btn.dataset.url, { headers: { 'Accept': 'application/json' } });
+                if (!response.ok) throw new Error('request failed');
+                const { results } = await response.json();
+
+                if (!results.length) {
+                    statusEl.textContent = 'Sin resultados en CEX para este juego.';
+                    return;
+                }
+
+                statusEl.classList.add('hidden');
+                resultsEl.innerHTML = results.map((r, i) => `
+                    <li>
+                        <button type="button" class="js-cex-cover-pick w-full flex items-center gap-2 p-1.5 rounded-lg hover:bg-slate-700 text-left" data-index="${i}">
+                            ${r.cover_url
+                                ? `<img src="${r.cover_url}" alt="" class="w-8 h-8 object-cover rounded border border-slate-700 flex-shrink-0">`
+                                : `<div class="w-8 h-8 rounded bg-slate-800 border border-slate-700 flex-shrink-0"></div>`}
+                            <span class="flex-1 min-w-0 text-xs text-slate-200 truncate">${r.title}</span>
+                            ${r.platform ? `<span class="text-[9px] font-semibold uppercase text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 rounded px-1 py-0.5 flex-shrink-0">${r.platform}</span>` : ''}
+                        </button>
+                    </li>
+                `).join('');
+                resultsEl.classList.remove('hidden');
+
+                resultsEl.querySelectorAll('.js-cex-cover-pick').forEach((el) => {
+                    el.addEventListener('click', () => {
+                        const result = results[Number(el.dataset.index)];
+                        if (!result.cover_url) return;
+
+                        document.getElementById('cover-wrapper').innerHTML =
+                            `<img id="cover-preview-img" src="${result.cover_url}" alt="Carátula" class="w-24 h-auto rounded-xl border border-slate-700">`;
+                        coverUrlInput.value = result.cover_url;
+                        if (coverFileInput) coverFileInput.value = '';
+                        if (removeCoverCheckbox) removeCoverCheckbox.checked = false;
+                        resultsEl.classList.add('hidden');
+                    });
+                });
+            } catch (err) {
+                statusEl.classList.remove('hidden');
+                statusEl.textContent = 'No se pudo buscar en CEX. Comprueba tu conexión e inténtalo de nuevo.';
+            } finally {
+                btn.disabled = false;
+            }
+        });
+    })();
+
     filterEditions();
 </script>

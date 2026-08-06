@@ -40,6 +40,7 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 - Baja de un juego mediante **papelera de reciclaje** (soft delete): panel dedicado (`/games/trash`, con su propio buscador por título/EAN y filtro por plataforma) para ver los juegos borrados, restaurarlos o eliminarlos definitivamente (esto último borra también el fichero de la carátula). El toast que aparece al borrar un juego lleva un botón "Deshacer" que lo restaura sin salir de la colección.
 - **Importación masiva** (`/games/import`) desde un CSV (coma o punto y coma, con o sin BOM de Excel): solo el título es obligatorio, cada fila se procesa de forma independiente (una fila con error no bloquea al resto) y las plataformas/ediciones que el CSV mencione y no existan todavía en el catálogo se crean automáticamente. Al elegir el fichero se muestra antes una **vista previa** (columnas reconocidas/no reconocidas y las primeras filas) sin importar nada todavía. Hay una plantilla de ejemplo descargable desde la propia página. Tras importar se muestra un resumen (juegos importados, plataformas/ediciones creadas, filas con incidencias).
 - Al editar/reemplazar la carátula, el fichero anterior se borra del disco (`storage/app/public/covers`) para no dejar huérfanos.
+- **Buscar carátula en CEX** desde el propio formulario de edición de un juego ya guardado: un botón junto al campo de carátula consulta el mismo catálogo externo que la búsqueda rápida (`GameLookupInterface`), priorizando el EAN del juego (identifica la copia exacta) y cayendo al título si no tiene uno registrado. Los resultados muestran plataforma y carátula para elegir con confianza antes de aplicar nada; la carátula elegida no se descarga hasta guardar el formulario, igual que la sugerencia de CEX en el alta.
 - Panel de gestión de ediciones (`/editions`) para dar de alta ediciones (normal/especial/coleccionista/...) asociadas a una o varias plataformas, con un botón "Seleccionar todas"/"Ninguna" para no marcarlas una a una; el campo `edition_id` del juego se filtra según la plataforma elegida en el formulario. Si la edición que necesitas no existe todavía, se puede crear al vuelo desde el propio formulario de alta/edición de juego (modal + AJAX) sin perder lo ya rellenado.
 
 ### Lista de deseos
@@ -162,6 +163,17 @@ Cobertura actual:
 
 Grandes:
 - Verificación de email / 2FA: el modelo `User` ya tiene `MustVerifyEmail` comentado en el código, pero deliberadamente no se activa — la app la usa una sola persona para su propia colección, así que no aporta nada de seguridad real hoy. Se deja preparado (comentado, no borrado) por si el proyecto se hace público/se forkea y alguien añade más usuarios o lo despliega en abierto.
+
+Medianas:
+- Vista "por década/año de lanzamiento" en estadísticas, aprovechando `release_date` (ya se captura en el alta pero apenas se explota más allá del top de géneros). De paso, mostrar el año de lanzamiento en la ficha de detalle del juego, donde hoy no aparece.
+- Exportación de la colección a PDF/imprimible, de la ficha de un juego o de un listado filtrado — útil para seguros o inventario.
+- Ampliar `App\Services\GameLookup\GameLookupInterface` más allá de CEX (que hoy solo aporta EAN/carátula) para autocompletar también género y desarrollador al escanear o buscar.
+
+Pequeñas (estética):
+- Estados vacíos ilustrados en colección, lista de deseos y papelera cuando no hay elementos, en vez del texto plano actual.
+- Skeleton loaders en el buscador AJAX de la colección y en la búsqueda rápida (Ctrl+K) mientras llegan los resultados, en vez del salto brusco al reemplazarlos.
+- Insignia visual de "completado" (icono de trofeo) en los juegos con estado de juego = terminado: en la vista de estantería, en la esquina de la carátula; en la vista de tarjetas (móvil), en la propia tarjeta.
+- Transición suave al cambiar entre las tres vistas de la colección (tarjetas/tabla/estantería), hoy instantánea y algo brusca.
 
 ## Contribuir
 

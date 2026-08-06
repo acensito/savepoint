@@ -808,10 +808,14 @@ function initExternalResultPreview() {
             const preview = document.getElementById('cex-preview');
             if (!preview) return;
 
-            const { title, ean, cover } = resultBtn.dataset;
+            const { title, ean, cover, platform } = resultBtn.dataset;
 
             preview.querySelector('#cex-preview-title').textContent = title || '';
             preview.querySelector('#cex-preview-ean').textContent = ean ? `EAN ${ean}` : '';
+
+            const platformBadge = preview.querySelector('#cex-preview-platform');
+            platformBadge.textContent = platform || '';
+            platformBadge.classList.toggle('hidden', !platform);
 
             const img = preview.querySelector('#cex-preview-cover');
             if (cover) {

@@ -17,7 +17,7 @@
             @foreach($externalResults as $result)
                 <li>
                     <button type="button" class="js-cex-result w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-800 transition-colors text-left"
-                        data-title="{{ $result->title }}" data-ean="{{ $result->ean }}" data-cover="{{ $result->coverUrl }}">
+                        data-title="{{ $result->title }}" data-ean="{{ $result->ean }}" data-cover="{{ $result->coverUrl }}" data-platform="{{ $result->platform }}">
                         @if($result->coverUrl)
                             <img src="{{ $result->coverUrl }}" alt="" class="w-10 h-10 object-cover rounded-lg border border-slate-700 flex-shrink-0">
                         @else
@@ -25,9 +25,14 @@
                         @endif
                         <div class="flex-1 min-w-0">
                             <div class="text-sm font-medium text-slate-100 truncate">{{ $result->title }}</div>
-                            @if($result->ean)
-                                <div class="text-xs text-slate-500">EAN {{ $result->ean }}</div>
-                            @endif
+                            <div class="flex items-center gap-2 mt-0.5">
+                                @if($result->platform)
+                                    <span class="text-[10px] font-semibold uppercase tracking-wide text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 rounded px-1.5 py-0.5">{{ $result->platform }}</span>
+                                @endif
+                                @if($result->ean)
+                                    <span class="text-xs text-slate-500">EAN {{ $result->ean }}</span>
+                                @endif
+                            </div>
                         </div>
                         <x-gicon name="chevron_right" class="text-[16px] text-slate-600 flex-shrink-0" />
                     </button>
@@ -47,7 +52,10 @@
                 <img id="cex-preview-cover" src="" alt="" class="hidden w-20 h-auto rounded-xl border border-slate-700 flex-shrink-0">
                 <div class="flex-1 min-w-0">
                     <div id="cex-preview-title" class="text-base font-semibold text-slate-100"></div>
-                    <div id="cex-preview-ean" class="text-sm text-slate-500 mt-1"></div>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span id="cex-preview-platform" class="hidden text-[10px] font-semibold uppercase tracking-wide text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 rounded px-1.5 py-0.5"></span>
+                        <div id="cex-preview-ean" class="text-sm text-slate-500"></div>
+                    </div>
                     <p class="text-xs text-slate-500 mt-2">Comprueba que los datos coinciden antes de darlo de alta: la búsqueda es de CEX, no de tu colección.</p>
                 </div>
             </div>

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Edition;
 use App\Models\Game;
 use App\Models\Platform;
+use App\Services\GameLookup\GameLookupInterface;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -16,6 +17,10 @@ use Throwable;
 
 class GameController extends Controller
 {
+    public function __construct(private readonly GameLookupInterface $gameLookup)
+    {
+    }
+
     /**
      * Columnas por las que se puede ordenar el listado desde ?sort=, mapeadas
      * a la columna real (evita pasar un nombre de columna arbitrario del
@@ -212,6 +217,32 @@ class GameController extends Controller
     }
 
     /**
+     * Busca en el catálogo externo (ver GameLookupInterface) un juego que
+     * YA está en la colección, para poder sacarle una carátula sin tener
+     * que teclear el título a mano en la búsqueda rápida. Prioriza el EAN
+     * del propio juego (identifica la copia exacta) y solo cae al título si
+     * no tiene uno registrado, que es más ambiguo (mismo título en varias
+     * plataformas, ediciones distintas...).
+     */
+    public function coverLookup(Game $game)
+    {
+        Gate::authorize('update', $game);
+
+        $query = $game->ean ?: $game->title;
+
+        $results = collect($this->gameLookup->search($query))
+            ->map(fn ($result) => [
+                'title' => $result->title,
+                'ean' => $result->ean,
+                'cover_url' => $result->coverUrl,
+                'platform' => $result->platform,
+            ])
+            ->values();
+
+        return response()->json(['results' => $results]);
+    }
+
+    /**
      * Muestra el formulario para editar un juego existente.
      */
     public function edit(Request $request, Game $game)
@@ -255,6 +286,19 @@ class GameController extends Controller
                 Storage::disk('public')->delete($game->cover);
             }
             $validated['cover'] = null;
+        } elseif ($request->filled('cover_url')) {
+            // Carátula elegida desde "Buscar carátula en CEX" (ver
+            // coverLookup()): mismo tratamiento que en el alta, se descarga
+            // aquí y se borra la anterior si había.
+            $downloaded = $this->downloadExternalCover((string) $request->input('cover_url'));
+            if ($downloaded !== null) {
+                if ($game->cover) {
+                    Storage::disk('public')->delete($game->cover);
+                }
+                $validated['cover'] = $downloaded;
+            } else {
+                unset($validated['cover']);
+            }
         } else {
             unset($validated['cover']);
         }

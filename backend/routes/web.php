@@ -82,6 +82,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/games', [GameController::class, 'store'])->name('web.games.store');
     Route::get('/games/{game}/edit', [GameController::class, 'edit'])->name('web.games.edit');
     Route::patch('/games/{game}/quick-update', [GameController::class, 'quickUpdate'])->name('web.games.quick-update');
+    Route::get('/games/{game}/cover-lookup', [GameController::class, 'coverLookup'])->name('web.games.cover-lookup');
     Route::put('/games/{game}', [GameController::class, 'update'])->name('web.games.update');
     Route::delete('/games/{game}', [GameController::class, 'destroy'])->name('web.games.destroy');
     Route::get('/games/{game}', [GameController::class, 'show'])->name('web.games.show');

@@ -28,11 +28,13 @@ class CexGameLookupServiceTest extends TestCase
                         'boxName' => 'Hollow Knight',
                         'boxId' => '5060146467315',
                         'imageUrls' => ['large' => 'https://es.static.webuy.com/a_l.jpg', 'medium' => 'https://es.static.webuy.com/a_m.jpg'],
+                        'categoryFriendlyName' => 'Switch Juegos',
                     ],
                     [
                         'boxName' => 'Hollow Knight',
                         'boxId' => '5060146467247',
                         'imageUrls' => ['large' => null, 'medium' => 'https://es.static.webuy.com/b_m.jpg'],
+                        'categoryFriendlyName' => 'PS4 Juegos',
                     ],
                 ],
             ], 200),
@@ -44,8 +46,24 @@ class CexGameLookupServiceTest extends TestCase
         $this->assertSame('Hollow Knight', $results[0]->title);
         $this->assertSame('5060146467315', $results[0]->ean);
         $this->assertSame('https://es.static.webuy.com/a_l.jpg', $results[0]->coverUrl);
+        // El sufijo " Juegos" de la categoría se recorta para quedarse solo con la plataforma.
+        $this->assertSame('Switch', $results[0]->platform);
         // Sin "large", cae a "medium".
         $this->assertSame('https://es.static.webuy.com/b_m.jpg', $results[1]->coverUrl);
+        $this->assertSame('PS4', $results[1]->platform);
+    }
+
+    public function test_search_leaves_platform_null_when_the_category_is_missing(): void
+    {
+        Http::fake([
+            'search.webuy.io/*' => Http::response([
+                'hits' => [['boxName' => 'Hollow Knight', 'boxId' => '123']],
+            ], 200),
+        ]);
+
+        $results = $this->makeService()->search('hollow knight');
+
+        $this->assertNull($results[0]->platform);
     }
 
     public function test_search_sends_the_credentials_as_headers_and_the_query_in_the_body(): void

@@ -524,6 +524,109 @@ class GameControllerTest extends TestCase
         Storage::disk('public')->assertExists($game->cover);
     }
 
+    public function test_cover_lookup_searches_cex_by_the_games_ean_and_returns_its_platform(): void
+    {
+        Http::fake([
+            'search.webuy.io/*' => Http::response([
+                'hits' => [[
+                    'boxName' => 'Hollow Knight',
+                    'boxId' => '5060146467315',
+                    'imageUrls' => ['large' => 'https://es.static.webuy.com/hk_l.jpg'],
+                    'categoryFriendlyName' => 'Switch Juegos',
+                ]],
+            ], 200),
+        ]);
+
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['title' => 'Hollow Knight', 'ean' => '5060146467315']);
+
+        $response = $this->actingAs($user)->getJson("/games/{$game->id}/cover-lookup");
+
+        $response->assertOk();
+        $response->assertJson(['results' => [[
+            'title' => 'Hollow Knight',
+            'ean' => '5060146467315',
+            'cover_url' => 'https://es.static.webuy.com/hk_l.jpg',
+            'platform' => 'Switch',
+        ]]]);
+        Http::assertSent(fn ($request) => str_contains($request['params'], 'query=5060146467315'));
+    }
+
+    public function test_cover_lookup_falls_back_to_the_title_when_the_game_has_no_ean(): void
+    {
+        Http::fake(['search.webuy.io/*' => Http::response(['hits' => []], 200)]);
+
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['title' => 'Celeste', 'ean' => null]);
+
+        $this->actingAs($user)->getJson("/games/{$game->id}/cover-lookup")->assertOk();
+
+        Http::assertSent(fn ($request) => str_contains($request['params'], 'query=Celeste'));
+    }
+
+    public function test_cover_lookup_is_forbidden_for_another_users_game(): void
+    {
+        Http::fake();
+        $owner = User::factory()->create();
+        $game = Game::factory()->for($owner)->create();
+
+        $response = $this->actingAs(User::factory()->create())->getJson("/games/{$game->id}/cover-lookup");
+
+        $response->assertForbidden();
+        Http::assertNothingSent();
+    }
+
+    public function test_updating_a_game_downloads_the_chosen_cex_cover_and_replaces_the_old_one(): void
+    {
+        Storage::fake('public');
+        Http::fake(['es.static.webuy.com/*' => Http::response('fake-jpeg-bytes', 200, ['Content-Type' => 'image/jpeg'])]);
+
+        $user = User::factory()->create();
+        $platform = Platform::factory()->create();
+        $oldCover = UploadedFile::fake()->image('old.jpg')->store('covers', 'public');
+        $game = Game::factory()->for($user)->create(['platform_id' => $platform->id, 'cover' => $oldCover]);
+
+        $response = $this->actingAs($user)->put("/games/{$game->id}", [
+            'title' => $game->title,
+            'platform_id' => $platform->id,
+            'play_status' => 'pending',
+            'cover_url' => 'https://es.static.webuy.com/product_images/hk_l.jpg',
+        ]);
+
+        $response->assertRedirect(route('web.games.index'));
+
+        $game->refresh();
+        $this->assertStringEndsWith('.jpg', $game->cover);
+        Storage::disk('public')->assertMissing($oldCover);
+        Storage::disk('public')->assertExists($game->cover);
+    }
+
+    public function test_updating_a_game_keeps_the_existing_cover_when_the_cover_url_host_is_not_allowlisted(): void
+    {
+        Storage::fake('public');
+        Http::fake();
+
+        $user = User::factory()->create();
+        $platform = Platform::factory()->create();
+        $oldCover = UploadedFile::fake()->image('old.jpg')->store('covers', 'public');
+        $game = Game::factory()->for($user)->create(['platform_id' => $platform->id, 'cover' => $oldCover]);
+
+        $response = $this->actingAs($user)->put("/games/{$game->id}", [
+            'title' => $game->title,
+            'platform_id' => $platform->id,
+            'play_status' => 'pending',
+            // SSRF: no está en la lista blanca de hosts, no debe ni intentarse.
+            'cover_url' => 'https://169.254.169.254/latest/meta-data/',
+        ]);
+
+        $response->assertRedirect(route('web.games.index'));
+
+        $game->refresh();
+        $this->assertSame($oldCover, $game->cover);
+        Storage::disk('public')->assertExists($oldCover);
+        Http::assertNothingSent();
+    }
+
     public function test_updating_a_game_to_a_duplicate_ean_warns_instead_of_saving(): void
     {
         $user = User::factory()->create();

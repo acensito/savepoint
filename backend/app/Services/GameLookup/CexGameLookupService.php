@@ -73,9 +73,25 @@ class CexGameLookupService implements GameLookupInterface
                 title: trim((string) ($hit['boxName'] ?? '')),
                 ean: isset($hit['boxId']) && $hit['boxId'] !== '' ? (string) $hit['boxId'] : null,
                 coverUrl: $hit['imageUrls']['large'] ?? $hit['imageUrls']['medium'] ?? $hit['imageUrls']['small'] ?? null,
+                platform: $this->platformFromCategory($hit['categoryFriendlyName'] ?? null),
             ))
             ->filter(fn (GameLookupResult $result) => $result->title !== '')
             ->values()
             ->all();
+    }
+
+    /**
+     * CEX categoriza cada producto como "<plataforma> Juegos" (p. ej. "PS4
+     * Juegos", "Switch Juegos"): la plataforma es lo único útil de ahí para
+     * mostrar en las sugerencias, así que se recorta el sufijo redundante.
+     */
+    private function platformFromCategory(?string $category): ?string
+    {
+        $category = trim((string) $category);
+        if ($category === '') {
+            return null;
+        }
+
+        return trim(preg_replace('/\s+Juegos$/', '', $category));
     }
 }
