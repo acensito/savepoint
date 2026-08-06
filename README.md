@@ -117,15 +117,26 @@ Por defecto todo funciona con los valores de `.env.example` (contraseña `secret
 
 ### Exponer la app fuera de `localhost`
 
-Por defecto la app sirve por HTTP plano en el puerto 8081, sin TLS — de sobra para usarla en `localhost` o dentro de tu propia red local desde un ordenador. Para acceder desde el móvil hace falta además HTTPS: el escaneo de código de barras usa la cámara del navegador (`getUserMedia`), que solo se permite en "contextos seguros" (HTTPS, o `localhost`). Opciones razonables según el caso:
+Por defecto la app sirve por HTTP plano en el puerto 8081, sin TLS — de sobra para usarla en `localhost` o dentro de tu propia red local desde un ordenador. Para acceder desde el móvil hace falta además HTTPS: el escaneo de código de barras usa la cámara del navegador (`getUserMedia`), que solo se permite en "contextos seguros" (HTTPS, o `localhost`).
+
+**Si ya tienes tus propios certificados de dominio** (comprados, de tu proveedor, de un reverse proxy delante que te los facilite...), nginx puede servir HTTPS directamente, sin publicar ningún puerto HTTP:
+
+1. Coloca tus certificados en `./certs/fullchain.pem` y `./certs/privkey.pem` (la carpeta está en `.gitignore`, nunca se commitean).
+2. En tu `.env`, cambia `COMPOSE_PROFILES=dev` a `COMPOSE_PROFILES=prod`.
+3. `docker compose up -d --build`.
+
+Esto arranca `nginx-prod` (`docker/nginx.prod.conf`, HTTPS en el puerto `HTTPS_PORT`, 8443 por defecto) **en vez de** `nginx` (el de desarrollo, HTTP en `HTTP_PORT`) — son dos servicios distintos, nunca los dos a la vez, así que no queda ningún puerto HTTP publicado. El resto de servicios (`postgres`, `redis`, `app`, `queue`) son los mismos en los dos perfiles.
+
+**Si no tienes certificados propios todavía**, otras opciones razonables:
 
 - **Cloudflare Tunnel** o **Tailscale Funnel**: HTTPS gratuito sin tocar la configuración de nginx; cómodo para acceder desde fuera de tu red local.
 - **mkcert + nginx**: certificado local de confianza, si el acceso es solo dentro de tu LAN.
 - **Caddy** como reverse proxy delante de nginx: certificados Let's Encrypt automáticos si tienes un dominio propio.
 
-Para un despliegue "en serio" en un servidor, además del dominio/HTTPS de arriba, ajusta en tu `.env` `APP_ENV=production`, `APP_DEBUG=false` y `APP_URL` con el dominio final.
+Para un despliegue "en serio" en un servidor, además de lo anterior:
 
-> Cambiar `DB_PASSWORD` en el `.env` solo tiene efecto en un volumen de Postgres **nuevo**: si ya tenías el stack levantado antes con otra contraseña, Postgres la guarda en su propio volumen de datos y no se actualiza sola al cambiar el `.env`. Para que coincidan, cambia también la contraseña real: `docker compose exec postgres psql -U savepoint -d savepoint -c "ALTER USER savepoint WITH PASSWORD 'nueva_contraseña';"`.
+- Ajusta en tu `.env` `APP_ENV=production`, `APP_DEBUG=false` y `APP_URL` con el dominio final.
+- Cambia `DB_PASSWORD` por una contraseña real (`openssl rand -base64 24`, por ejemplo) — la de `.env.example` es solo para desarrollo local. Esto **solo tiene efecto en un volumen de Postgres nuevo**: si vas a reutilizar un volumen que ya tenía otra contraseña, Postgres la guarda en sus propios datos y no se actualiza sola al cambiar el `.env`. Para que coincidan, cambia también la contraseña real: `docker compose exec postgres psql -U savepoint -d savepoint -c "ALTER USER savepoint WITH PASSWORD 'nueva_contraseña';"`.
 
 <details>
 <summary>Detalle técnico: por qué el arranque automático usa <code>migrate</code> y no <code>migrate:fresh</code></summary>
