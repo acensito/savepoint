@@ -4,7 +4,7 @@
     "type": "project",
     "description": "The skeleton application for the Laravel framework.",
     "keywords": ["laravel", "framework"],
-    "license": "MIT",
+    "license": "PolyForm-Noncommercial-1.0.0",
     "require": {
         "php": "^8.3",
         "laravel/framework": "^13.8",
