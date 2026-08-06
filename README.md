@@ -117,21 +117,13 @@ Por defecto todo funciona con los valores de `.env.example` (contraseña `secret
 
 ### Exponer la app fuera de `localhost`
 
-Por defecto la app sirve por HTTP plano en el puerto 8081, sin TLS — de sobra para usarla en `localhost` o dentro de tu propia red local desde un ordenador. Para acceder desde el móvil hace falta además HTTPS: el escaneo de código de barras usa la cámara del navegador (`getUserMedia`), que solo se permite en "contextos seguros" (HTTPS, o `localhost`).
-
-**Si ya tienes tus propios certificados de dominio** (comprados, de tu proveedor, de un reverse proxy delante que te los facilite...), nginx puede servir HTTPS directamente, sin publicar ningún puerto HTTP:
-
-1. Coloca tus certificados en `./certs/fullchain.pem` y `./certs/privkey.pem` (la carpeta está en `.gitignore`, nunca se commitean).
-2. En tu `.env`, cambia `COMPOSE_PROFILES=dev` a `COMPOSE_PROFILES=prod`.
-3. `docker compose up -d --build`.
-
-Esto arranca `nginx-prod` (`docker/nginx.prod.conf`, HTTPS en el puerto `HTTPS_PORT`, 8443 por defecto) **en vez de** `nginx` (el de desarrollo, HTTP en `HTTP_PORT`) — son dos servicios distintos, nunca los dos a la vez, así que no queda ningún puerto HTTP publicado. El resto de servicios (`postgres`, `redis`, `app`, `queue`) son los mismos en los dos perfiles.
-
-**Si no tienes certificados propios todavía**, otras opciones razonables:
+Por defecto la app sirve por HTTP plano en el puerto 8081, sin TLS — de sobra para usarla en `localhost` o dentro de tu propia red local desde un ordenador. Para acceder desde el móvil hace falta además HTTPS: el escaneo de código de barras usa la cámara del navegador (`getUserMedia`), que solo se permite en "contextos seguros" (HTTPS, o `localhost`). nginx en sí no gestiona certificados — sirve siempre HTTP plano; el TLS lo pone un **proxy inverso** delante:
 
 - **Cloudflare Tunnel** o **Tailscale Funnel**: HTTPS gratuito sin tocar la configuración de nginx; cómodo para acceder desde fuera de tu red local.
 - **mkcert + nginx**: certificado local de confianza, si el acceso es solo dentro de tu LAN.
 - **Caddy** como reverse proxy delante de nginx: certificados Let's Encrypt automáticos si tienes un dominio propio.
+
+En `docker-compose.yml`, el servicio `nginx` publica su puerto con dos líneas alternativas (una comentada): la de desarrollo/testeo (`HTTP_PORT`, 8081 por defecto) y la de producción (`HTTPS_PORT`, 8443 por defecto — el puerto al que apunta tu proxy inverso, que sigue hablando HTTP normal con nginx por detrás). Comenta una y descomenta la otra según toque, y `docker compose up -d --build` para que se aplique.
 
 Para un despliegue "en serio" en un servidor, además de lo anterior:
 

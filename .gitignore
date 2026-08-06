@@ -41,11 +41,6 @@ Thumbs.db
 .env.docker
 docker-compose.override.yml
 
-# Certificados TLS propios para el perfil "prod" de nginx (ver
-# docker-compose.yml y docker/nginx.prod.conf): nunca se commitea una
-# clave privada.
-/certs
-
 # OS
 *.log
 *.tmp

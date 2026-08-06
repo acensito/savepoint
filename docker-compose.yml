@@ -107,48 +107,23 @@ services:
     networks:
       - savepoint_net
 
-  # Desarrollo: HTTP plano en el puerto que publique HTTP_PORT (8081 por
-  # defecto). Activo con el perfil "dev" (ver COMPOSE_PROFILES en .env.example,
-  # ya puesto a "dev" por defecto para que "docker compose up -d" siga
-  # arrancando esto sin tener que pasar --profile a mano).
   nginx:
     image: nginx:alpine
     container_name: savepoint_web
     restart: unless-stopped
-    profiles: ["dev"]
     ports:
+      # Desarrollo / testeo: nginx sirve HTTP plano directamente en este
+      # puerto (8081 por defecto).
       - "${HTTP_PORT:-8081}:8081"
+      # Producción: descomenta esta línea y comenta la de arriba. nginx
+      # sigue sirviendo HTTP plano tal cual (los certificados/TLS los pone
+      # un proxy inverso delante, que reenvía aquí por HTTP normal) — lo
+      # único que cambia es el puerto publicado en el host, 8443 por
+      # defecto, para que el proxy inverso apunte ahí.
+      # - "${HTTPS_PORT:-8443}:8081"
     volumes:
       - .:/app
       - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf
-    depends_on:
-      - app
-    networks:
-      - savepoint_net
-
-  # Producción: HTTPS de verdad en el puerto que publique HTTPS_PORT (8443
-  # por defecto) con tus propios certificados de dominio; no publica ningún
-  # puerto HTTP. Activo con el perfil "prod" (COMPOSE_PROFILES=prod en el
-  # .env del servidor real). Es un servicio APARTE del nginx de desarrollo
-  # (no un override de sus "ports:") a propósito: Docker Compose concatena
-  # las listas "ports:" al fusionar varios ficheros en vez de sustituirlas,
-  # así que un override no habría bastado para "desconectar" el puerto HTTP
-  # de desarrollo — con perfiles distintos, sencillamente no arranca el otro
-  # servicio.
-  nginx-prod:
-    image: nginx:alpine
-    container_name: savepoint_web
-    restart: unless-stopped
-    profiles: ["prod"]
-    ports:
-      - "${HTTPS_PORT:-8443}:8443"
-    volumes:
-      - .:/app
-      - ./docker/nginx.prod.conf:/etc/nginx/conf.d/default.conf
-      # Tus certificados de dominio (fullchain.pem/privkey.pem), fuera del
-      # repo: monta aquí la carpeta donde los tengas. Nunca se commitean
-      # (ver .gitignore).
-      - ./certs:/etc/nginx/certs:ro
     depends_on:
       - app
     networks:

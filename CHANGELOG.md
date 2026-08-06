@@ -5,6 +5,9 @@ sección al final de `README.md`; se separó a este fichero para que el README
 pueda ser un documento de presentación del proyecto en vez de una lista que
 crece sin parar.
 
+## 2026-08-06 (4)
+- **Simplificado el punto anterior**: se descarta que nginx gestione certificados TLS él mismo. El TLS lo pone un proxy inverso delante (Cloudflare Tunnel, Tailscale Funnel, mkcert o Caddy — las mismas opciones que ya recomendaba el README), que habla HTTP normal con nginx por detrás; nginx nunca necesita saber de certificados. Se quitan `nginx-prod`, `docker/nginx.prod.conf`, el perfil `COMPOSE_PROFILES` y el montaje de `./certs/`: vuelve a haber un único servicio `nginx`, con dos líneas alternativas (una comentada) en su `ports:` — `HTTP_PORT` (8081, desarrollo/testeo) o `HTTPS_PORT` (8443, el puerto al que apunta el proxy inverso en producción) — que se elige comentando/descomentando a mano en `docker-compose.yml`, en vez de con un mecanismo de perfiles.
+
 ## 2026-08-06 (3)
 - **Perfil de producción para nginx** (`docker-compose.yml`, `docker/nginx.prod.conf` nuevo): `COMPOSE_PROFILES=prod` en el `.env` arranca `nginx-prod` (HTTPS de verdad en `HTTPS_PORT`, 8443 por defecto, con certificados propios montados desde `./certs/`, gitignored) **en vez de** `nginx` (el de desarrollo, HTTP en `HTTP_PORT`) — son dos servicios de Compose distintos, nunca los dos a la vez, así que en producción no queda ningún puerto HTTP publicado. Se implementa así, y no como un `docker-compose.prod.yml` de override sobre el mismo servicio `nginx`, porque Docker Compose concatena las listas `ports:` al fusionar varios ficheros en vez de sustituirlas: un override no habría bastado para "desconectar" el puerto HTTP de desarrollo, solo habría añadido el HTTPS al lado.
 
