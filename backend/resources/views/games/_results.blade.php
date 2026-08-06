@@ -50,26 +50,6 @@
                             @endif
                         </div>
                     </div>
-
-                    <div class="flex flex-col items-center gap-1 flex-shrink-0 border-l border-slate-800 pl-2 -my-1 py-1">
-                        <a href="{{ route('web.games.edit', $game->id) }}"
-                            class="flex items-center justify-center w-8 h-8 rounded-full text-slate-400 hover:bg-slate-800 hover:text-indigo-400 active:bg-slate-800 transition-colors"
-                            aria-label="Editar {{ $game->title }}">
-                            <x-gicon name="edit" class="text-[18px]" />
-                        </a>
-
-                        <form action="{{ route('web.games.destroy', $game->id) }}" method="POST" class="js-confirm-delete"
-                            data-confirm-title="Enviar a la papelera"
-                            data-confirm-message="«{{ $game->title }}» se moverá a la papelera. Podrás restaurarlo más tarde.">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit"
-                                class="flex items-center justify-center w-8 h-8 rounded-full text-slate-400 hover:bg-slate-800 hover:text-red-400 active:bg-slate-800 transition-colors"
-                                aria-label="Borrar {{ $game->title }}">
-                                <x-gicon name="delete" class="text-[18px]" />
-                            </button>
-                        </form>
-                    </div>
                 </div>
             @empty
                 <div class="bg-slate-900 border border-slate-800 rounded-xl px-6 py-12 text-center text-slate-500 text-sm">

@@ -168,8 +168,11 @@
 
     </div>
 
-    <!-- Toasts: contenedor donde showToast() (resources/js/app.js) inserta los avisos -->
-    <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 w-[calc(100%-2rem)] max-w-sm pointer-events-none"></div>
+    <!-- Toasts: contenedor donde showToast() (resources/js/app.js) inserta los avisos.
+         top-16 (no top-4) porque el header (h-12 = 3rem) es position:static, no fixed:
+         con top-4 el contenedor fixed quedaba superpuesto encima de la cabecera (logo,
+         buscador, tema, perfil), tapando esos iconos en vez de aparecer debajo -->
+    <div id="toast-container" class="fixed top-16 right-4 z-50 flex flex-col gap-2 w-[calc(100%-2rem)] max-w-sm pointer-events-none"></div>
 
     <!-- Confirmación de acciones destructivas: un único <dialog> reutilizado por
          cualquier formulario con class="js-confirm-delete" (ver app.js) en vez

@@ -579,9 +579,12 @@ window.showToast = function (message, type = 'success', undoUrl = null) {
     const container = createToastContainer();
     if (!container || !message) return;
 
+    // Fondo sólido (no bg-*-500/10) a propósito: el toast flota sobre contenido
+    // de la propia página (título, tarjetas...) y con fondo translúcido ese
+    // contenido se transparentaba a través del aviso, volviéndolo ilegible.
     const palette = type === 'error'
-        ? ['bg-red-500/10', 'border-red-500/20', 'text-red-400']
-        : ['bg-emerald-500/10', 'border-emerald-500/20', 'text-emerald-400'];
+        ? ['bg-slate-900', 'border-red-500/30', 'text-red-400']
+        : ['bg-slate-900', 'border-emerald-500/30', 'text-emerald-400'];
 
     const toast = document.createElement('div');
     toast.className = [
