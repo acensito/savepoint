@@ -1,60 +1,46 @@
 # Savepoint
 
-Savepoint es una aplicación para catalogar y gestionar una colección personal de videojuegos: qué juegos tienes, en qué plataforma, su estado de conservación, si los has terminado o no, precio de compra, etc.
+Savepoint es una aplicación para catalogar y gestionar una colección personal de videojuegos: qué juegos tienes, en qué plataforma, su estado de conservación, si los has terminado o no, precio de compra, y mucho más — con importación masiva, búsqueda de carátulas y datos en catálogos externos, estadísticas de la colección y exportación imprimible, entre otras cosas.
 
-El proyecto está construido como backend Laravel que sirve tanto una interfaz web (Blade) como una API REST (Sanctum) pensada para un futuro cliente externo (p. ej. app móvil).
+Construida como backend Laravel que sirve tanto una interfaz web (Blade + Tailwind) como una API REST (Sanctum) pensada para un futuro cliente externo (p. ej. app móvil). Pensada para desplegarse fácilmente con Docker en tu propio servidor o máquina — ver [Desplegar para uso propio](#desplegar-para-uso-propio).
 
 Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Índice
 
-- [Stack técnico](#stack-técnico)
 - [Características](#características)
-- [Despliegue](#despliegue)
+- [Stack técnico](#stack-técnico)
+- [Desplegar para uso propio](#desplegar-para-uso-propio)
 - [Tests](#tests)
 - [Pendiente / en curso](#pendiente--en-curso)
 - [Contribuir](#contribuir)
 - [Licencia](#licencia)
 
-## Stack técnico
-
-- **Backend:** Laravel 13 / PHP 8.3
-- **Base de datos:** PostgreSQL (usa `JSONB` para campos como `genres`)
-- **Autenticación web:** sesiones con guard `web` (login por email/contraseña)
-- **Autenticación API:** Laravel Sanctum (tokens Bearer)
-- **Frontend web:** Blade + Tailwind CSS + Vite.
-- **Localización:** interfaz y mensajes de validación en español (`APP_LOCALE=es`, `lang/es/`). Laravel 11+ no publica estos archivos por defecto; se generaron y tradujeron a mano para que los errores de formulario no muestren la clave sin traducir (p. ej. `validation.required`).
-
 ## Características
 
 ### Gestión de la colección de juegos
-- Alta de un juego mediante un único formulario directo — sin pasos intermedios de búsqueda previa, ya que no hay scraping de fuentes externas. Cubre prácticamente todo el modelo: título, EAN, desarrollador, plataforma, fecha de lanzamiento, géneros, propiedad (en colección/lista de deseos/vendido, "en colección" por defecto), estado de juego, conservación, precio y lugar/fecha de compra, manual (con manual/sin manual/folleto), región, clasificación por edad y notas.
-- **Carátula**: se sube desde el propio formulario (JPG/PNG/WEBP, máx. 1MB) con vista previa en vivo que respeta la proporción real de la imagen — ancho fijo y alto automático, así que una portada cuadrada (caja de PC/CD) sale cuadrada y una portrait (la mayoría de cajas de consola) crece en alto sin recortarse. Si el juego no tiene carátula, se muestra un recuadro con las iniciales del título en su lugar (tanto en el listado como en el formulario), generado con `Game::coverInitials()`.
-- Listado de la colección (página principal) con miniatura, título, plataforma, edición, región, manual, conservación (estrellas), precio y fecha de compra, paginado (tamaño de página configurable desde el propio filtro: 10/20/50/100). La tabla de escritorio no incluye columna de estado de juego (pendiente/jugando/terminado), para que quepa entera sin scroll horizontal en portátiles 1080p; sigue disponible como filtro y en la ficha de detalle. En las tarjetas de móvil, la plataforma se muestra como etiqueta en la esquina superior derecha y el resto de datos (valoración, fecha de compra, precio) se reparte en filas propias en vez de amontonarse a la izquierda; tocar cualquier punto de la tarjeta (fuera de sus controles) abre la ficha de detalle. Editar y borrar un juego se hace siempre desde su ficha de detalle — ni la tabla de escritorio ni las tarjetas de móvil llevan iconos de acción propios.
-- Búsqueda dentro de la propia colección por **título** o **EAN**: buscador grande y centrado (protagonista de la página, no un campo más), que filtra en vivo según se escribe (AJAX, sin recargar la página) e igual de visible en cualquier tamaño de pantalla; un icono "Avanzado" junto a él despliega el resto de filtros (**plataforma**, **estado de juego**, **propiedad**, orden y tamaño de página) para cuando hacen falta.
-- La consulta del listado solo trae las columnas y relaciones que la vista pinta (evita cargar `notes`/`data`/`genres` innecesariamente y N+1 en `platform`/`edition`).
-- **Ficha de detalle de solo lectura** (`/games/{id}`) con toda la información del juego, para "solo mirar" sin abrir el formulario de edición. El título de cada juego en el listado (tabla, tarjetas o estantería) enlaza aquí, y es también el único sitio desde el que se edita o se borra.
-- **Edición rápida** de la conservación directamente desde la tarjeta del listado en móvil o la estantería (clic en una estrella), por AJAX, sin abrir el formulario completo. En la tabla de escritorio la conservación es de solo lectura a propósito: se cambia desde el formulario de edición.
+- Alta de un juego mediante un único formulario directo, sin pasos intermedios. Cubre prácticamente todo el modelo: título, EAN, desarrollador, plataforma, fecha de lanzamiento, géneros, propiedad (en colección/lista de deseos/vendido), estado de juego, conservación, precio y lugar/fecha de compra, manual, región, clasificación por edad y notas.
+- **Carátula**: se sube desde el propio formulario (JPG/PNG/WEBP, máx. 1MB) con vista previa en vivo que respeta la proporción real de la imagen, sin recortarla. Si el juego no tiene carátula, se muestran las iniciales del título en su lugar.
+- Listado de la colección con miniatura, título, plataforma, edición, región, manual, conservación (estrellas), precio y fecha de compra, paginado. En móvil se muestra como tarjetas en vez de tabla; tocar cualquier punto de una tarjeta abre la ficha de detalle del juego, que es el único sitio desde el que se edita o se borra.
+- Búsqueda dentro de la propia colección por **título** o **EAN**: buscador grande y centrado, que filtra en vivo según se escribe. Un icono "Avanzado" despliega el resto de filtros (**plataforma**, **estado de juego**, **propiedad**, orden y tamaño de página) para cuando hacen falta.
+- **Ficha de detalle de solo lectura** con toda la información del juego, para "solo mirar" sin abrir el formulario de edición.
+- **Edición rápida** de la conservación directamente desde la tarjeta o la estantería (clic en una estrella), sin abrir el formulario completo.
 - Edición de un juego existente, incluida la opción de reemplazar o quitar la carátula.
-- Al dar de alta o editar un juego con un EAN que ya tienes registrado, se avisa antes de guardar en vez de duplicarlo sin más (con opción de "guardar de todos modos" para el caso legítimo de tener dos copias físicas). Los juegos sin EAN nunca activan el aviso entre sí.
-- Baja de un juego mediante **papelera de reciclaje** (soft delete): panel dedicado (`/games/trash`, con su propio buscador por título/EAN y filtro por plataforma) para ver los juegos borrados, restaurarlos o eliminarlos definitivamente (esto último borra también el fichero de la carátula). El toast que aparece al borrar un juego lleva un botón "Deshacer" que lo restaura sin salir de la colección.
-- **Importación masiva** (`/games/import`) desde un CSV (coma o punto y coma, con o sin BOM de Excel): solo el título es obligatorio, cada fila se procesa de forma independiente (una fila con error no bloquea al resto) y las plataformas/ediciones que el CSV mencione y no existan todavía en el catálogo se crean automáticamente. Al elegir el fichero se muestra antes una **vista previa** (columnas reconocidas/no reconocidas y las primeras filas) sin importar nada todavía. Hay una plantilla de ejemplo descargable desde la propia página. Tras importar se muestra un resumen (juegos importados, plataformas/ediciones creadas, filas con incidencias).
-- Al editar/reemplazar la carátula, el fichero anterior se borra del disco (`storage/app/public/covers`) para no dejar huérfanos.
-- **Buscar carátula y EAN en CEX** desde el propio formulario de edición de un juego ya guardado: un botón junto al campo de carátula consulta el mismo catálogo externo que la búsqueda rápida (`GameLookupInterface`), priorizando el EAN del juego (identifica la copia exacta) y cayendo al título si no tiene uno registrado. Los resultados muestran carátula, EAN y plataforma para elegir con confianza; al elegir uno se rellenan tanto la carátula (que no se descarga hasta guardar el formulario, igual que la sugerencia de CEX en el alta) como el campo EAN (visible y editable, como el resto de campos del formulario). Si la búsqueda automática no encuentra nada (título mal escrito, subtítulo distinto al que usa CEX...) o el resultado no es el esperado, aparece un campo para repetir la búsqueda a mano con otras palabras.
-- Panel de gestión de ediciones (`/editions`) para dar de alta ediciones (normal/especial/coleccionista/...) asociadas a una o varias plataformas, con un botón "Seleccionar todas"/"Ninguna" para no marcarlas una a una; el campo `edition_id` del juego se filtra según la plataforma elegida en el formulario. Si la edición que necesitas no existe todavía, se puede crear al vuelo desde el propio formulario de alta/edición de juego (modal + AJAX) sin perder lo ya rellenado.
+- Al dar de alta o editar un juego con un EAN que ya tienes registrado, se avisa antes de guardar en vez de duplicarlo sin más (con opción de "guardar de todos modos" para el caso legítimo de tener dos copias físicas).
+- Baja de un juego mediante **papelera de reciclaje**: panel dedicado para ver los juegos borrados, restaurarlos o eliminarlos definitivamente. El aviso de borrado lleva un botón "Deshacer" que restaura el juego sin salir de la colección.
+- **Importación masiva** desde un CSV: solo el título es obligatorio, cada fila se procesa de forma independiente (una fila con error no bloquea al resto) y las plataformas/ediciones que el CSV mencione y no existan todavía en el catálogo se crean automáticamente. Antes de importar se muestra una vista previa de lo que se va a crear, con una plantilla de ejemplo descargable.
+- **Buscar carátula y EAN en CEX** (webuy.com) desde el propio formulario de edición de un juego ya guardado: busca por EAN o título en su catálogo, muestra los resultados con carátula/EAN/plataforma para elegir con confianza, y rellena ambos campos al elegir uno. Si la búsqueda automática no encuentra nada, se puede repetir a mano con otras palabras.
+- Panel de gestión de ediciones (normal/especial/coleccionista...) asociadas a una o varias plataformas; si la que necesitas no existe todavía, se puede crear al vuelo desde el propio formulario de alta/edición de juego sin perder lo ya rellenado.
 
 ### Lista de deseos
-- Página propia (`/wishlist`, enlazada desde el sidebar) para los juegos con Propiedad = "Lista de deseos". **Nunca aparecen en la colección principal** (`GameController::index` los excluye siempre, incluso si se manipula la URL con `?status=wishlist`; la opción se ha quitado del filtro "Propiedad" de la colección) ni cuentan en sus totales (barra de estado del pie), porque todavía no son parte de "tu colección".
-- **Alta reducida** (`/wishlist/create`): a diferencia del alta normal, solo pide título, plataforma y edición — el resto de campos del juego (precio, conservación, manual...) no tienen sentido todavía. Propiedad se fija a "Lista de deseos" internamente, sin mostrar el campo.
-- Cada juego admite **prioridad** (alta/media/baja), **precio estimado** y **dónde comprarlo**, editables desde el propio formulario de edición completo (sección "Lista de deseos"). Buscador por título/EAN y orden por prioridad (por defecto, alta primero), título o precio estimado.
-- Acción **"Pasar a la colección"** en cada juego: abre el formulario de edición completo de siempre, con los datos ya insertados, pero con Propiedad y fecha de compra preseleccionadas a "En colección"/hoy para no tener que cambiarlas a mano (`?convert_to_owned=1`, ver `GameController::edit`). El usuario completa precio y el resto de detalles y guarda como cualquier edición normal.
+- Página propia para los juegos que todavía no tienes: **nunca aparecen en la colección principal** ni cuentan en sus totales.
+- **Alta reducida**: a diferencia del alta normal, solo pide título, plataforma y edición — el resto de campos (precio, conservación, manual...) no tienen sentido todavía.
+- Cada juego admite **prioridad** (alta/media/baja), **precio estimado** y **dónde comprarlo**. Buscador por título/EAN y orden por prioridad, título o precio estimado.
+- Acción **"Pasar a la colección"**: abre el formulario de edición completo con los datos ya insertados y Propiedad/fecha de compra preseleccionadas, para no tener que rellenar todo de nuevo cuando por fin compras un juego de tu lista.
 
 ### Catálogo (fabricantes y plataformas)
-- Panel de gestión (`/manufacturers`, `/platforms`) para dar de alta, editar y borrar fabricantes y plataformas propias, en vez de depender de un catálogo precargado fijo.
-- Cada **fabricante** define un color de marca para el chip (fondo, letras y borde) que heredan todas sus plataformas.
-- Cada **plataforma** puede personalizar sus propios colores en lugar de heredar los del fabricante, y tiene una **etiqueta abreviada** editable para el chip (p. ej. "PS5"); si no se define, se usa el nombre completo.
-- El chip de plataforma (colores + etiqueta) se muestra en el listado de la colección mediante un componente Blade reutilizable (`<x-platform-chip>`).
-- Relación fabricante → plataforma → edición → juego modelada con Eloquent.
+- Panel de gestión para dar de alta, editar y borrar tus propios fabricantes y plataformas, en vez de depender de un catálogo precargado fijo.
+- Cada **fabricante** define un color de marca para su chip que heredan todas sus plataformas; cada **plataforma** puede personalizar el suyo y tiene una **etiqueta abreviada** editable (p. ej. "PS5").
 
 ### Autenticación
 - **Web:** login/logout con sesión (regenera el ID de sesión al iniciar sesión para evitar session fixation; redirige a la página original tras el login).
@@ -73,7 +59,7 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 - Evolución del gasto por mes de compra (gráfico de barras, últimos 12 meses con datos), top de géneros más repetidos en la colección, reparto por década de lanzamiento (`release_date`, orden cronológico) y destacados (juego más caro y mejor valorado, con enlace a su ficha).
 
 ### Exportación imprimible / PDF
-- Exportación de la colección completa (`/games/print`, accesible desde el Panel de control) a una vista imprimible: acepta los mismos filtros que el listado (búsqueda, plataforma, estado, propiedad) por querystring y nunca se limita a la página actual de la paginación, aunque hoy no hay ningún enlace que los aplique automáticamente. Es una vista independiente del layout habitual de la app (sin sidebar/header, sin el contenedor de scroll de altura fija que usa el resto de la interfaz, y en blanco y negro en vez del tema oscuro) para que el navegador la reparta en páginas con normalidad; el botón "Imprimir / Guardar como PDF" de esa vista usa el diálogo de impresión nativo, que en cualquier navegador moderno permite guardar como PDF sin necesidad de generarlo en el servidor.
+- Exportación de la colección completa a una vista imprimible, lista para guardar como PDF desde el propio diálogo de impresión del navegador — sin generar nada en el servidor.
 
 ### Panel de control
 - Página (`/panel`, enlazada desde el sidebar) que agrupa tareas que no son del día a día con la colección: importar/exportar, la papelera de reciclaje (con el nº de juegos que contiene) y el perfil del usuario. Sustituye a los iconos "Importar" y "Papelera" que antes vivían sueltos en el sidebar (siguen accesibles por URL directa, y el icono del panel se resalta como activo también en esas páginas).
@@ -86,62 +72,68 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 - Botón de cerrar sesión ("Salir") en la navegación.
 
 ### Interfaz
-- Sidebar plegable (escritorio): un botón en su cabecera lo contrae a solo iconos (de 15rem a 4.5rem) para aprovechar el ancho en pantallas 1080p; cada enlace muestra su nombre como tooltip nativo mientras está colapsado. La preferencia se guarda en `localStorage` y se aplica antes del primer pintado (vía un script bloqueante en el `<head>`) para no parpadear al navegar entre páginas. Implementado en JS vanilla (sin Alpine ni otra dependencia).
-- Navegación móvil (< 768px): el sidebar deja de ocupar ancho fijo y pasa a ser un drawer superpuesto que entra desde la izquierda, con botón hamburguesa en el header y fondo oscuro; se cierra tocando fuera, el botón de cerrar o cualquier enlace del menú.
-- Colección en móvil: el listado se muestra como tarjetas (carátula, plataforma, estado, conservación y precio) en vez de la tabla de escritorio; editar y borrar se hacen desde la ficha de detalle del juego, igual que en la tabla — la tarjeta no lleva iconos de acción propios. El buscador simple es igual de grande y visible que en escritorio, arriba del todo (no vive detrás de ningún acordeón); solo los filtros "Avanzado" (plataforma/estado/orden/paginación) se pliegan tras su icono, igual que en escritorio.
-- Paneles de catálogo en móvil (fabricantes, plataformas, ediciones): igual que la colección, pasan de la tabla con scroll horizontal a tarjetas con la misma información y acciones de editar/borrar como botones de icono.
-- Formularios (alta/edición de juego, perfil, fabricantes, plataformas) apilan sus campos en una sola columna en pantallas estrechas en vez de apretarlos en el mismo grid que escritorio.
-- Feedback de acciones: los mensajes de éxito se muestran como un toast flotante que se desvanece solo (antes eran banners fijos, duplicados en cada vista, y en la colección principal directamente no se mostraban), con fondo sólido y posicionado siempre bajo la cabecera. Las acciones destructivas (borrar juego, plataforma, fabricante, edición, o eliminar definitivamente desde la papelera) piden confirmación en un `<dialog>` propio con el nombre del elemento afectado, en vez del `confirm()` del navegador. Ambos son un único componente compartido en el layout, reutilizado desde cualquier vista. El `<dialog>` se centra en pantalla vía `margin: auto` (se declara explícitamente en `app.css` porque el preflight de Tailwind resetea el margin por defecto de todos los elementos, y sin él el navegador no puede centrar un `<dialog>` abierto con `showModal()`).
-- Tema claro/oscuro: botón en el header (y en las pantallas de login/recuperar contraseña) que alterna entre los dos, persistido en `localStorage` y aplicado antes del primer pintado (mismo mecanismo que el sidebar). Técnicamente no se tocó ninguna vista: cada plantilla sigue usando las mismas clases de Tailwind (`bg-slate-900`, `text-slate-400`...) de siempre, y lo que cambia con la clase `light` en `<html>` es a qué color apunta cada variable de la paleta (`app.css`), así que da igual cuántas vistas nuevas se añadan en el futuro, heredan el tema sin tocar nada.
-- Orden del listado de la colección (`?sort=`, `?dir=`): por título, precio, conservación o fecha de compra, ascendente o descendente, combinable con la búsqueda y los filtros.
-- Atajo de teclado `/` para enfocar el buscador de la colección, como en GitHub o Gmail.
-- Acciones en bloque en la colección: casillas de selección (una por fila/tarjeta, más "seleccionar todo" en la tabla de escritorio) para enviar varios juegos a la papelera o cambiarles el estado de juego de golpe, sin repetir la acción uno a uno. Las casillas están ocultas por defecto: solo aparecen al activar el "modo selección" (icono en la esquina superior derecha, justo encima de la tabla/tarjetas), para no ocupar espacio permanentemente en cada fila/tarjeta.
-- Botón flotante ("Añadir juego") fijo en la esquina inferior derecha en móvil, para no tener que volver arriba al hacer scroll por una colección larga.
-- Tres formas de ver la colección, alternables con los iconos de la esquina superior derecha (persistido en `localStorage`, igual mecanismo que el tema): la habitual (tarjetas en móvil, tabla en escritorio), una tabla compacta (filas más bajas, mismos datos) y una estantería (grid de carátulas grandes). La compacta es la que se usa por defecto la primera vez que se entra sin preferencia guardada.
-- Barra de estado discreta al pie de la colección (pegada al fondo del área de scroll): número total de juegos en la colección y gasto total invertido, sin depender de los filtros activos en cada momento.
-- Búsqueda rápida global (`Ctrl+K`/`Cmd+K`, botón de lupa en el header): abre un `<dialog>` centrado con resultados en vivo por título o EAN mientras se escribe; Enter abre el primer resultado, click abre cualquier otro. Si el juego no está en la colección, en vez de solo proponer darlo de alta a mano, se ofrecen además **sugerencias de CEX** (webuy.com) con su EAN y carátula reales: al elegir una se muestra una ficha para comprobar los datos y, si concuerda, un botón "Dar de alta" que abre el formulario de siempre con título/EAN/carátula ya prellenados (el resto se rellena a mano). No es una API oficial de CEX: reutiliza el índice de Algolia de su propia web con una clave pública de solo-búsqueda; vive detrás de `App\Services\GameLookup\GameLookupInterface` (implementada hoy por `CexGameLookupService`, con la configuración en `config('services.cex')`) precisamente porque puede dejar de funcionar o cambiar de proveedor sin aviso — si eso pasa, el buscador simplemente deja de mostrar sugerencias externas (no rompe nada) y basta con cambiar el binding de la interfaz en `AppServiceProvider`, sin tocar el controlador ni la vista. La carátula sugerida no se descarga hasta que se guarda el alta, y solo desde hosts en una lista blanca (`CEX_IMAGE_HOSTS`) para evitar que ese campo se use como proxy hacia una URL arbitraria (SSRF).
-- Escaneo de código de barras (EAN) desde la propia búsqueda rápida: el icono de cámara abre un `<dialog>` con la cámara (vía `@zxing/library`, no la `BarcodeDetector` nativa del navegador porque no funciona en Safari/iOS; cargada solo al pulsar el botón para no meterla en el bundle inicial) y, al detectar un código, lo vuelca en el buscador —si el juego ya está en la colección aparece como resultado, si no, entran en juego las sugerencias de CEX de arriba, buscando directamente por ese EAN—. **Necesita HTTPS en producción** para que el navegador dé acceso a la cámara (en local con `localhost` no hay problema); ver [Despliegue en producción](#producción).
+- Sidebar plegable a solo iconos en escritorio, y drawer deslizante con botón hamburguesa en móvil.
+- La colección se ve como tarjetas en móvil y como tabla en escritorio, con edición/borrado siempre desde la ficha de detalle del juego, nunca con iconos sueltos en cada fila.
+- Feedback de acciones consistente en toda la app: toasts flotantes para confirmaciones (con "Deshacer" cuando aplica) y un diálogo propio para confirmar acciones destructivas, en vez del `confirm()` nativo del navegador.
+- Tema claro/oscuro, persistido y aplicado antes del primer pintado para que no haya parpadeo al cargar o navegar.
+- Orden del listado por título, precio, conservación o fecha de compra; atajo de teclado `/` para enfocar el buscador, como en GitHub o Gmail.
+- Acciones en bloque: seleccionar varios juegos a la vez para enviarlos a la papelera o cambiarles el estado de golpe.
+- Botón flotante de "Añadir juego" en móvil, para no tener que volver arriba al hacer scroll por una colección larga.
+- Tres formas de ver la colección: la habitual, una tabla compacta y una estantería de carátulas grandes.
+- Barra de estado discreta con el total de juegos y el gasto invertido en toda la colección, siempre visible.
+- **Búsqueda rápida global** (`Ctrl+K`/`Cmd+K`): resultados en vivo por título o EAN mientras se escribe. Si el juego no está en tu colección, se ofrecen además **sugerencias de CEX** (webuy.com) con EAN y carátula reales para rellenar el alta con un clic.
+- **Escaneo de código de barras** con la cámara desde la propia búsqueda rápida: detecta el EAN y lo vuelca en el buscador, enlazando con las sugerencias de CEX si el juego todavía no está en tu colección. Necesita HTTPS para acceder a la cámara fuera de `localhost` (ver [Desplegar para uso propio](#desplegar-para-uso-propio)).
 
-## Despliegue
+## Stack técnico
 
-### Desarrollo con Docker
+- **Backend:** Laravel 13 / PHP 8.3
+- **Base de datos:** PostgreSQL (usa `JSONB` para campos como `genres`)
+- **Autenticación web:** sesiones con guard `web` (login por email/contraseña)
+- **Autenticación API:** Laravel Sanctum (tokens Bearer)
+- **Frontend web:** Blade + Tailwind CSS + Vite.
+- **Localización:** interfaz y mensajes de validación en español (`APP_LOCALE=es`, `lang/es/`). Laravel 11+ no publica estos archivos por defecto; se generaron y tradujeron a mano para que los errores de formulario no muestren la clave sin traducir (p. ej. `validation.required`).
 
-El stack (`docker-compose.yml`) levanta `postgres`, `redis`, `app` (PHP-FPM), `queue` (worker de Redis) y `nginx`. La imagen de `app`/`queue` (`docker/Dockerfile`) incluye Composer y Node.js 22 + npm (copiados desde las imágenes oficiales `composer:latest` y `node:22-alpine`) para poder compilar los assets de Vite dentro del propio contenedor.
+## Desplegar para uso propio
 
-Primer arranque:
+### Arranque rápido con Docker
+
+Todo lo que hace falta es Docker y Docker Compose. El stack (`docker-compose.yml`) levanta cinco contenedores: `postgres`, `redis`, `app` (PHP-FPM), `queue` (worker de Redis) y `nginx`.
 
 ```bash
-cp .env.example .env   # credenciales/puertos para docker-compose.yml; los valores por defecto ya funcionan sin tocar nada
+git clone <url-del-repo> savepoint && cd savepoint
+cp .env.example .env       # credenciales/puertos de docker-compose.yml; los valores por defecto ya funcionan sin tocar nada
 docker compose up -d --build
-```
 
-**No te saltes el `cp .env.example .env`**: `docker-compose.yml` monta ese fichero dentro de `app`/`queue` (`./.env:/root.env:ro`), y si no existe cuando arranca el contenedor, Docker crea automáticamente un **directorio vacío** llamado `.env` en su lugar (comportamiento por defecto de los bind mounts contra una ruta que no existe). A partir de ahí, `cp .env.example .env` falla o hace cosas raras hasta que se borra ese directorio a mano (`rmdir .env`) y se repite el paso.
-
-El contenedor `app` (`docker/entrypoint.sh`) hace el resto automáticamente en cada arranque: `composer install`, sincronizar `backend/.env` con las credenciales del `.env` de la raíz, generar `APP_KEY` si falta, `php artisan migrate --seed` (usuarios de prueba: `admin@savepoint.test` / `test@example.com`, contraseña "password") y `storage:link`. Sigue haciendo falta a mano, solo la primera vez (o tras cambiar dependencias/CSS/JS):
-
-```bash
 docker compose exec app npm install
-docker compose exec app npm run build       # o npm run dev si se expone el puerto 5173 para HMR
+docker compose exec app npm run build      # o "npm run dev" si expones el puerto 5173 para hot-reload
 ```
 
-La app queda disponible en `http://localhost:8081`.
+⚠️ **No te saltes el `cp .env.example .env`** antes del primer `docker compose up`: si ese fichero no existe cuando arranca el contenedor, Docker crea en su lugar un **directorio vacío** llamado `.env` (comportamiento por defecto de un bind mount contra una ruta que no existe), y a partir de ahí el `cp` falla hasta que se borra ese directorio a mano (`rmdir .env`) y se repite el paso.
 
-Tras cualquier cambio en las vistas Blade basta con recargar (no hay build). Tras un cambio en CSS/JS (`resources/css`, `resources/js`) hace falta `docker compose exec app npm run build` para que Tailwind/Vite regeneren el bundle — si no, la clase o el script nuevo no aparece aunque el código esté bien.
+La app queda disponible en **`http://localhost:8081`**, ya con la base de datos migrada y dos usuarios de prueba (`admin@savepoint.test` / `test@example.com`, contraseña `password`). Todo eso (instalar dependencias de Composer, generar la clave de la app, migrar y sembrar la base de datos, enlazar el almacenamiento de las carátulas) lo hace automáticamente `docker/entrypoint.sh` en cada arranque del contenedor `app` — solo `npm install`/`npm run build` quedan fuera, porque compilar los assets en cada arranque sería lento y no hace falta salvo que cambies CSS/JS.
 
-`entrypoint.sh` usa a propósito `php artisan migrate` y nunca `migrate:fresh`: en una base de datos vacía (primer arranque de verdad) el resultado es el mismo que `fresh` —crea todas las tablas desde cero—, pero en cualquier arranque posterior con datos ya cargados `migrate` solo aplica lo pendiente y nunca borra nada, mientras que `migrate:fresh` habría hecho `DROP` de todas las tablas en cada reinicio del contenedor. `--seed` es seguro de repetir en cada arranque porque `DatabaseSeeder` usa `updateOrCreate` en todas partes.
+Tras cualquier cambio en las vistas Blade basta con recargar el navegador (no hay paso de build). Tras un cambio en CSS/JS (`resources/css`, `resources/js`) hace falta repetir `docker compose exec app npm run build` para que Tailwind/Vite regeneren el bundle.
 
-Las variables de BD/Redis del `.env` de la raíz se leen dentro de `entrypoint.sh` (montado como fichero de solo lectura, no como `environment:` del contenedor) a propósito: si fueran variables de entorno del propio contenedor, quedarían fijas para cualquier `docker compose exec app ...` posterior — incluido `php artisan test`, que dejaría de poder forzar SQLite en memoria pese a `phpunit.xml` (`DB_CONNECTION`/`DB_DATABASE` con `force="true"`), rompiendo el aislamiento entre los tests y la base de datos real.
+### Personalizar puertos y credenciales
 
-### Producción
+El `.env` de la raíz del proyecto (no `backend/.env`, que se gestiona solo) es el único fichero que hace falta tocar: contraseña de Postgres y los cuatro puertos publicados en el host (Postgres, Redis, HTTP y HTTPS de nginx), por si ya los tienes ocupados. Después de cambiarlo, `docker compose up -d --build` para que se aplique.
 
-El `nginx.conf` del repo (`docker/nginx.conf`) sirve la app por HTTP plano (puerto 8081); no hay terminación TLS configurada todavía. Esto es suficiente para uso en `localhost` o en la propia red local desde un navegador de escritorio, pero **bloquea una función concreta desde el móvil**: el escaneo de código de barras necesita `getUserMedia`, que los navegadores solo exponen en "contextos seguros" (HTTPS, con la única excepción de `localhost`). Fuera de `localhost` y sin HTTPS, el botón de cámara falla silenciosamente (no llega a pedir permiso).
+### Exponer la app fuera de `localhost`
 
-Antes de exponer la app fuera de `localhost` (dominio propio, acceso desde el móvil, etc.), hace falta HTTPS delante de nginx. Opciones razonables según el caso:
-- **Cloudflare Tunnel** o **Tailscale Funnel**: HTTPS gratuito sin tocar la config de nginx, cómodo si se accede desde fuera de la red local.
-- **mkcert + nginx**: certificado local de confianza, si el acceso es solo dentro de la LAN de casa.
-- **Caddy** como reverse proxy delante de nginx: gestiona certificados Let's Encrypt automáticamente si hay un dominio propio.
+Por defecto la app sirve por HTTP plano en el puerto 8081, sin TLS — de sobra para usarla en `localhost` o dentro de tu propia red local desde un ordenador. Para acceder desde el móvil hace falta además HTTPS: el escaneo de código de barras usa la cámara del navegador (`getUserMedia`), que solo se permite en "contextos seguros" (HTTPS, o `localhost`). Opciones razonables según el caso:
 
-Fuera de esto, el despliegue en un servidor sigue el mismo `docker-compose.yml` que en desarrollo: clonar, copiar `.env` con los valores de producción (`APP_ENV=production`, `APP_DEBUG=false`, credenciales reales de Postgres/Redis, `APP_URL` con el dominio final), y los mismos pasos de `composer install` / `npm run build` / `migrate`.
+- **Cloudflare Tunnel** o **Tailscale Funnel**: HTTPS gratuito sin tocar la configuración de nginx; cómodo para acceder desde fuera de tu red local.
+- **mkcert + nginx**: certificado local de confianza, si el acceso es solo dentro de tu LAN.
+- **Caddy** como reverse proxy delante de nginx: certificados Let's Encrypt automáticos si tienes un dominio propio.
+
+Para un despliegue "en serio" en un servidor, además del dominio/HTTPS de arriba, ajusta en tu `.env` de la raíz (y en `backend/.env`, que lo sincroniza) `APP_ENV=production`, `APP_DEBUG=false` y `APP_URL` con el dominio final.
+
+<details>
+<summary>Detalle técnico: por qué el arranque automático usa <code>migrate</code> y no <code>migrate:fresh</code></summary>
+
+`docker/entrypoint.sh` ejecuta `php artisan migrate --seed` en cada arranque del contenedor `app`, nunca `migrate:fresh`. En una base de datos vacía (primer arranque de verdad) el resultado es el mismo que `fresh` — crea todas las tablas desde cero —, pero en cualquier arranque posterior con datos ya cargados `migrate` solo aplica lo pendiente y **nunca borra nada**, mientras que `migrate:fresh` habría hecho `DROP` de todas las tablas en cada reinicio del contenedor. `--seed` es seguro de repetir siempre porque `DatabaseSeeder` usa `updateOrCreate` en todas partes. Ver el CHANGELOG del 2026-08-06 para el porqué de este detalle tan concreto.
+
+</details>
 
 ## Tests
 
@@ -149,7 +141,7 @@ Fuera de esto, el despliegue en un servidor sigue el mismo `docker-compose.yml` 
 docker compose exec app php artisan test
 ```
 
-El entorno de test es independiente del de desarrollo: `phpunit.xml` fuerza `APP_ENV=testing`, SQLite en memoria, sesión/caché en array, etc., así que correr los tests nunca toca la base Postgres real ni Redis. Esto depende de que `app`/`queue` no tengan las credenciales de BD/Redis como `environment:` del contenedor (ver [Desarrollo con Docker](#desarrollo-con-docker)): si lo estuvieran, quedarían fijas para cualquier `docker compose exec`, y `force="true"` en `phpunit.xml` no bastaría para pisarlas en todos los casos (el propio `env()`/`config()` de Laravel puede seguir devolviendo el valor real del contenedor aunque `getenv()` ya esté forzado a otro).
+El entorno de test es independiente del de desarrollo: `phpunit.xml` fuerza `APP_ENV=testing`, SQLite en memoria, sesión/caché en array, etc., así que correr los tests nunca toca la base Postgres real ni Redis.
 
 Cobertura actual:
 - `Tests\Feature\Auth\WebAuthTest`: login/logout, credenciales inválidas, redirect a la página originalmente solicitada, protección de rutas para invitados, bloqueo por fuerza bruta.
@@ -167,7 +159,7 @@ Cobertura actual:
 
 - Exportación de la colección (la importación desde CSV ya está implementada, ver "Importación masiva").
 - Sin backups automatizados de Postgres (ni `pg_dump` programado ni snapshot del volumen).
-- Sin HTTPS en el despliegue actual: bloquea el escaneo de código de barras desde el móvil fuera de `localhost` (ver [Despliegue en producción](#producción)).
+- Sin HTTPS en el despliegue actual: bloquea el escaneo de código de barras desde el móvil fuera de `localhost` (ver [Desplegar para uso propio](#desplegar-para-uso-propio)).
 
 ### Ideas de interfaz/funcionalidad sin priorizar
 
@@ -191,3 +183,7 @@ Savepoint es, hoy, un proyecto de uso personal (una sola persona catalogando su 
 - **Tests**: cualquier cambio de comportamiento (no solo visual) debería llevar test y pasar `docker compose exec app php artisan test` en verde antes de proponerlo.
 - **Idioma**: la interfaz, los mensajes de validación y la documentación del proyecto están en español; se mantiene así para no mezclar idiomas a medias.
 - **Documentación**: los cambios de comportamiento visible (nueva función, fix de UI, etc.) se documentan como una entrada nueva en [`CHANGELOG.md`](CHANGELOG.md) con la fecha del día, y si añaden o cambian una característica ya descrita, la sección correspondiente de "Características" en este README se actualiza a la vez para no dejarla desincronizada.
+
+## Licencia
+
+Código abierto bajo [PolyForm Noncommercial 1.0.0](LICENSE): puedes usarlo, modificarlo y bifurcarlo libremente, pero no para ningún uso comercial. Como el autor es el único titular de los derechos, puede conceder aparte una licencia comercial bajo petición (esquema de licencia dual, igual que MySQL o Qt) — abre un issue o contacta directamente si es tu caso.
