@@ -111,22 +111,26 @@ El stack (`docker-compose.yml`) levanta `postgres`, `redis`, `app` (PHP-FPM), `q
 Primer arranque:
 
 ```bash
-cp backend/.env.example backend/.env   # ya trae los valores del docker-compose.yml (host/usuario/password de postgres y redis); solo falta APP_KEY
+cp .env.example .env   # credenciales/puertos para docker-compose.yml; los valores por defecto ya funcionan sin tocar nada
 docker compose up -d --build
+```
 
-docker compose exec app composer install
-docker compose exec app php artisan key:generate
+**No te saltes el `cp .env.example .env`**: `docker-compose.yml` monta ese fichero dentro de `app`/`queue` (`./.env:/root.env:ro`), y si no existe cuando arranca el contenedor, Docker crea automáticamente un **directorio vacío** llamado `.env` en su lugar (comportamiento por defecto de los bind mounts contra una ruta que no existe). A partir de ahí, `cp .env.example .env` falla o hace cosas raras hasta que se borra ese directorio a mano (`rmdir .env`) y se repite el paso.
+
+El contenedor `app` (`docker/entrypoint.sh`) hace el resto automáticamente en cada arranque: `composer install`, sincronizar `backend/.env` con las credenciales del `.env` de la raíz, generar `APP_KEY` si falta, `php artisan migrate --seed` (usuarios de prueba: `admin@savepoint.test` / `test@example.com`, contraseña "password") y `storage:link`. Sigue haciendo falta a mano, solo la primera vez (o tras cambiar dependencias/CSS/JS):
+
+```bash
 docker compose exec app npm install
 docker compose exec app npm run build       # o npm run dev si se expone el puerto 5173 para HMR
-
-docker compose exec app php artisan migrate
-docker compose exec app php artisan db:seed  # usuarios de prueba: admin@savepoint.test / test@example.com, contraseña "password"
-docker compose exec app php artisan storage:link
 ```
 
 La app queda disponible en `http://localhost:8081`.
 
 Tras cualquier cambio en las vistas Blade basta con recargar (no hay build). Tras un cambio en CSS/JS (`resources/css`, `resources/js`) hace falta `docker compose exec app npm run build` para que Tailwind/Vite regeneren el bundle — si no, la clase o el script nuevo no aparece aunque el código esté bien.
+
+`entrypoint.sh` usa a propósito `php artisan migrate` y nunca `migrate:fresh`: en una base de datos vacía (primer arranque de verdad) el resultado es el mismo que `fresh` —crea todas las tablas desde cero—, pero en cualquier arranque posterior con datos ya cargados `migrate` solo aplica lo pendiente y nunca borra nada, mientras que `migrate:fresh` habría hecho `DROP` de todas las tablas en cada reinicio del contenedor. `--seed` es seguro de repetir en cada arranque porque `DatabaseSeeder` usa `updateOrCreate` en todas partes.
+
+Las variables de BD/Redis del `.env` de la raíz se leen dentro de `entrypoint.sh` (montado como fichero de solo lectura, no como `environment:` del contenedor) a propósito: si fueran variables de entorno del propio contenedor, quedarían fijas para cualquier `docker compose exec app ...` posterior — incluido `php artisan test`, que dejaría de poder forzar SQLite en memoria pese a `phpunit.xml` (`DB_CONNECTION`/`DB_DATABASE` con `force="true"`), rompiendo el aislamiento entre los tests y la base de datos real.
 
 ### Producción
 
@@ -145,7 +149,7 @@ Fuera de esto, el despliegue en un servidor sigue el mismo `docker-compose.yml` 
 docker compose exec app php artisan test
 ```
 
-El entorno de test es independiente del de desarrollo: `phpunit.xml` fuerza `APP_ENV=testing`, SQLite en memoria, sesión/caché en array, etc., así que correr los tests nunca toca la base Postgres real ni Redis (el `docker-compose.yml` deliberadamente no pasa `backend/.env` como `env_file` de `app`/`queue` para que esto funcione).
+El entorno de test es independiente del de desarrollo: `phpunit.xml` fuerza `APP_ENV=testing`, SQLite en memoria, sesión/caché en array, etc., así que correr los tests nunca toca la base Postgres real ni Redis. Esto depende de que `app`/`queue` no tengan las credenciales de BD/Redis como `environment:` del contenedor (ver [Desarrollo con Docker](#desarrollo-con-docker)): si lo estuvieran, quedarían fijas para cualquier `docker compose exec`, y `force="true"` en `phpunit.xml` no bastaría para pisarlas en todos los casos (el propio `env()`/`config()` de Laravel puede seguir devolviendo el valor real del contenedor aunque `getenv()` ya esté forzado a otro).
 
 Cobertura actual:
 - `Tests\Feature\Auth\WebAuthTest`: login/logout, credenciales inválidas, redirect a la página originalmente solicitada, protección de rutas para invitados, bloqueo por fuerza bruta.

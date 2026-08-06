@@ -55,8 +55,14 @@ RUN adduser -G root -u $uid -h /home/$user -D $user \
 RUN mkdir -p /app/storage /app/bootstrap/cache \
     && chown -R $user:root /app
 
+# 9. Script de arranque: instala Laravel si hace falta, genera .env/APP_KEY
+#    y ejecuta migraciones antes de lanzar el proceso principal
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 WORKDIR /app
 USER $user
 
 EXPOSE 9000
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["php-fpm"]

@@ -33,7 +33,10 @@ mobile/coverage/
 .DS_Store
 Thumbs.db
 
-# Docker
+# Docker: .env de la raíz (junto a docker-compose.yml) con las credenciales/
+# puertos reales de Postgres/Redis para docker compose; equivalente a
+# backend/.env, mismo motivo para no subirlo. Ver .env.example.
+.env
 .env.docker
 docker-compose.override.yml
 

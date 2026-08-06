@@ -13,7 +13,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-secreto123}
     ports:
       # Cerrado al exterior: Solo accesible desde localhost (tu PC)
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -30,7 +30,7 @@ services:
     restart: unless-stopped
     ports:
       # Cerrado al exterior: Solo accesible desde localhost
-      - "127.0.0.1:6379:6379"
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -48,17 +48,45 @@ services:
     container_name: savepoint_app
     restart: unless-stopped
     working_dir: /app
-    # Laravel carga backend/.env por su cuenta en cada arranque (dotenv);
-    # NO se pasa como env_file del contenedor porque esas variables quedarían
-    # fijas en $_SERVER a nivel de proceso PHP y PHPUnit no podría pisarlas
-    # (APP_ENV=testing, DB_CONNECTION=sqlite, etc.) al correr los tests.
+    # Laravel carga backend/.env por su cuenta en cada arranque (dotenv); NO
+    # se pasan DB_*/REDIS_HOST como "environment:" del contenedor porque esas
+    # variables quedarían fijas a nivel de proceso para CUALQUIER comando
+    # futuro (incluido "docker compose exec app php artisan test": el exec
+    # hereda el entorno definido aquí, no lo que entrypoint.sh haya tocado
+    # en su propio proceso). Eso rompe el aislamiento de tests igual que el
+    # env_file que este comentario descartaba antes: PHPUnit fuerza
+    # DB_CONNECTION/DB_DATABASE con force="true" en phpunit.xml, pero eso
+    # solo pisa el valor que ve env()/config() cuando NO hay ya una variable
+    # de entorno real del contenedor con el mismo nombre; si la hay (como
+    # pasaba aquí con DB_DATABASE), env() la sigue devolviendo aunque
+    # getenv() ya esté forzado a otra cosa, y los tests dejan de usar sqlite
+    # en memoria de verdad. Esto ya causó que un "docker compose up" con la
+    # base de datos real conectada acabara borrándola (ver CHANGELOG).
+    #
+    # En su lugar, se monta el .env de la raíz como fichero de solo lectura y
+    # entrypoint.sh lo fuente ahí dentro (solo en su propio proceso) para
+    # sincronizar backend/.env, que es la única fuente que Laravel consulta
+    # en el resto de comandos.
+    # ROLE=web: este es el único contenedor que ejecuta el entrypoint con
+    # instalación de Laravel + migraciones (ver docker/entrypoint.sh).
+    environment:
+      ROLE: web
     volumes:
       - ./backend:/app
+      - ./.env:/root.env:ro
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      # El entrypoint corre "migrate" ANTES de lanzar php-fpm, así que si
+      # el puerto 9000 responde, las migraciones ya han terminado.
+      test: ["CMD", "nc", "-z", "127.0.0.1", "9000"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
     networks:
       - savepoint_net
 
@@ -72,11 +100,16 @@ services:
     working_dir: /app
     # Ejecuta el worker en lugar de PHP-FPM
     command: php artisan queue:work redis --sleep=3 --tries=3 --max-time=3600
+    # Ver el comentario en "app" sobre por qué DB_*/REDIS_HOST no van aquí
+    # como "environment:" del contenedor.
+    environment:
+      ROLE: queue
     volumes:
       - ./backend:/app
+      - ./.env:/root.env:ro
     depends_on:
       app:
-        condition: service_started
+        condition: service_healthy
       redis:
         condition: service_healthy
       postgres:
@@ -89,8 +122,8 @@ services:
     container_name: savepoint_web
     restart: unless-stopped
     ports:
-      - "8081:8081"
-      - "8043:8043"
+      - "${HTTP_PORT:-8081}:8081"
+      - "${HTTPS_PORT:-8043}:8043"
     volumes:
       - ./backend:/app
       - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf
