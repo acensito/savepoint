@@ -102,6 +102,24 @@ class StatsControllerTest extends TestCase
         $this->assertSame(1, $topGenres['RPG']['total']);
     }
 
+    public function test_stats_breaks_down_games_by_decade_of_release_in_chronological_order(): void
+    {
+        $user = User::factory()->create();
+
+        Game::factory()->for($user)->create(['release_date' => '2015-06-01']);
+        Game::factory()->for($user)->create(['release_date' => '1998-01-01']);
+        Game::factory()->for($user)->create(['release_date' => '2012-01-01']);
+        Game::factory()->for($user)->create(['release_date' => null]);
+
+        $response = $this->actingAs($user)->get('/stats');
+
+        $byDecade = $response->viewData('byDecade');
+
+        $this->assertSame(['Años 1990', 'Años 2010'], $byDecade->pluck('decade')->all());
+        $this->assertSame(1, $byDecade->firstWhere('decade', 'Años 1990')['total']);
+        $this->assertSame(2, $byDecade->firstWhere('decade', 'Años 2010')['total']);
+    }
+
     public function test_stats_highlights_the_most_expensive_and_top_rated_games(): void
     {
         $user = User::factory()->create();

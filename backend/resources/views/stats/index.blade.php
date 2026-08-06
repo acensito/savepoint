@@ -105,6 +105,27 @@
             @endif
         </div>
 
+        <!-- Por década de lanzamiento -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+            <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-5">Por década de lanzamiento</h2>
+
+            @if($byDecade->isEmpty())
+                <p class="text-sm text-slate-500">Todavía no hay juegos con fecha de lanzamiento registrada.</p>
+            @else
+                <div class="space-y-3">
+                    @foreach($byDecade as $row)
+                        <div class="flex items-center gap-4">
+                            <div class="w-24 flex-shrink-0 text-sm text-slate-300 truncate">{{ $row['decade'] }}</div>
+                            <div class="flex-1 h-3 rounded-full bg-slate-800 overflow-hidden">
+                                <div class="h-full bg-indigo-500 rounded-r-[4px]" style="width: {{ max($row['percent'], 3) }}%"></div>
+                            </div>
+                            <div class="w-8 flex-shrink-0 text-right text-sm font-medium text-slate-300 tabular-nums">{{ $row['total'] }}</div>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+        </div>
+
         <!-- Destacados -->
         <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
             <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-5">Destacados</h2>

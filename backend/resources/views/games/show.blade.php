@@ -25,6 +25,12 @@
             </a>
 
             <div class="flex items-center gap-2">
+                <a href="{{ route('web.games.print-one', $game->id) }}" target="_blank" rel="noopener"
+                    class="flex items-center justify-center w-10 h-10 rounded-lg border border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-colors"
+                    aria-label="Imprimir / exportar a PDF">
+                    <x-gicon name="print" class="text-[18px]" />
+                </a>
+
                 <a href="{{ route('web.games.edit', $game->id) }}"
                     class="flex items-center gap-1.5 bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-500 transition-colors">
                     <x-gicon name="edit" class="text-[16px]" />

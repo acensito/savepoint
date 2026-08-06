@@ -156,6 +156,65 @@ class GameControllerTest extends TestCase
         $this->assertSame(15.0, $response->viewData('collectionTotals')['spent']);
     }
 
+    public function test_print_lists_all_matching_games_ignoring_pagination(): void
+    {
+        $user = User::factory()->create();
+        Game::factory()->for($user)->count(25)->create();
+
+        $response = $this->actingAs($user)->get('/games/print');
+
+        $response->assertOk();
+        $this->assertCount(25, $response->viewData('games'));
+    }
+
+    public function test_print_applies_the_same_filters_as_the_collection_listing(): void
+    {
+        $user = User::factory()->create();
+        $platform = Platform::factory()->create();
+        Game::factory()->for($user)->create(['title' => 'Match', 'platform_id' => $platform->id]);
+        Game::factory()->for($user)->create(['title' => 'Other']);
+        Game::factory()->for($user)->create(['title' => 'Deseado', 'status' => 'wishlist']);
+
+        $response = $this->actingAs($user)->get('/games/print?q=Match');
+
+        $games = $response->viewData('games');
+        $this->assertCount(1, $games);
+        $this->assertSame('Match', $games->first()->title);
+    }
+
+    public function test_print_only_lists_the_authenticated_users_games(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+        Game::factory()->for($user)->create();
+        Game::factory()->for($otherUser)->create();
+
+        $response = $this->actingAs($user)->get('/games/print');
+
+        $this->assertCount(1, $response->viewData('games'));
+    }
+
+    public function test_user_can_print_their_own_games_detail_page(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['title' => 'Hollow Knight']);
+
+        $response = $this->actingAs($user)->get("/games/{$game->id}/print");
+
+        $response->assertOk();
+        $response->assertSee('Hollow Knight');
+    }
+
+    public function test_user_cannot_print_another_users_games_detail_page(): void
+    {
+        $owner = User::factory()->create();
+        $game = Game::factory()->for($owner)->create();
+
+        $response = $this->actingAs(User::factory()->create())->get("/games/{$game->id}/print");
+
+        $response->assertForbidden();
+    }
+
     public function test_user_can_bulk_delete_their_own_games(): void
     {
         $user = User::factory()->create();

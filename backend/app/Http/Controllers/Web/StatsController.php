@@ -23,12 +23,13 @@ class StatsController extends Controller
         $byStatus = $this->byOwnershipStatus(clone $base, $totalGames);
         $spendingByMonth = $this->spendingByMonth(clone $base);
         $topGenres = $this->topGenres(clone $base);
+        $byDecade = $this->byDecade(clone $base);
         $mostExpensive = (clone $base)->whereNotNull('price_paid')->with('platform')->orderByDesc('price_paid')->first();
         $topRated = (clone $base)->whereNotNull('rating')->with('platform')->orderByDesc('rating')->orderByDesc('id')->first();
 
         return view('stats.index', compact(
             'totalGames', 'totalSpent', 'averageRating', 'byPlatform', 'byPlayStatus', 'byStatus',
-            'spendingByMonth', 'topGenres', 'mostExpensive', 'topRated',
+            'spendingByMonth', 'topGenres', 'byDecade', 'mostExpensive', 'topRated',
         ));
     }
 
@@ -142,6 +143,27 @@ class StatsController extends Controller
 
         return $counts->map(fn ($total, $genre) => [
             'genre' => $genre,
+            'total' => $total,
+            'percent' => round($total / $max * 100),
+        ])->values();
+    }
+
+    /**
+     * Reparto por década de lanzamiento (años 90, 2000, 2010...), ordenado
+     * cronológicamente (a diferencia de topGenres, que ordena por cantidad):
+     * en una línea de tiempo importa más ver la evolución que el ranking.
+     */
+    private function byDecade($base)
+    {
+        $counts = $base->whereNotNull('release_date')
+            ->pluck('release_date')
+            ->countBy(fn ($date) => (int) (floor($date->year / 10) * 10))
+            ->sortKeys();
+
+        $max = $counts->max() ?: 1;
+
+        return $counts->map(fn ($total, $decade) => [
+            'decade' => "Años {$decade}",
             'total' => $total,
             'percent' => round($total / $max * 100),
         ])->values();

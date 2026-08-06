@@ -71,6 +71,11 @@ Route::middleware('auth')->group(function () {
 
     // Papelera: juegos borrados (soft delete) del usuario, con opción de
     // restaurar o eliminar definitivamente.
+    // Exportación imprimible/PDF del listado filtrado (antes de '/games/{game}'
+    // por la misma razón que '/games/create': si no, '/games/print' entraría
+    // por ahí y buscaría un juego con id "print").
+    Route::get('/games/print', [GameController::class, 'print'])->name('web.games.print');
+
     Route::get('/games/trash', [GameController::class, 'trash'])->name('web.games.trash');
     Route::post('/games/{id}/restore', [GameController::class, 'restore'])->name('web.games.restore');
     Route::delete('/games/{id}/force-delete', [GameController::class, 'forceDelete'])->name('web.games.force-delete');
@@ -83,6 +88,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/games/{game}/edit', [GameController::class, 'edit'])->name('web.games.edit');
     Route::patch('/games/{game}/quick-update', [GameController::class, 'quickUpdate'])->name('web.games.quick-update');
     Route::get('/games/{game}/cover-lookup', [GameController::class, 'coverLookup'])->name('web.games.cover-lookup');
+    Route::get('/games/{game}/print', [GameController::class, 'printOne'])->name('web.games.print-one');
     Route::put('/games/{game}', [GameController::class, 'update'])->name('web.games.update');
     Route::delete('/games/{game}', [GameController::class, 'destroy'])->name('web.games.destroy');
     Route::get('/games/{game}', [GameController::class, 'show'])->name('web.games.show');

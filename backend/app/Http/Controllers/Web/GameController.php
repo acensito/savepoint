@@ -54,7 +54,6 @@ class GameController extends Controller
         $status = (string) $request->input('status', '');
         $sort = (string) $request->input('sort', '');
         $dir = $request->input('dir') === 'asc' ? 'asc' : 'desc';
-        $sortColumn = self::SORTABLE_COLUMNS[$sort] ?? null;
         $perPage = in_array((int) $request->input('per_page'), self::PER_PAGE_OPTIONS, true)
             ? (int) $request->input('per_page')
             : 20;
@@ -65,11 +64,7 @@ class GameController extends Controller
         $hasAdvancedFilters = $platformId !== '' || $playStatus !== '' || $status !== '';
         $activeFilterCount = collect([$query !== '', $platformId !== '', $playStatus !== '', $status !== ''])->filter()->count();
 
-        $games = Game::where('user_id', auth()->id())
-            // La lista de deseos tiene su propia página (/wishlist): un juego
-            // deseado todavía no forma parte de "tu colección", así que nunca
-            // aparece aquí, ni siquiera con el filtro de Propiedad a mano.
-            ->where('status', '!=', 'wishlist')
+        $games = $this->filteredGamesQuery($request)
             // Solo las columnas que pinta el listado: notes/data/genres/etc. serían
             // peso muerto en una tabla paginada y no se usan aquí.
             ->select([
@@ -84,20 +79,6 @@ class GameController extends Controller
                 'platform.manufacturer:id,bg_color,text_color,border_color',
                 'edition:id,name',
             ])
-            ->when($query !== '', function ($q) use ($query) {
-                $q->where(function ($sub) use ($query) {
-                    $sub->whereLike('title', '%' . $query . '%', caseSensitive: false)
-                        ->orWhere('ean', $query);
-                });
-            })
-            ->when($platformId !== '', fn ($q) => $q->where('platform_id', $platformId))
-            ->when($playStatus !== '', fn ($q) => $q->where('play_status', $playStatus))
-            ->when($status !== '', fn ($q) => $q->where('status', $status))
-            ->when(
-                $sortColumn !== null,
-                fn ($q) => $q->orderBy($sortColumn, $dir)->orderByDesc('id'),
-                fn ($q) => $q->latest(),
-            )
             ->paginate($perPage)
             ->withQueryString();
 
@@ -122,6 +103,88 @@ class GameController extends Controller
             'games', 'query', 'platforms', 'platformId', 'playStatus', 'status', 'sort', 'dir', 'perPage',
             'collectionTotals', 'hasActiveFilters', 'hasAdvancedFilters', 'activeFilterCount',
         ));
+    }
+
+    /**
+     * Condiciones de búsqueda/filtro/orden compartidas entre el listado
+     * paginado (index) y la exportación imprimible (print): mismos filtros
+     * (?q=, ?platform_id=, ?play_status=, ?status=) y orden (?sort=, ?dir=).
+     * Cada llamante decide aparte qué columnas/relaciones necesita y si
+     * pagina o trae todos los resultados.
+     */
+    private function filteredGamesQuery(Request $request)
+    {
+        $query = trim((string) $request->input('q', ''));
+        $platformId = (string) $request->input('platform_id', '');
+        $playStatus = (string) $request->input('play_status', '');
+        $status = (string) $request->input('status', '');
+        $sort = (string) $request->input('sort', '');
+        $dir = $request->input('dir') === 'asc' ? 'asc' : 'desc';
+        $sortColumn = self::SORTABLE_COLUMNS[$sort] ?? null;
+
+        return Game::where('user_id', auth()->id())
+            // La lista de deseos tiene su propia página (/wishlist): un juego
+            // deseado todavía no forma parte de "tu colección", así que nunca
+            // aparece aquí, ni siquiera con el filtro de Propiedad a mano.
+            ->where('status', '!=', 'wishlist')
+            ->when($query !== '', function ($q) use ($query) {
+                $q->where(function ($sub) use ($query) {
+                    $sub->whereLike('title', '%' . $query . '%', caseSensitive: false)
+                        ->orWhere('ean', $query);
+                });
+            })
+            ->when($platformId !== '', fn ($q) => $q->where('platform_id', $platformId))
+            ->when($playStatus !== '', fn ($q) => $q->where('play_status', $playStatus))
+            ->when($status !== '', fn ($q) => $q->where('status', $status))
+            ->when(
+                $sortColumn !== null,
+                fn ($q) => $q->orderBy($sortColumn, $dir)->orderByDesc('id'),
+                fn ($q) => $q->latest(),
+            );
+    }
+
+    /**
+     * Exportación imprimible/PDF de la colección (botón "Imprimir" del
+     * listado): mismos filtros que index(), pero sin paginar (una
+     * exportación con la página 2, 3... escondida detrás de la paginación no
+     * serviría para nada) y en una vista independiente del layout de la app
+     * (sin sidebar/header, sin el contenedor de scroll interno de altura
+     * fija), para que el navegador la reparta en páginas con normalidad al
+     * imprimir o guardar como PDF.
+     */
+    public function print(Request $request)
+    {
+        $games = $this->filteredGamesQuery($request)
+            ->select(['id', 'title', 'ean', 'platform_id', 'edition_id', 'play_status', 'status', 'rating', 'price_paid', 'purchase_date'])
+            ->with(['platform:id,name', 'edition:id,name'])
+            ->get();
+
+        $query = trim((string) $request->input('q', ''));
+        $platformId = (string) $request->input('platform_id', '');
+        $playStatus = (string) $request->input('play_status', '');
+        $status = (string) $request->input('status', '');
+        $platform = $platformId !== '' ? Platform::find($platformId) : null;
+
+        $totals = [
+            'count' => $games->count(),
+            'spent' => (float) $games->sum('price_paid'),
+        ];
+
+        return view('games.print-collection', compact('games', 'totals', 'query', 'platform', 'playStatus', 'status'));
+    }
+
+    /**
+     * Ficha imprimible/PDF de un solo juego (botón "Imprimir" de la ficha de
+     * detalle), mismo motivo que print(): vista independiente del layout de
+     * la app para que el navegador la imprima con normalidad.
+     */
+    public function printOne(Game $game)
+    {
+        Gate::authorize('view', $game);
+
+        $game->load(['platform.manufacturer', 'edition']);
+
+        return view('games.print-show', compact('game'));
     }
 
     /**

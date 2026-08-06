@@ -70,7 +70,10 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 
 ### Estadísticas
 - Panel (`/stats`) con total de juegos, gasto total y conservación media, reparto de juegos por plataforma (barra por plataforma), y reparto por estado de juego y por propiedad (barras apiladas con leyenda).
-- Evolución del gasto por mes de compra (gráfico de barras, últimos 12 meses con datos), top de géneros más repetidos en la colección, y destacados (juego más caro y mejor valorado, con enlace a su ficha).
+- Evolución del gasto por mes de compra (gráfico de barras, últimos 12 meses con datos), top de géneros más repetidos en la colección, reparto por década de lanzamiento (`release_date`, orden cronológico) y destacados (juego más caro y mejor valorado, con enlace a su ficha).
+
+### Exportación imprimible / PDF
+- Botón "Imprimir" en la ficha de detalle de un juego (`/games/{id}/print`) y en el listado de la colección (`/games/print`, respeta los filtros activos del listado — búsqueda, plataforma, estado, propiedad — y no se limita a la página actual de la paginación). Abre en pestaña nueva una vista independiente del layout habitual de la app (sin sidebar/header, sin el contenedor de scroll de altura fija que usa el resto de la interfaz, y en blanco y negro en vez del tema oscuro) para que el navegador la reparta en páginas con normalidad; el botón "Imprimir / Guardar como PDF" de esa vista usa el diálogo de impresión nativo, que en cualquier navegador moderno permite guardar como PDF sin necesidad de generarlo en el servidor.
 
 ### Seguridad de datos
 - Cada juego pertenece a un usuario (`user_id`), asignado siempre al usuario autenticado (`auth()->id()` / `$request->user()->id`) al crearlo, tanto en web como en API.
@@ -165,8 +168,6 @@ Grandes:
 - Verificación de email / 2FA: el modelo `User` ya tiene `MustVerifyEmail` comentado en el código, pero deliberadamente no se activa — la app la usa una sola persona para su propia colección, así que no aporta nada de seguridad real hoy. Se deja preparado (comentado, no borrado) por si el proyecto se hace público/se forkea y alguien añade más usuarios o lo despliega en abierto.
 
 Medianas:
-- Vista "por década/año de lanzamiento" en estadísticas, aprovechando `release_date` (ya se captura en el alta pero apenas se explota más allá del top de géneros). De paso, mostrar el año de lanzamiento en la ficha de detalle del juego, donde hoy no aparece.
-- Exportación de la colección a PDF/imprimible, de la ficha de un juego o de un listado filtrado — útil para seguros o inventario.
 - Ampliar `App\Services\GameLookup\GameLookupInterface` más allá de CEX (que hoy solo aporta EAN/carátula/plataforma, sin desarrollador ni fecha de lanzamiento en su índice) con un proveedor tipo **IGDB** o **RAWG** para autocompletar también desarrollador y año/fecha de lanzamiento al escanear o buscar.
 
 Pequeñas (estética):
