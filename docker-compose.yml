@@ -45,6 +45,13 @@ services:
     build:
       context: ./docker
       dockerfile: Dockerfile
+    # Mismo nombre de imagen que "queue" (ver más abajo): construyen el
+    # mismo Dockerfile/contexto, así que sin esto Compose las trataría como
+    # dos imágenes distintas (savepoint-app/savepoint-queue) y las
+    # construiría dos veces por separado, el doble de tiempo para nada —
+    # con el mismo nombre, se construye una sola vez y "queue" reutiliza
+    # esta misma imagen.
+    image: savepoint-app
     container_name: savepoint_app
     restart: unless-stopped
     working_dir: /app
@@ -87,6 +94,10 @@ services:
     build:
       context: ./docker
       dockerfile: Dockerfile
+    # Ver el comentario en "app": mismo nombre de imagen a propósito, para
+    # que se construya una sola vez y este servicio reutilice esa imagen en
+    # vez de reconstruirla.
+    image: savepoint-app
     container_name: savepoint_queue
     restart: unless-stopped
     working_dir: /app

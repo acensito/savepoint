@@ -5,6 +5,9 @@ sección al final de `README.md`; se separó a este fichero para que el README
 pueda ser un documento de presentación del proyecto en vez de una lista que
 crece sin parar.
 
+## 2026-08-06 (6)
+- **`app` y `queue` comparten imagen** (`image: savepoint-app` en ambos, `docker-compose.yml`): construyen el mismo `Dockerfile`/contexto, pero sin un nombre de imagen explícito Compose las trataba como dos imágenes distintas (`savepoint-app`/`savepoint-queue`) y las construía dos veces por separado — el doble de tiempo compilando las mismas extensiones de PHP para nada. Con el mismo nombre se construye una sola vez y `queue` reutiliza esa imagen.
+
 ## 2026-08-06 (5)
 - **El contenedor `app`/`queue` se autocorrige si el repo pertenece a otro UID en el host** (típico al clonar/desplegar en un servidor como root): antes, si `/app` no era ya del usuario `developer` de la imagen (UID 1000 por defecto), `composer install` fallaba con `/app/vendor does not exist and could not be created` y Git rechazaba el repo por "dubious ownership". Ahora `docker/entrypoint.sh` arranca como root, corrige la propiedad de `/app` con `chown` y solo entonces prepara la app (`docker/setup.sh`, nuevo) como `developer`, vía `su-exec`.
   - El proceso de PHP-FPM se deja arrancar como root a propósito (así lo espera la imagen base, cuyo `error_log` apunta a `/proc/self/fd/2`, que un maestro no-root no puede reabrir — forzarlo con `su-exec` rompía el arranque con "Permission denied"); son sus *workers*, los que de verdad atienden peticiones, los que bajan de privilegios solos, vía las directivas `user`/`group` de `php-fpm.d/www.conf` (parcheadas en el `Dockerfile` para apuntar a `developer` en vez del `www-data` por defecto).
