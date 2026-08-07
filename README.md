@@ -83,6 +83,7 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 - Barra de estado discreta con el total de juegos y el gasto invertido en toda la colección, siempre visible.
 - **Búsqueda rápida global** (`Ctrl+K`/`Cmd+K`): resultados en vivo por título o EAN mientras se escribe. Si el juego no está en tu colección, se ofrecen además **sugerencias de CEX** (webuy.com) con EAN y carátula reales para rellenar el alta con un clic.
 - **Escaneo de código de barras** con la cámara desde la propia búsqueda rápida: detecta el EAN y lo vuelca en el buscador, enlazando con las sugerencias de CEX si el juego todavía no está en tu colección. Necesita HTTPS para acceder a la cámara fuera de `localhost` (ver [Desplegar para uso propio](#desplegar-para-uso-propio)).
+- **Instalable como PWA**: manifest (`public/manifest.json`) y service worker (`public/sw.js`, cache-first solo para los assets versionados de Vite) para poder "añadir a pantalla de inicio" en móvil y abrirla como app aparte. Igual que el escaneo de código de barras, el service worker solo se registra en HTTPS o `localhost`.
 
 ## Stack técnico
 
