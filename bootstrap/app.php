@@ -13,7 +13,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // La app siempre sirve HTTP plano (nginx no gestiona TLS, ver README
+        // "Exponer la app fuera de localhost") y el proxy inverso (Cloudflare
+        // Tunnel, Tailscale Funnel, Caddy...) es el único punto de entrada, así
+        // que confiar en cualquier origen para las cabeceras X-Forwarded-* es
+        // seguro aquí: sin esto, route()/url() generan enlaces con http://
+        // aunque el navegador esté en https://, lo que la CSP bloquea por
+        // desajuste de origen (ver CHANGELOG).
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
