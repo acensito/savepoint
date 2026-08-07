@@ -24,6 +24,7 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 - Listado de la colección con miniatura, título, plataforma, edición, región, manual, conservación (estrellas), precio y fecha de compra, paginado. En móvil se muestra como tarjetas en vez de tabla; tocar cualquier punto de una tarjeta abre la ficha de detalle del juego, que es el único sitio desde el que se edita o se borra.
 - Búsqueda dentro de la propia colección por **título** o **EAN**: buscador grande y centrado, que filtra en vivo según se escribe. Un icono "Avanzado" despliega el resto de filtros (**plataforma**, **estado de juego**, **propiedad**, orden y tamaño de página) para cuando hacen falta.
 - **Ficha de detalle de solo lectura** con toda la información del juego, para "solo mirar" sin abrir el formulario de edición.
+- **Enriquecimiento automático con IGDB**: la primera vez que se abre la ficha de un juego, se busca en IGDB por título (acotado por plataforma si hay match) y se completan desarrollador/fecha de lanzamiento si estaban vacíos, más géneros (en inglés, aparte de los que se escriben a mano) y la nota agregada — sin ninguna acción del usuario. Un botón "Corregir coincidencia" permite buscar y elegir otro resultado a mano si el automático no es el correcto (remaster, plataforma equivocada...). Requiere credenciales de IGDB (ver `IGDB_CLIENT_ID`/`IGDB_CLIENT_SECRET` en `.env.example`); sin ellas, este enriquecimiento simplemente no ocurre.
 - **Edición rápida** de la conservación directamente desde la tarjeta o la estantería (clic en una estrella), sin abrir el formulario completo.
 - Edición de un juego existente, incluida la opción de reemplazar o quitar la carátula.
 - Al dar de alta o editar un juego con un EAN que ya tienes registrado, se avisa antes de guardar en vez de duplicarlo sin más (con opción de "guardar de todos modos" para el caso legítimo de tener dos copias físicas).
@@ -174,7 +175,6 @@ Cobertura actual:
 
 - Sin backups automatizados de Postgres (ni `pg_dump` programado ni snapshot del volumen).
 - Sin HTTPS en el despliegue actual: bloquea el escaneo de código de barras desde el móvil fuera de `localhost` (ver [Desplegar para uso propio](#desplegar-para-uso-propio)).
-- **Autocompletar desarrollador/fecha de lanzamiento con IGDB**: `App\Services\GameLookup\IgdbLookupService` ya está escrito y con tests (busca por título, opcionalmente acotado por plataforma, con el token de Twitch cacheado entre peticiones), y `config('services.igdb')`/`.env.example` ya tienen el hueco para `IGDB_CLIENT_ID`/`IGDB_CLIENT_SECRET`. Falta (1) dar de alta una app en https://dev.twitch.tv/console/apps y rellenar esas dos variables, y (2) conectar el servicio a algún punto de la UI (¿botón tipo "Buscar carátula en CEX"? ¿autocompletar solo al elegir una sugerencia de CEX?, por decidir).
 
 ### Ideas de interfaz/funcionalidad sin priorizar
 
