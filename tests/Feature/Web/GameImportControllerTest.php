@@ -46,7 +46,7 @@ class GameImportControllerTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $csv = "Título,Plataforma,Edición,Propiedad,Estado de juego,Valoración\r\n"
+        $csv = "Título,Plataforma,Edición,Propiedad,Estado de juego,Conservación\r\n"
              . "Celeste,Nintendo Switch,Coleccionista,En colección,Terminado,5\r\n";
 
         $response = $this->actingAs($user)->post('/games/import', [
