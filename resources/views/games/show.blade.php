@@ -92,7 +92,7 @@
             <div class="px-6 sm:px-8 pb-6 sm:pb-8">
                 <div class="pt-6 border-t border-slate-800">
                     <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Detalles</h2>
-                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                         @foreach($details as $field)
                             <div class="flex items-start gap-2.5 bg-slate-800/40 border border-slate-800 rounded-lg p-3">
                                 <x-gicon name="{{ $field['icon'] }}" class="text-[18px] text-slate-500 mt-0.5 flex-shrink-0" />
@@ -107,7 +107,7 @@
 
                 <div class="mt-6 pt-6 border-t border-slate-800">
                     <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Compra</h2>
-                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                         @foreach($purchase as $field)
                             <div class="flex items-start gap-2.5 bg-slate-800/40 border border-slate-800 rounded-lg p-3">
                                 <x-gicon name="{{ $field['icon'] }}" class="text-[18px] text-slate-500 mt-0.5 flex-shrink-0" />
