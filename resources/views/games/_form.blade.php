@@ -87,6 +87,7 @@
              búsqueda que sí dio resultados pero no el esperado. -->
         <div id="cex-cover-manual" class="hidden mt-1.5 flex gap-1.5">
             <input type="text" id="cex-cover-manual-input" placeholder="Buscar con otras palabras…"
+                autocomplete="off" autocorrect="off" spellcheck="false"
                 class="flex-1 min-w-0 rounded-lg border border-slate-700 bg-slate-800 text-slate-100 text-xs px-2.5 py-1.5 focus:border-indigo-500 focus:ring-indigo-500 outline-none">
             <button type="button" id="cex-cover-manual-btn"
                 class="flex-shrink-0 text-xs font-medium text-indigo-400 hover:text-indigo-300 px-2">Buscar</button>
@@ -100,14 +101,14 @@
 
     <div>
         <label for="title" class="{{ $label }}">Título</label>
-        <input type="text" name="title" id="title" value="{{ old('title', $game?->title ?? $prefill['title'] ?? null) }}" required autofocus class="{{ $input }}">
+        <input type="text" name="title" id="title" value="{{ old('title', $game?->title ?? $prefill['title'] ?? null) }}" required autofocus autocomplete="off" autocorrect="off" spellcheck="false" class="{{ $input }}">
         @error('title') <span class="{{ $error }}">{{ $message }}</span> @enderror
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
             <label for="ean" class="{{ $label }}">EAN</label>
-            <input type="text" name="ean" id="ean" value="{{ old('ean', $game?->ean ?? $prefill['ean'] ?? null) }}" class="{{ $input }}">
+            <input type="text" name="ean" id="ean" value="{{ old('ean', $game?->ean ?? $prefill['ean'] ?? null) }}" autocomplete="off" autocorrect="off" spellcheck="false" class="{{ $input }}">
             @error('ean')
                 <span class="{{ $error }}">{{ $message }}</span>
                 <label class="flex items-center gap-2 text-sm text-slate-400 mt-1.5">
@@ -119,7 +120,7 @@
         </div>
         <div>
             <label for="developer" class="{{ $label }}">Desarrollador</label>
-            <input type="text" name="developer" id="developer" value="{{ old('developer', $game?->developer) }}" class="{{ $input }}">
+            <input type="text" name="developer" id="developer" value="{{ old('developer', $game?->developer) }}" autocomplete="off" autocorrect="off" spellcheck="false" class="{{ $input }}">
             @error('developer') <span class="{{ $error }}">{{ $message }}</span> @enderror
         </div>
     </div>
@@ -165,7 +166,7 @@
 
                     <div class="mt-4">
                         <label for="quick-edition-name" class="{{ $label }}">Nombre</label>
-                        <input type="text" id="quick-edition-name" placeholder="Edición Coleccionista" class="{{ $input }}">
+                        <input type="text" id="quick-edition-name" placeholder="Edición Coleccionista" autocomplete="off" autocorrect="off" spellcheck="false" class="{{ $input }}">
                         <span id="quick-edition-error" class="text-red-400 text-sm mt-1 block"></span>
                     </div>
 
@@ -187,7 +188,7 @@
     <div>
         <label for="genres" class="{{ $label }}">Géneros</label>
         <input type="text" name="genres" id="genres" placeholder="Acción, Aventura, RPG"
-            value="{{ old('genres', $game?->genres ? implode(', ', $game->genres) : '') }}" class="{{ $input }}">
+            value="{{ old('genres', $game?->genres ? implode(', ', $game->genres) : '') }}" autocomplete="off" autocorrect="off" spellcheck="false" class="{{ $input }}">
         <p class="text-xs text-slate-500 mt-1">Sepáralos con comas.</p>
         @error('genres') <span class="{{ $error }}">{{ $message }}</span> @enderror
     </div>
@@ -262,7 +263,7 @@
         </div>
         <div>
             <label for="wishlist_store" class="{{ $label }}">Dónde comprarlo</label>
-            <input type="text" name="wishlist_store" id="wishlist_store" value="{{ old('wishlist_store', $game?->wishlist_store) }}" class="{{ $input }}">
+            <input type="text" name="wishlist_store" id="wishlist_store" value="{{ old('wishlist_store', $game?->wishlist_store) }}" autocomplete="off" autocorrect="off" spellcheck="false" class="{{ $input }}">
             @error('wishlist_store') <span class="{{ $error }}">{{ $message }}</span> @enderror
         </div>
     </div>
@@ -280,7 +281,7 @@
         </div>
         <div>
             <label for="purchase_place" class="{{ $label }}">Lugar de compra</label>
-            <input type="text" name="purchase_place" id="purchase_place" value="{{ old('purchase_place', $game?->purchase_place) }}" class="{{ $input }}">
+            <input type="text" name="purchase_place" id="purchase_place" value="{{ old('purchase_place', $game?->purchase_place) }}" autocomplete="off" autocorrect="off" spellcheck="false" class="{{ $input }}">
             @error('purchase_place') <span class="{{ $error }}">{{ $message }}</span> @enderror
         </div>
         <div>
@@ -317,13 +318,14 @@
             </select>
             <input type="text" name="region_other" id="region_other" maxlength="50" placeholder="Especifica la región"
                 value="{{ old('region_other', $isCustomRegion ? $currentRegionSelect : '') }}"
+                autocomplete="off" autocorrect="off" spellcheck="false"
                 class="{{ $input }} mt-2 {{ $regionSelectValue === 'other' ? '' : 'hidden' }}">
             @error('region_select') <span class="{{ $error }}">{{ $message }}</span> @enderror
             @error('region_other') <span class="{{ $error }}">{{ $message }}</span> @enderror
         </div>
         <div>
             <label for="age_rating" class="{{ $label }}">Clasificación por edad</label>
-            <input type="text" name="age_rating" id="age_rating" placeholder="PEGI 12..." value="{{ old('age_rating', $game?->age_rating) }}" class="{{ $input }}">
+            <input type="text" name="age_rating" id="age_rating" placeholder="PEGI 12..." value="{{ old('age_rating', $game?->age_rating) }}" autocomplete="off" autocorrect="off" spellcheck="false" class="{{ $input }}">
             @error('age_rating') <span class="{{ $error }}">{{ $message }}</span> @enderror
         </div>
     </div>
@@ -332,7 +334,7 @@
 <!-- Notas -->
 <div class="pt-6 border-t border-slate-800">
     <label for="notes" class="{{ $label }}">Notas</label>
-    <textarea name="notes" id="notes" rows="3" class="{{ $input }}">{{ old('notes', $game?->notes) }}</textarea>
+    <textarea name="notes" id="notes" rows="3" autocomplete="off" autocorrect="off" spellcheck="false" class="{{ $input }}">{{ old('notes', $game?->notes) }}</textarea>
     @error('notes') <span class="{{ $error }}">{{ $message }}</span> @enderror
 </div>
 
