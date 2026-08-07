@@ -174,14 +174,12 @@ Cobertura actual:
 
 - Sin backups automatizados de Postgres (ni `pg_dump` programado ni snapshot del volumen).
 - Sin HTTPS en el despliegue actual: bloquea el escaneo de código de barras desde el móvil fuera de `localhost` (ver [Desplegar para uso propio](#desplegar-para-uso-propio)).
+- **Autocompletar desarrollador/fecha de lanzamiento con IGDB**: `App\Services\GameLookup\IgdbLookupService` ya está escrito y con tests (busca por título, opcionalmente acotado por plataforma, con el token de Twitch cacheado entre peticiones), y `config('services.igdb')`/`.env.example` ya tienen el hueco para `IGDB_CLIENT_ID`/`IGDB_CLIENT_SECRET`. Falta (1) dar de alta una app en https://dev.twitch.tv/console/apps y rellenar esas dos variables, y (2) conectar el servicio a algún punto de la UI (¿botón tipo "Buscar carátula en CEX"? ¿autocompletar solo al elegir una sugerencia de CEX?, por decidir).
 
 ### Ideas de interfaz/funcionalidad sin priorizar
 
 Grandes:
 - Verificación de email / 2FA: el modelo `User` ya tiene `MustVerifyEmail` comentado en el código, pero deliberadamente no se activa — la app la usa una sola persona para su propia colección, así que no aporta nada de seguridad real hoy. Se deja preparado (comentado, no borrado) por si el proyecto se hace público/se forkea y alguien añade más usuarios o lo despliega en abierto.
-
-Medianas:
-- Ampliar `App\Services\GameLookup\GameLookupInterface` más allá de CEX (que hoy solo aporta EAN/carátula/plataforma, sin desarrollador ni fecha de lanzamiento en su índice) con un proveedor tipo **IGDB** o **RAWG** para autocompletar también desarrollador y año/fecha de lanzamiento al escanear o buscar.
 
 Pequeñas (estética):
 - Estados vacíos ilustrados en colección, lista de deseos y papelera cuando no hay elementos, en vez del texto plano actual.
