@@ -22,45 +22,63 @@ class IgdbLookupServiceTest extends TestCase
         ]);
     }
 
-    public function test_find_by_title_returns_null_without_credentials_and_never_makes_a_request(): void
+    public function test_search_returns_empty_array_without_credentials_and_never_makes_a_request(): void
     {
         // Sin Http::fake(): Http::preventStrayRequests() (Tests\TestCase) haría
         // fallar el test si esto disparase una petición real.
-        $this->assertNull($this->makeService(clientId: '', clientSecret: '')->findByTitle('Celeste'));
+        $this->assertSame([], $this->makeService(clientId: '', clientSecret: '')->search('Celeste'));
     }
 
-    public function test_find_by_title_returns_null_for_a_blank_title_without_making_a_request(): void
+    public function test_search_returns_empty_array_for_a_blank_query_without_making_a_request(): void
     {
-        $this->assertNull($this->makeService()->findByTitle('   '));
+        $this->assertSame([], $this->makeService()->search('   '));
     }
 
-    public function test_find_by_title_returns_developer_and_release_date(): void
+    public function test_search_maps_a_result_with_developer_release_date_genres_and_rating(): void
     {
         $this->fakeToken();
         Http::fake([
             'api.igdb.com/v4/games' => Http::response([[
+                'id' => 305,
                 'name' => 'Celeste',
                 'first_release_date' => Carbon::create(2018, 1, 25, 0, 0, 0, 'UTC')->timestamp,
                 'involved_companies' => [
                     ['developer' => false, 'company' => ['name' => 'Editora, S.A.']],
                     ['developer' => true, 'company' => ['name' => 'Maddy Makes Games']],
                 ],
+                'genres' => [['name' => 'Platform'], ['name' => 'Indie']],
+                'aggregated_rating' => 87.654,
                 'platforms' => [['name' => 'Nintendo Switch']],
             ]], 200),
         ]);
 
-        $result = $this->makeService()->findByTitle('Celeste');
+        $results = $this->makeService()->search('Celeste');
 
-        $this->assertSame('Maddy Makes Games', $result['developer']);
-        $this->assertSame('2018-01-25', $result['release_date']);
+        $this->assertCount(1, $results);
+        $match = $results[0];
+        $this->assertSame(305, $match->igdbId);
+        $this->assertSame('Celeste', $match->title);
+        $this->assertSame('Maddy Makes Games', $match->developer);
+        $this->assertSame('2018-01-25', $match->releaseDate);
+        $this->assertSame(['Platform', 'Indie'], $match->genres);
+        $this->assertSame(87.65, $match->rating);
+        $this->assertSame('Nintendo Switch', $match->platforms);
     }
 
-    public function test_find_by_title_sends_the_credentials_and_query_to_igdb(): void
+    public function test_search_falls_back_to_the_user_rating_when_there_is_no_aggregated_rating(): void
+    {
+        $this->fakeToken();
+        Http::fake(['api.igdb.com/v4/games' => Http::response([['id' => 1, 'name' => 'Celeste', 'rating' => 92.1]], 200)]);
+
+        $this->assertSame(92.1, $this->makeService()->search('Celeste')[0]->rating);
+    }
+
+    public function test_search_sends_the_credentials_and_query_to_igdb(): void
     {
         $this->fakeToken();
         Http::fake(['api.igdb.com/v4/games' => Http::response([], 200)]);
 
-        $this->makeService()->findByTitle('Hollow Knight');
+        $this->makeService()->search('Hollow Knight');
 
         Http::assertSent(function ($request) {
             return $request->url() === 'https://api.igdb.com/v4/games'
@@ -70,81 +88,100 @@ class IgdbLookupServiceTest extends TestCase
         });
     }
 
-    public function test_find_by_title_prefers_the_result_matching_the_given_platform(): void
+    public function test_search_lists_results_matching_the_given_platform_first(): void
     {
         $this->fakeToken();
         Http::fake([
             'api.igdb.com/v4/games' => Http::response([
-                [
-                    'name' => 'Celeste',
-                    'involved_companies' => [['developer' => true, 'company' => ['name' => 'PS4 edition dev']]],
-                    'platforms' => [['name' => 'PlayStation 4']],
-                ],
-                [
-                    'name' => 'Celeste',
-                    'involved_companies' => [['developer' => true, 'company' => ['name' => 'Maddy Makes Games']]],
-                    'platforms' => [['name' => 'Nintendo Switch']],
-                ],
+                ['id' => 1, 'name' => 'Celeste', 'platforms' => [['name' => 'PlayStation 4']]],
+                ['id' => 2, 'name' => 'Celeste', 'platforms' => [['name' => 'Nintendo Switch']]],
             ], 200),
         ]);
 
-        $result = $this->makeService()->findByTitle('Celeste', 'Nintendo Switch');
+        $results = $this->makeService()->search('Celeste', 'Nintendo Switch');
 
-        $this->assertSame('Maddy Makes Games', $result['developer']);
+        $this->assertSame(2, $results[0]->igdbId);
     }
 
-    public function test_find_by_title_reuses_the_cached_token_across_calls(): void
+    public function test_search_prioritizes_an_exact_title_match_over_a_bundle_or_dlc_edition(): void
+    {
+        // Caso real: IGDB puede devolver antes una edición/bundle con DLC en
+        // el nombre que el juego base, aunque el título buscado sea exacto.
+        $this->fakeToken();
+        Http::fake([
+            'api.igdb.com/v4/games' => Http::response([
+                ['id' => 1, 'name' => 'Breath of the Wild and Expansion Pass Bundle'],
+                ['id' => 2, 'name' => 'Breath of the Wild'],
+            ], 200),
+        ]);
+
+        $results = $this->makeService()->search('Breath of the Wild');
+
+        $this->assertSame(2, $results[0]->igdbId);
+    }
+
+    public function test_search_prioritizes_exact_title_over_platform_match(): void
     {
         $this->fakeToken();
-        Http::fake(['api.igdb.com/v4/games' => Http::response([], 200)]);
+        Http::fake([
+            'api.igdb.com/v4/games' => Http::response([
+                ['id' => 1, 'name' => 'Celeste (Deluxe Edition)', 'platforms' => [['name' => 'Nintendo Switch']]],
+                ['id' => 2, 'name' => 'Celeste', 'platforms' => [['name' => 'PC']]],
+            ], 200),
+        ]);
 
-        $this->makeService()->findByTitle('Celeste');
-        $this->makeService()->findByTitle('Hollow Knight');
+        $results = $this->makeService()->search('Celeste', 'Nintendo Switch');
 
-        Http::assertSentCount(3); // 1 token + 2 búsquedas
+        $this->assertSame(2, $results[0]->igdbId);
     }
 
-    public function test_find_by_title_returns_null_when_neither_developer_nor_release_date_is_available(): void
+    public function test_search_skips_results_without_a_name(): void
     {
         $this->fakeToken();
-        Http::fake(['api.igdb.com/v4/games' => Http::response([['name' => 'Celeste']], 200)]);
+        Http::fake(['api.igdb.com/v4/games' => Http::response([['id' => 1], ['id' => 2, 'name' => 'Celeste']], 200)]);
 
-        $this->assertNull($this->makeService()->findByTitle('Celeste'));
+        $results = $this->makeService()->search('Celeste');
+
+        $this->assertCount(1, $results);
+        $this->assertSame('Celeste', $results[0]->title);
     }
 
-    public function test_find_by_title_returns_null_when_there_are_no_results(): void
-    {
-        $this->fakeToken();
-        Http::fake(['api.igdb.com/v4/games' => Http::response([], 200)]);
-
-        $this->assertNull($this->makeService()->findByTitle('Un juego que no existe'));
-    }
-
-    public function test_find_by_title_returns_null_when_the_games_request_fails(): void
+    public function test_search_returns_empty_array_when_the_games_request_fails(): void
     {
         $this->fakeToken();
         Http::fake(['api.igdb.com/v4/games' => Http::response('', 500)]);
 
-        $this->assertNull($this->makeService()->findByTitle('Celeste'));
+        $this->assertSame([], $this->makeService()->search('Celeste'));
     }
 
-    public function test_find_by_title_returns_null_when_the_token_request_fails(): void
+    public function test_search_returns_empty_array_when_the_token_request_fails(): void
     {
         Http::fake([
             'id.twitch.tv/oauth2/token' => Http::response('', 401),
-            'api.igdb.com/v4/games' => Http::response([['name' => 'Celeste']], 200),
+            'api.igdb.com/v4/games' => Http::response([['id' => 1, 'name' => 'Celeste']], 200),
         ]);
 
-        $this->assertNull($this->makeService()->findByTitle('Celeste'));
+        $this->assertSame([], $this->makeService()->search('Celeste'));
 
         // Sin token no tiene sentido ni intentar la búsqueda.
         Http::assertNotSent(fn ($request) => $request->url() === 'https://api.igdb.com/v4/games');
     }
 
-    public function test_find_by_title_returns_null_on_connection_failure(): void
+    public function test_search_reuses_the_cached_token_across_calls(): void
+    {
+        $this->fakeToken();
+        Http::fake(['api.igdb.com/v4/games' => Http::response([], 200)]);
+
+        $this->makeService()->search('Celeste');
+        $this->makeService()->search('Hollow Knight');
+
+        Http::assertSentCount(3); // 1 token + 2 búsquedas
+    }
+
+    public function test_search_returns_empty_array_on_connection_failure(): void
     {
         Http::fake(['id.twitch.tv/oauth2/token' => fn () => throw new ConnectionException('timed out')]);
 
-        $this->assertNull($this->makeService()->findByTitle('Celeste'));
+        $this->assertSame([], $this->makeService()->search('Celeste'));
     }
 }

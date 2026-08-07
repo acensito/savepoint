@@ -120,6 +120,67 @@
                     </div>
                 </div>
 
+                <div class="mt-6 pt-6 border-t border-slate-800">
+                    <div class="flex items-center justify-between gap-3 mb-3">
+                        <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                            <x-gicon name="travel_explore" class="text-[16px]" />
+                            IGDB
+                        </h2>
+                        <button type="button" id="igdb-search-trigger"
+                            class="text-xs font-medium text-indigo-400 hover:text-indigo-300">
+                            {{ $game->igdb_id ? 'Corregir coincidencia' : 'Buscar en IGDB' }}
+                        </button>
+                    </div>
+
+                    @if($game->igdb_genres || $game->igdb_rating !== null)
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            @if($game->igdb_genres)
+                                <div class="flex items-start gap-2.5 bg-slate-800/40 border border-slate-800 rounded-lg p-3">
+                                    <x-gicon name="category" class="text-[18px] text-slate-500 mt-0.5 flex-shrink-0" />
+                                    <div class="min-w-0">
+                                        <div class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Géneros (IGDB)</div>
+                                        <div class="text-sm text-slate-200 mt-0.5 break-words">{{ implode(', ', $game->igdb_genres) }}</div>
+                                    </div>
+                                </div>
+                            @endif
+                            @if($game->igdb_rating !== null)
+                                <div class="flex items-start gap-2.5 bg-slate-800/40 border border-slate-800 rounded-lg p-3">
+                                    <x-gicon name="star_rate" class="text-[18px] text-slate-500 mt-0.5 flex-shrink-0" />
+                                    <div class="min-w-0">
+                                        <div class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Nota IGDB</div>
+                                        <div class="text-sm text-slate-200 mt-0.5">{{ number_format((float) $game->igdb_rating, 0) }}/100</div>
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
+                    @else
+                        <p class="text-sm text-slate-500">
+                            {{ $game->igdb_matched_at ? 'Sin coincidencia en IGDB todavía.' : 'Buscando en IGDB…' }}
+                        </p>
+                    @endif
+
+                    <p id="igdb-search-status" class="hidden text-xs text-slate-500 mt-2"></p>
+
+                    <div id="igdb-search-box" class="hidden mt-2 flex gap-1.5">
+                        <input type="text" id="igdb-search-input" placeholder="Buscar otro título…" value="{{ $game->title }}"
+                            class="flex-1 min-w-0 rounded-lg border border-slate-700 bg-slate-800 text-slate-100 text-xs px-2.5 py-1.5 focus:border-indigo-500 focus:ring-indigo-500 outline-none">
+                        <button type="button" id="igdb-search-btn"
+                            class="flex-shrink-0 text-xs font-medium text-indigo-400 hover:text-indigo-300 px-2">Buscar</button>
+                    </div>
+
+                    <ul id="igdb-search-results" class="hidden mt-1.5 space-y-1 max-h-56 overflow-y-auto rounded-lg border border-slate-700 bg-slate-800/50 p-1.5"></ul>
+
+                    <!-- Sin JS: solo lleva los campos del resultado que se elija en
+                         igdb-search-results, rellenados por script antes de enviar. -->
+                    <form id="igdb-apply-form" action="{{ route('web.games.igdb-apply', $game) }}" method="POST" class="hidden">
+                        @csrf
+                        <input type="hidden" name="igdb_id">
+                        <input type="hidden" name="developer">
+                        <input type="hidden" name="release_date">
+                        <input type="hidden" name="rating">
+                    </form>
+                </div>
+
                 @if($game->notes)
                     <div class="mt-6 pt-6 border-t border-slate-800">
                         <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
@@ -132,4 +193,97 @@
             </div>
         </div>
     </div>
+
+    <script>
+        (function () {
+            const trigger = document.getElementById('igdb-search-trigger');
+            if (!trigger) return;
+
+            const box = document.getElementById('igdb-search-box');
+            const input = document.getElementById('igdb-search-input');
+            const searchBtn = document.getElementById('igdb-search-btn');
+            const statusEl = document.getElementById('igdb-search-status');
+            const resultsEl = document.getElementById('igdb-search-results');
+            const applyForm = document.getElementById('igdb-apply-form');
+            const searchUrl = '{{ route('web.games.igdb-search', $game) }}';
+
+            trigger.addEventListener('click', () => {
+                box.classList.remove('hidden');
+                input.focus();
+                input.select();
+                search(input.value.trim());
+            });
+
+            searchBtn.addEventListener('click', () => search(input.value.trim()));
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    search(input.value.trim());
+                }
+            });
+
+            async function search(query) {
+                searchBtn.disabled = true;
+                resultsEl.classList.add('hidden');
+                resultsEl.innerHTML = '';
+                statusEl.classList.remove('hidden');
+                statusEl.textContent = 'Buscando en IGDB…';
+
+                try {
+                    const url = query ? `${searchUrl}?q=${encodeURIComponent(query)}` : searchUrl;
+                    const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                    if (!response.ok) throw new Error('request failed');
+                    const { results } = await response.json();
+
+                    if (!results.length) {
+                        statusEl.textContent = 'Sin resultados en IGDB. Prueba con otras palabras del título.';
+                        return;
+                    }
+
+                    statusEl.classList.add('hidden');
+                    resultsEl.innerHTML = results.map((r, i) => `
+                        <li>
+                            <button type="button" class="js-igdb-pick w-full text-left p-1.5 rounded-lg hover:bg-slate-700" data-index="${i}">
+                                <span class="block text-xs text-slate-200 truncate">${r.title}${r.platforms ? ` <span class="text-slate-500">— ${r.platforms}</span>` : ''}</span>
+                                <span class="block text-[10px] text-slate-500 truncate">
+                                    ${r.developer ?? 'Sin desarrollador'} · ${r.release_date ?? 'sin fecha'}${r.genres ? ` · ${r.genres.join(', ')}` : ''}
+                                </span>
+                            </button>
+                        </li>
+                    `).join('');
+                    resultsEl.classList.remove('hidden');
+
+                    resultsEl.querySelectorAll('.js-igdb-pick').forEach((el) => {
+                        el.addEventListener('click', () => applyResult(results[Number(el.dataset.index)]));
+                    });
+                } catch (err) {
+                    statusEl.classList.remove('hidden');
+                    statusEl.textContent = 'No se pudo buscar en IGDB. Comprueba tu conexión e inténtalo de nuevo.';
+                } finally {
+                    searchBtn.disabled = false;
+                }
+            }
+
+            function applyResult(result) {
+                applyForm.querySelector('[name="igdb_id"]').value = result.igdb_id;
+                applyForm.querySelector('[name="developer"]').value = result.developer ?? '';
+                applyForm.querySelector('[name="release_date"]').value = result.release_date ?? '';
+                applyForm.querySelector('[name="rating"]').value = result.rating ?? '';
+
+                // Nº de géneros variable: se quitan los de un envío anterior (si
+                // el usuario buscó, aplicó y luego corrigió otra vez) antes de
+                // añadir los del resultado elegido.
+                applyForm.querySelectorAll('input[name="genres[]"]').forEach((el) => el.remove());
+                (result.genres ?? []).forEach((genre) => {
+                    const genreInput = document.createElement('input');
+                    genreInput.type = 'hidden';
+                    genreInput.name = 'genres[]';
+                    genreInput.value = genre;
+                    applyForm.appendChild(genreInput);
+                });
+
+                applyForm.submit();
+            }
+        })();
+    </script>
 @endsection

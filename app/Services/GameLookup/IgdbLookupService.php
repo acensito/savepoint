@@ -10,20 +10,19 @@ use Illuminate\Support\Str;
 use Throwable;
 
 /**
- * Busca desarrollador y fecha de lanzamiento en IGDB (vía OAuth de Twitch)
- * para autocompletar esos dos campos, que CEX no trae en su índice (ver
- * CexGameLookupService) y que, a diferencia del género o la plataforma, son
- * datos objetivos que no dependen de traducción.
+ * Busca en IGDB (vía OAuth de Twitch) para enriquecer la ficha de un juego
+ * con desarrollador, fecha de lanzamiento, géneros (en inglés, sin mezclar
+ * con los que el usuario escribe a mano en español) y nota agregada — datos
+ * que CEX no trae en su índice (ver CexGameLookupService).
  *
  * No implementa GameLookupInterface a propósito: esa interfaz está pensada
  * para el flujo de escaneo/búsqueda rápida por EAN (CEX), e IGDB no indexa
- * por código de barras, solo por título — esto es un enriquecimiento puntual
- * de dos campos, no un proveedor de sugerencias intercambiable con CEX.
+ * por código de barras, solo por título.
  *
  * Requiere darse de alta como desarrollador en Twitch (gratis, ver
  * https://dev.twitch.tv/console/apps) para conseguir un Client ID y un
  * Client Secret — ver config('services.igdb') y el README. Sin esas
- * credenciales, findByTitle() no llega a hacer ninguna petición.
+ * credenciales, search() no llega a hacer ninguna petición.
  */
 class IgdbLookupService
 {
@@ -46,25 +45,26 @@ class IgdbLookupService
     }
 
     /**
-     * Busca por título (opcionalmente acotado por plataforma, cuando IGDB
-     * devuelve varias ediciones/remasters con el mismo nombre) y devuelve el
-     * desarrollador y la fecha de lanzamiento del resultado que mejor
-     * coincide. Nunca lanza una excepción hacia arriba: es una ayuda
-     * opcional para el formulario, igual que CexGameLookupService::search().
+     * Busca por título en IGDB. Con $platformName, los resultados de esa
+     * plataforma se devuelven primero (sin descartar el resto: varios
+     * juegos pueden compartir título — remaster, otra plataforma...), así
+     * que sirve tanto para quedarse con el primero como mejor candidato
+     * automático (ver GameController::show()) como para listar varias
+     * opciones en un buscador manual. Nunca lanza una excepción hacia
+     * arriba: es una ayuda opcional, igual que CexGameLookupService::search().
      *
-     * @return array{developer: ?string, release_date: ?string}|null null si
-     *   IGDB no está configurado, la búsqueda falla o no hay nada que ofrecer.
+     * @return IgdbGameMatch[]
      */
-    public function findByTitle(string $title, ?string $platformName = null): ?array
+    public function search(string $query, ?string $platformName = null, int $limit = 5): array
     {
-        $title = trim($title);
-        if ($title === '' || !$this->isConfigured()) {
-            return null;
+        $query = trim($query);
+        if ($query === '' || !$this->isConfigured()) {
+            return [];
         }
 
         $token = $this->accessToken();
         if ($token === null) {
-            return null;
+            return [];
         }
 
         try {
@@ -74,57 +74,79 @@ class IgdbLookupService
                     'Authorization' => "Bearer {$token}",
                 ])
                 ->withBody(
-                    'fields name,first_release_date,involved_companies.company.name,involved_companies.developer,platforms.name; '
-                        . 'search "' . addslashes($title) . '"; limit 5;',
+                    'fields name,first_release_date,involved_companies.company.name,involved_companies.developer,'
+                        . 'genres.name,rating,aggregated_rating,platforms.name; '
+                        . 'search "' . addslashes($query) . '"; limit ' . max(1, min($limit, 20)) . ';',
                     'text/plain',
                 )
                 ->post('https://api.igdb.com/v4/games');
         } catch (Throwable $e) {
             Log::warning('IGDB lookup failed', ['message' => $e->getMessage()]);
 
-            return null;
+            return [];
         }
 
         if ($response->failed()) {
             Log::warning('IGDB lookup returned an error status', ['status' => $response->status()]);
 
-            return null;
+            return [];
         }
 
-        $games = collect($response->json() ?? []);
+        $matches = collect($response->json() ?? [])
+            ->filter(fn (array $game) => filled($game['name'] ?? null))
+            ->map(fn (array $game) => $this->toMatch($game))
+            ->values();
 
-        // Varios resultados pueden compartir título (remaster, otra
-        // plataforma...); si sabemos la plataforma del alta, se prioriza el
-        // que coincida en vez de quedarnos con el primero sin más.
-        if ($platformName !== null && $platformName !== '') {
-            $matches = $games->filter(
-                fn (array $game) => collect($game['platforms'] ?? [])
-                    ->contains(fn (array $p) => Str::lower($p['name'] ?? '') === Str::lower($platformName))
-            );
+        // IGDB devuelve por relevancia de texto libre, no por "cuál es el juego
+        // que de verdad buscas": una edición/bundle con DLC en el nombre puede
+        // salir antes que el juego base. Se reordena (nunca se descarta nada)
+        // priorizando primero el título exacto y luego, si se ha dado, la
+        // plataforma — el resto conserva el orden de relevancia de IGDB.
+        return $matches
+            ->sortByDesc(fn (IgdbGameMatch $match) => $this->matchScore($match, $query, $platformName))
+            ->values()
+            ->all();
+    }
 
-            if ($matches->isNotEmpty()) {
-                $games = $matches;
-            }
+    private function matchScore(IgdbGameMatch $match, string $query, ?string $platformName): int
+    {
+        $score = 0;
+
+        if (Str::lower(trim($match->title)) === Str::lower($query)) {
+            $score += 2;
         }
 
-        $game = $games->first();
-        if ($game === null) {
-            return null;
+        if ($platformName !== null && $platformName !== '' && Str::contains(Str::lower($match->platforms ?? ''), Str::lower($platformName))) {
+            $score += 1;
         }
 
+        return $score;
+    }
+
+    private function toMatch(array $game): IgdbGameMatch
+    {
         $developerEntry = collect($game['involved_companies'] ?? [])
             ->first(fn (array $company) => ($company['developer'] ?? false) === true);
-        $developer = $developerEntry['company']['name'] ?? null;
 
-        $releaseDate = isset($game['first_release_date'])
-            ? Carbon::createFromTimestamp($game['first_release_date'])->format('Y-m-d')
-            : null;
+        $genres = collect($game['genres'] ?? [])->pluck('name')->filter()->values()->all();
+        $platforms = collect($game['platforms'] ?? [])->pluck('name')->filter()->implode(', ');
 
-        if ($developer === null && $releaseDate === null) {
-            return null;
-        }
+        // aggregated_rating (media de críticas) es más fiable que rating (media
+        // de usuarios, muy poblada de votos aislados); se cae al segundo solo
+        // si IGDB no tiene el primero para este juego.
+        $rating = $game['aggregated_rating'] ?? $game['rating'] ?? null;
 
-        return ['developer' => $developer, 'release_date' => $releaseDate];
+        return new IgdbGameMatch(
+            igdbId: (int) ($game['id'] ?? 0),
+            title: (string) $game['name'],
+            platforms: $platforms !== '' ? $platforms : null,
+            developer: $developerEntry['company']['name'] ?? null,
+            releaseDate: isset($game['first_release_date'])
+                ? Carbon::createFromTimestamp($game['first_release_date'])->format('Y-m-d')
+                : null,
+            genres: $genres !== [] ? $genres : null,
+            rating: $rating !== null ? round((float) $rating, 2) : null,
+        );
     }
 
     /**

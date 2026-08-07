@@ -7,6 +7,9 @@ use App\Models\Edition;
 use App\Models\Game;
 use App\Models\Platform;
 use App\Services\GameLookup\GameLookupInterface;
+use App\Services\GameLookup\IgdbGameMatch;
+use App\Services\GameLookup\IgdbLookupService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -18,8 +21,10 @@ use Throwable;
 
 class GameController extends Controller
 {
-    public function __construct(private readonly GameLookupInterface $gameLookup)
-    {
+    public function __construct(
+        private readonly GameLookupInterface $gameLookup,
+        private readonly IgdbLookupService $igdbLookup,
+    ) {
     }
 
     /**
@@ -297,6 +302,9 @@ class GameController extends Controller
     /**
      * Ficha de solo lectura de un juego: toda la información del modelo sin
      * abrir el formulario de edición, para "solo mirar" un juego concreto.
+     * De paso, si todavía no se ha intentado enlazar con IGDB, lo intenta
+     * (ver applyIgdbMatch()): es la única vía de entrada al enriquecimiento
+     * automático, no hace falta ninguna acción del usuario.
      */
     public function show(Game $game)
     {
@@ -304,7 +312,101 @@ class GameController extends Controller
 
         $game->load(['platform.manufacturer', 'edition']);
 
+        if ($game->igdb_matched_at === null) {
+            // limit 10, no 1: search() reordena por título exacto/plataforma
+            // dentro de lo que devuelva IGDB (ver IgdbLookupService::search()),
+            // así que hace falta margen para que esa prioridad sirva de algo.
+            $match = $this->igdbLookup->search($game->title, $game->platform?->name, limit: 10)[0] ?? null;
+            $this->applyIgdbMatch($game, $match);
+        }
+
         return view('games.show', compact('game'));
+    }
+
+    /**
+     * Búsqueda manual en IGDB desde la ficha de un juego, para corregir el
+     * resultado automático de show() cuando no es el correcto (remaster
+     * distinto, plataforma equivocada, sin match...). Solo lista candidatos,
+     * no cambia nada todavía (ver igdbApply()).
+     */
+    public function igdbSearch(Request $request, Game $game): JsonResponse
+    {
+        Gate::authorize('update', $game);
+
+        $query = trim((string) $request->query('q', ''));
+        if ($query === '') {
+            $query = $game->title;
+        }
+
+        $results = collect($this->igdbLookup->search($query, $game->platform?->name, limit: 8))
+            ->map(fn (IgdbGameMatch $match) => [
+                'igdb_id' => $match->igdbId,
+                'title' => $match->title,
+                'platforms' => $match->platforms,
+                'developer' => $match->developer,
+                'release_date' => $match->releaseDate,
+                'genres' => $match->genres,
+                'rating' => $match->rating,
+            ])
+            ->values();
+
+        return response()->json(['results' => $results]);
+    }
+
+    /**
+     * Aplica a mano el resultado de IGDB elegido en igdbSearch(): a
+     * diferencia del match automático de show() (que solo rellena
+     * developer/release_date si estaban vacíos), aquí sí se sobrescriben
+     * porque es una corrección explícita del usuario — salvo que el
+     * resultado elegido no traiga ese dato, en cuyo caso se conserva el que
+     * ya hubiera para no borrar algo bueno con un match peor.
+     */
+    public function igdbApply(Request $request, Game $game): RedirectResponse
+    {
+        Gate::authorize('update', $game);
+
+        $validated = $request->validate([
+            'igdb_id' => 'required|integer',
+            'developer' => 'nullable|string',
+            'release_date' => 'nullable|date',
+            'genres' => 'nullable|array',
+            'genres.*' => 'string',
+            'rating' => 'nullable|numeric',
+        ]);
+
+        $game->update([
+            'developer' => $validated['developer'] ?? $game->developer,
+            'release_date' => $validated['release_date'] ?? $game->release_date,
+            'igdb_id' => $validated['igdb_id'],
+            'igdb_genres' => $validated['genres'] ?? null,
+            'igdb_rating' => $validated['rating'] ?? null,
+            'igdb_matched_at' => now(),
+        ]);
+
+        return redirect()->route('web.games.show', $game)->with('success', 'Datos de IGDB actualizados.');
+    }
+
+    /**
+     * Aplica un resultado de IGDB (o su ausencia) a un juego recién cargado
+     * en show(): developer/release_date solo se rellenan si estaban vacíos
+     * (nunca pisan lo que ya haya escrito el usuario a mano); igdb_genres/
+     * igdb_rating/igdb_id se sobrescriben siempre porque son campos
+     * exclusivos de IGDB, sin equivalente manual que proteger. Se marca
+     * igdb_matched_at haya habido match o no, para no repetir la búsqueda
+     * automática en cada visita a la ficha.
+     */
+    private function applyIgdbMatch(Game $game, ?IgdbGameMatch $match): void
+    {
+        $game->fill([
+            'developer' => $game->developer ?: $match?->developer,
+            'release_date' => $game->release_date ?: $match?->releaseDate,
+            'igdb_id' => $match?->igdbId,
+            'igdb_genres' => $match?->genres,
+            'igdb_rating' => $match?->rating,
+            'igdb_matched_at' => now(),
+        ]);
+
+        $game->save();
     }
 
     /**

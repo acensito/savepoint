@@ -96,6 +96,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/games/{game}/edit', [GameController::class, 'edit'])->name('web.games.edit');
     Route::patch('/games/{game}/quick-update', [GameController::class, 'quickUpdate'])->name('web.games.quick-update');
     Route::get('/games/{game}/cover-lookup', [GameController::class, 'coverLookup'])->name('web.games.cover-lookup');
+
+    // Enriquecimiento con IGDB (desarrollador, fecha de lanzamiento, géneros
+    // en inglés, nota agregada) desde la ficha de detalle: igdb-search solo
+    // lista candidatos (AJAX), igdb-apply guarda el elegido y redirige de
+    // vuelta a la ficha.
+    Route::get('/games/{game}/igdb-search', [GameController::class, 'igdbSearch'])->name('web.games.igdb-search');
+    Route::post('/games/{game}/igdb-apply', [GameController::class, 'igdbApply'])->name('web.games.igdb-apply');
     Route::put('/games/{game}', [GameController::class, 'update'])->name('web.games.update');
     Route::delete('/games/{game}', [GameController::class, 'destroy'])->name('web.games.destroy');
     Route::get('/games/{game}', [GameController::class, 'show'])->name('web.games.show');

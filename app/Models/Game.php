@@ -40,6 +40,10 @@ class Game extends Model
         'manual_status',
         'region',
         'age_rating',
+        'igdb_id',
+        'igdb_genres',
+        'igdb_rating',
+        'igdb_matched_at',
     ];
 
     /**
@@ -55,6 +59,9 @@ class Game extends Model
             'rating' => 'integer',
             'wishlist_priority' => 'integer',
             'wishlist_estimated_price' => 'decimal:2',
+            'igdb_genres' => 'array',
+            'igdb_rating' => 'decimal:2',
+            'igdb_matched_at' => 'datetime',
         ];
     }
 
