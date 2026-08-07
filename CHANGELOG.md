@@ -5,6 +5,9 @@ sección al final de `README.md`; se separó a este fichero para que el README
 pueda ser un documento de presentación del proyecto en vez de una lista que
 crece sin parar.
 
+## 2026-08-07 (7)
+- **Fondo de la ficha con arte de IGDB**, siempre a elección del usuario: botón "Elegir fondo" que pide el arte promocional del juego ya identificado en IGDB (`GET /games/{game}/igdb-artworks`, por `games.igdb_id`, no vuelve a buscar por título) y muestra una muestra en miniatura; al elegir una, `POST /games/{game}/igdb-background` la guarda (solo el `image_id` de IGDB, no la URL completa: `Game::backgroundUrl()` construye la URL al tamaño que haga falta) y se pinta como cabecera de la ficha con un degradado encima para que el texto siga siendo legible. Nunca se aplica sola ni con la primera opción: "Quitar" la deja sin fondo otra vez.
+
 ## 2026-08-07 (6)
 - **IGDB conectado de verdad**: credenciales de Twitch dadas de alta y puestas en `.env`. `GameController::show()` busca en IGDB la primera vez que se abre la ficha de un juego (marca `igdb_matched_at` haya match o no, para no repetir la búsqueda en cada visita) y rellena `developer`/`release_date` solo si estaban vacíos; `igdb_id`/`igdb_genres`/`igdb_rating` (columnas nuevas en `games`) se guardan siempre. Nueva sección "IGDB" en la ficha con géneros/nota y un botón "Corregir coincidencia" que busca a mano (`GET /games/{game}/igdb-search`, AJAX) y aplica el resultado elegido (`POST /games/{game}/igdb-apply`, sobrescribe developer/fecha salvo que el resultado elegido no traiga ese dato).
   - `IgdbLookupService::search()` reordena los resultados (título exacto primero, luego coincidencia de plataforma) sin descartar nada: con una búsqueda real de "The Legend of Zelda: Breath of the Wild" el primer resultado de IGDB era un bundle con el DLC en el nombre, no el juego base — pedir varios candidatos y priorizar el título exacto lo corrige.
