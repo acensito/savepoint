@@ -55,4 +55,19 @@ return [
         'image_hosts' => array_values(array_filter(explode(',', env('CEX_IMAGE_HOSTS', 'es.static.webuy.com')))),
     ],
 
+    /*
+    | Búsqueda en IGDB (App\Services\GameLookup\IgdbLookupService) para
+    | autocompletar desarrollador y fecha de lanzamiento, que CEX no trae en
+    | su índice. A diferencia de CEX, IGDB sí exige darse de alta: hace falta
+    | un Client ID y un Client Secret gratuitos de una app de Twitch
+    | (https://dev.twitch.tv/console/apps -> "Register Your Application",
+    | cualquier OAuth Redirect URL vale, p. ej. https://localhost). Sin estas
+    | dos variables en .env, IgdbLookupService::findByTitle() no hace ninguna
+    | petición y devuelve null.
+    */
+    'igdb' => [
+        'client_id' => env('IGDB_CLIENT_ID', ''),
+        'client_secret' => env('IGDB_CLIENT_SECRET', ''),
+    ],
+
 ];
