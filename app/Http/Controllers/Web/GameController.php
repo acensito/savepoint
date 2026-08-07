@@ -9,6 +9,7 @@ use App\Models\Platform;
 use App\Services\GameLookup\GameLookupInterface;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -171,6 +172,73 @@ class GameController extends Controller
         ];
 
         return view('games.print-collection', compact('games', 'totals', 'query', 'platform', 'playStatus', 'status'));
+    }
+
+    /**
+     * Cabeceras y mapeos inversos de GameImportController::STATUS_MAP /
+     * PLAY_STATUS_MAP / MANUAL_MAP: el CSV exportado usa las mismas
+     * etiquetas en español que el importador reconoce, para poder
+     * reimportarlo tal cual (edición masiva fuera de la app: exportar,
+     * abrir en Excel/Sheets, corregir, volver a importar).
+     */
+    private const EXPORT_HEADERS = ['Título', 'EAN', 'Desarrollador', 'Plataforma', 'Edición', 'Fecha lanzamiento', 'Géneros', 'Propiedad', 'Estado de juego', 'Conservación', 'Precio pagado', 'Lugar de compra', 'Fecha de compra', 'Manual', 'Región', 'Clasificación por edad', 'Notas'];
+
+    private const EXPORT_STATUS_LABELS = ['owned' => 'En colección', 'sold' => 'Vendido'];
+    private const EXPORT_PLAY_STATUS_LABELS = ['pending' => 'Pendiente', 'playing' => 'Jugando', 'finished' => 'Terminado'];
+    private const EXPORT_MANUAL_LABELS = ['included' => 'Con Manual', 'missing' => 'Sin Manual', 'booklet' => 'Folleto'];
+
+    /**
+     * Exportación a CSV de la colección (botón "Exportar" del panel de
+     * control): mismos filtros que index()/print(), sin paginar. A
+     * diferencia de print() (pensada para imprimir/PDF), esta genera un CSV
+     * con las mismas cabeceras que espera GameImportController::store(), así
+     * que el fichero se puede reimportar tal cual tras editarlo.
+     */
+    public function export(Request $request): Response
+    {
+        $games = $this->filteredGamesQuery($request)
+            ->select(['id', 'title', 'ean', 'developer', 'platform_id', 'edition_id', 'release_date', 'genres', 'status', 'play_status', 'rating', 'price_paid', 'purchase_place', 'purchase_date', 'manual_status', 'region', 'age_rating', 'notes'])
+            ->with(['platform:id,name', 'edition:id,name'])
+            ->get();
+
+        $rows = $games->map(fn (Game $game) => [
+            $game->title,
+            $game->ean,
+            $game->developer,
+            $game->platform?->name,
+            $game->edition?->name,
+            $game->release_date?->format('Y-m-d'),
+            $game->genres ? implode(', ', $game->genres) : '',
+            self::EXPORT_STATUS_LABELS[$game->status] ?? '',
+            self::EXPORT_PLAY_STATUS_LABELS[$game->play_status] ?? '',
+            $game->rating,
+            $game->price_paid,
+            $game->purchase_place,
+            $game->purchase_date?->format('Y-m-d'),
+            self::EXPORT_MANUAL_LABELS[$game->manual_status] ?? '',
+            $game->region,
+            $game->age_rating,
+            $game->notes,
+        ]);
+
+        $csv = "\xEF\xBB\xBF" . implode("\r\n", array_map(
+            fn (array $row) => implode(',', array_map($this->csvEscape(...), array_map('strval', $row))),
+            [self::EXPORT_HEADERS, ...$rows->all()],
+        )) . "\r\n";
+
+        return response($csv, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="savepoint-coleccion-' . now()->format('Y-m-d') . '.csv"',
+        ]);
+    }
+
+    private function csvEscape(string $value): string
+    {
+        if (str_contains($value, ',') || str_contains($value, '"') || str_contains($value, "\n")) {
+            return '"' . str_replace('"', '""', $value) . '"';
+        }
+
+        return $value;
     }
 
     /**

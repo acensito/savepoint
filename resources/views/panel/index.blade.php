@@ -9,10 +9,16 @@
             'description' => 'Alta masiva de juegos desde un fichero CSV.',
         ],
         [
+            'route' => route('web.games.export'),
+            'icon' => 'download',
+            'title' => 'Exportar colección',
+            'description' => 'Descarga un CSV con toda la colección, con las mismas columnas que la importación: se puede editar y volver a importar.',
+        ],
+        [
             'route' => route('web.games.print'),
             'target' => '_blank',
             'icon' => 'print',
-            'title' => 'Exportar / Imprimir colección',
+            'title' => 'Imprimir colección',
             'description' => 'Listado completo en una vista imprimible, lista para guardar como PDF desde el navegador.',
         ],
         [

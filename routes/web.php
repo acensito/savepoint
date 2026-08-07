@@ -77,10 +77,12 @@ Route::middleware('auth')->group(function () {
 
     // Papelera: juegos borrados (soft delete) del usuario, con opción de
     // restaurar o eliminar definitivamente.
-    // Exportación imprimible/PDF del listado filtrado (antes de '/games/{game}'
-    // por la misma razón que '/games/create': si no, '/games/print' entraría
-    // por ahí y buscaría un juego con id "print").
+    // Exportación imprimible/PDF y a CSV del listado filtrado (antes de
+    // '/games/{game}' por la misma razón que '/games/create': si no,
+    // '/games/print' o '/games/export' entrarían por ahí y buscarían un
+    // juego con id "print"/"export").
     Route::get('/games/print', [GameController::class, 'print'])->name('web.games.print');
+    Route::get('/games/export', [GameController::class, 'export'])->name('web.games.export');
 
     Route::get('/games/trash', [GameController::class, 'trash'])->name('web.games.trash');
     Route::post('/games/{id}/restore', [GameController::class, 'restore'])->name('web.games.restore');
