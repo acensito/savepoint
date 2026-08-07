@@ -58,8 +58,9 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 - Panel (`/stats`) con total de juegos, gasto total y conservación media, reparto de juegos por plataforma (barra por plataforma), y reparto por estado de juego y por propiedad (barras apiladas con leyenda).
 - Evolución del gasto por mes de compra (gráfico de barras, últimos 12 meses con datos), top de géneros más repetidos en la colección, reparto por década de lanzamiento (`release_date`, orden cronológico) y destacados (juego más caro y mejor valorado, con enlace a su ficha).
 
-### Exportación imprimible / PDF
-- Exportación de la colección completa a una vista imprimible, lista para guardar como PDF desde el propio diálogo de impresión del navegador — sin generar nada en el servidor.
+### Exportación
+- **A CSV**: descarga toda la colección (respeta los filtros activos del listado) con las mismas columnas que reconoce la importación, así que el fichero se puede editar y volver a importar tal cual.
+- **Imprimible / PDF**: vista independiente con la colección completa, lista para guardar como PDF desde el propio diálogo de impresión del navegador — sin generar nada en el servidor.
 
 ### Panel de control
 - Página (`/panel`, enlazada desde el sidebar) que agrupa tareas que no son del día a día con la colección: importar/exportar, la papelera de reciclaje (con el nº de juegos que contiene) y el perfil del usuario. Sustituye a los iconos "Importar" y "Papelera" que antes vivían sueltos en el sidebar (siguen accesibles por URL directa, y el icono del panel se resalta como activo también en esas páginas).
@@ -171,7 +172,6 @@ Cobertura actual:
 
 ## Pendiente / en curso
 
-- Exportación de la colección (la importación desde CSV ya está implementada, ver "Importación masiva").
 - Sin backups automatizados de Postgres (ni `pg_dump` programado ni snapshot del volumen).
 - Sin HTTPS en el despliegue actual: bloquea el escaneo de código de barras desde el móvil fuera de `localhost` (ver [Desplegar para uso propio](#desplegar-para-uso-propio)).
 
