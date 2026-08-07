@@ -113,6 +113,14 @@ docker compose exec app npm run build       # o "npm run dev" si expones el puer
 docker compose exec app php artisan migrate
 docker compose exec app php artisan db:seed   # usuarios de prueba: admin@savepoint.test / test@example.com, contraseña "password"
 docker compose exec app php artisan storage:link
+
+# storage/ y bootstrap/cache vienen del bind-mount del host: si el repo se
+# clonó como root (habitual en un servidor), PHP-FPM no puede escribir ahí al
+# atender peticiones web (corre como www-data, no como root) y cualquier
+# página da Error 500 ("tempnam(): file created in the system's temporary
+# directory") aunque `artisan migrate`/`db:seed` de arriba hayan ido bien —
+# esos sí corren como root porque "docker compose exec" usa root por defecto.
+docker compose exec app chown -R www-data:www-data storage bootstrap/cache
 ```
 
 La app queda disponible en **`http://localhost:8081`**.

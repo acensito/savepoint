@@ -5,6 +5,11 @@ sección al final de `README.md`; se separó a este fichero para que el README
 pueda ser un documento de presentación del proyecto en vez de una lista que
 crece sin parar.
 
+## 2026-08-07 (2)
+- **Primer despliegue manual real, en un servidor aparte**: se sigue la guía del README paso a paso contra un servidor limpio y aparecen dos problemas no cubiertos hasta ahora, ambos documentados ya en el README:
+  - `DB_PASSWORD` del `.env` no coincidía con la contraseña real de Postgres: el volumen de datos venía de un intento anterior (con otra contraseña) y `POSTGRES_PASSWORD` solo se aplica la primera vez que Postgres inicializa un volumen vacío, nunca después. Se corrige con `ALTER USER` (ya documentado en "Exponer la app fuera de `localhost`").
+  - Con la contraseña ya correcta y las migraciones aplicadas sin problema (corren como root vía `docker compose exec`), la app seguía dando Error 500 en el navegador (`tempnam(): file created in the system's temporary directory`): `storage/` y `bootstrap/cache` vienen del bind-mount del host, clonado como root en el servidor, y PHP-FPM atiende las peticiones web como `www-data`, no como root, así que no podía escribir ahí. Se añade `docker compose exec app chown -R www-data:www-data storage bootstrap/cache` como paso nuevo, obligatorio, en la guía de arranque del README.
+
 ## 2026-08-07
 - **Se retira la automatización de `docker/entrypoint.sh`** (y `docker/setup.sh`, el usuario no-root `developer`, `su-exec`...): tras varios intentos de arreglarla para un despliegue real (ver las entradas del 2026-08-06 más abajo — incidente de pérdida de datos, bug de aislamiento de tests, permisos de `/app` según el UID del host, el maestro de PHP-FPM no pudiendo reabrir su log de errores al bajar de privilegios...), la conclusión es que la automatización no compensaba la complejidad ni la fragilidad frente a un despliegue manual, paso a paso. `docker/` se queda solo con `Dockerfile` (prepara el entorno: PHP + extensiones, Composer, Node/npm; ya no instala ni configura la app) y `nginx.conf`. `docker-compose.yml` se queda solo con la orquestación (puertos, base de datos, volúmenes); `composer install`, `php artisan key:generate`/`migrate`/`db:seed`/`storage:link` y `npm install`/`npm run build` vuelven a ser pasos manuales, documentados en el README.
 
