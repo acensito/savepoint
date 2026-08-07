@@ -108,6 +108,57 @@ class IgdbLookupService
             ->all();
     }
 
+    /**
+     * Artworks (arte promocional, pensado para usarse de fondo) de un juego
+     * ya identificado en IGDB por su id — a diferencia de search(), no hace
+     * falta volver a buscar por título: se pide directamente por el id que
+     * ya se guardó en games.igdb_id tras el match automático o manual. Solo
+     * devuelve los image_id (ver Game::backgroundUrl() para construir la
+     * URL): elegir uno es una decisión del usuario, nunca automática.
+     *
+     * @return string[]
+     */
+    public function artworks(int $igdbId, int $limit = 8): array
+    {
+        if (!$this->isConfigured()) {
+            return [];
+        }
+
+        $token = $this->accessToken();
+        if ($token === null) {
+            return [];
+        }
+
+        try {
+            $response = Http::timeout(self::TIMEOUT_SECONDS)
+                ->withHeaders([
+                    'Client-ID' => $this->clientId,
+                    'Authorization' => "Bearer {$token}",
+                ])
+                ->withBody(
+                    "fields image_id; where game = {$igdbId}; limit " . max(1, min($limit, 20)) . ';',
+                    'text/plain',
+                )
+                ->post('https://api.igdb.com/v4/artworks');
+        } catch (Throwable $e) {
+            Log::warning('IGDB artworks lookup failed', ['message' => $e->getMessage()]);
+
+            return [];
+        }
+
+        if ($response->failed()) {
+            Log::warning('IGDB artworks lookup returned an error status', ['status' => $response->status()]);
+
+            return [];
+        }
+
+        return collect($response->json() ?? [])
+            ->pluck('image_id')
+            ->filter()
+            ->values()
+            ->all();
+    }
+
     private function matchScore(IgdbGameMatch $match, string $query, ?string $platformName): int
     {
         $score = 0;

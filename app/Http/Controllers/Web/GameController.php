@@ -387,6 +387,49 @@ class GameController extends Controller
     }
 
     /**
+     * Arte promocional de IGDB para elegir como fondo de la ficha (botón
+     * "Elegir fondo"): a diferencia de igdbSearch(), no busca por título,
+     * pide directamente el arte del juego ya identificado (games.igdb_id).
+     * Sin match todavía, no hay nada que ofrecer.
+     */
+    public function igdbArtworks(Game $game): JsonResponse
+    {
+        Gate::authorize('update', $game);
+
+        if ($game->igdb_id === null) {
+            return response()->json(['results' => []]);
+        }
+
+        $results = collect($this->igdbLookup->artworks($game->igdb_id))
+            ->map(fn (string $imageId) => [
+                'image_id' => $imageId,
+                'thumb_url' => "https://images.igdb.com/igdb/image/upload/t_screenshot_med/{$imageId}.jpg",
+            ])
+            ->values();
+
+        return response()->json(['results' => $results]);
+    }
+
+    /**
+     * Fija (o quita, con image_id vacío) el fondo elegido a mano entre las
+     * opciones de igdbArtworks(): nunca se aplica solo, siempre es una
+     * elección explícita del usuario (ver Game::backgroundUrl()).
+     */
+    public function igdbSetBackground(Request $request, Game $game): RedirectResponse
+    {
+        Gate::authorize('update', $game);
+
+        $validated = $request->validate([
+            'image_id' => 'nullable|string|max:100',
+        ]);
+
+        $game->update(['igdb_background' => $validated['image_id'] ?? null]);
+
+        return redirect()->route('web.games.show', $game)
+            ->with('success', $validated['image_id'] ? 'Fondo actualizado.' : 'Fondo quitado.');
+    }
+
+    /**
      * Aplica un resultado de IGDB (o su ausencia) a un juego recién cargado
      * en show(): developer/release_date solo se rellenan si estaban vacíos
      * (nunca pisan lo que ya haya escrito el usuario a mano); igdb_genres/

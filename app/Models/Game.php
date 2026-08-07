@@ -44,6 +44,7 @@ class Game extends Model
         'igdb_genres',
         'igdb_rating',
         'igdb_matched_at',
+        'igdb_background',
     ];
 
     /**
@@ -123,5 +124,16 @@ class Game extends Model
             ->implode('');
 
         return $initials !== '' ? $initials : '?';
+    }
+
+    /**
+     * URL del fondo elegido a mano entre las opciones de IGDB (ver
+     * GameController::igdbArtworks()/igdbSetBackground()), o null si no se
+     * ha elegido ninguno. Se guarda solo el image_id de IGDB, no la URL
+     * completa, para poder pedir aquí el tamaño que convenga en cada sitio.
+     */
+    public function backgroundUrl(string $size = '1080p'): ?string
+    {
+        return $this->igdb_background ? "https://images.igdb.com/igdb/image/upload/t_{$size}/{$this->igdb_background}.jpg" : null;
     }
 }

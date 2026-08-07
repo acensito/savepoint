@@ -184,4 +184,33 @@ class IgdbLookupServiceTest extends TestCase
 
         $this->assertSame([], $this->makeService()->search('Celeste'));
     }
+
+    public function test_artworks_returns_the_image_ids_for_the_given_igdb_id(): void
+    {
+        $this->fakeToken();
+        Http::fake([
+            'api.igdb.com/v4/artworks' => Http::response([
+                ['id' => 1, 'image_id' => 'ar1abc'],
+                ['id' => 2, 'image_id' => 'ar2def'],
+            ], 200),
+        ]);
+
+        $this->assertSame(['ar1abc', 'ar2def'], $this->makeService()->artworks(305));
+
+        Http::assertSent(fn ($request) => $request->url() === 'https://api.igdb.com/v4/artworks'
+            && str_contains($request->body(), 'where game = 305'));
+    }
+
+    public function test_artworks_returns_empty_array_without_credentials(): void
+    {
+        $this->assertSame([], $this->makeService(clientId: '', clientSecret: '')->artworks(305));
+    }
+
+    public function test_artworks_returns_empty_array_when_the_request_fails(): void
+    {
+        $this->fakeToken();
+        Http::fake(['api.igdb.com/v4/artworks' => Http::response('', 500)]);
+
+        $this->assertSame([], $this->makeService()->artworks(305));
+    }
 }

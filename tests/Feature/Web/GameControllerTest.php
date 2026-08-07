@@ -749,6 +749,77 @@ class GameControllerTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_igdb_artworks_lists_the_matched_games_artwork(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['igdb_id' => 305]);
+
+        $this->mock(IgdbLookupService::class, function ($mock) {
+            $mock->shouldReceive('artworks')->once()->with(305)->andReturn(['ar1abc', 'ar2def']);
+        });
+
+        $response = $this->actingAs($user)->getJson("/games/{$game->id}/igdb-artworks");
+
+        $response->assertOk();
+        $response->assertJson(['results' => [
+            ['image_id' => 'ar1abc', 'thumb_url' => 'https://images.igdb.com/igdb/image/upload/t_screenshot_med/ar1abc.jpg'],
+            ['image_id' => 'ar2def', 'thumb_url' => 'https://images.igdb.com/igdb/image/upload/t_screenshot_med/ar2def.jpg'],
+        ]]);
+    }
+
+    public function test_igdb_artworks_returns_no_results_without_a_matched_igdb_id(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['igdb_id' => null]);
+
+        $this->mock(IgdbLookupService::class, function ($mock) {
+            $mock->shouldNotReceive('artworks');
+        });
+
+        $this->actingAs($user)->getJson("/games/{$game->id}/igdb-artworks")
+            ->assertOk()
+            ->assertJson(['results' => []]);
+    }
+
+    public function test_igdb_artworks_is_forbidden_for_another_users_game(): void
+    {
+        $owner = User::factory()->create();
+        $game = Game::factory()->for($owner)->create(['igdb_id' => 305]);
+
+        $this->actingAs(User::factory()->create())->getJson("/games/{$game->id}/igdb-artworks")->assertForbidden();
+    }
+
+    public function test_igdb_set_background_saves_the_chosen_image_id(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['igdb_background' => null]);
+
+        $response = $this->actingAs($user)->post("/games/{$game->id}/igdb-background", ['image_id' => 'ar1abc']);
+
+        $response->assertRedirect(route('web.games.show', $game));
+        $this->assertSame('ar1abc', $game->fresh()->igdb_background);
+    }
+
+    public function test_igdb_set_background_clears_it_with_a_blank_image_id(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['igdb_background' => 'ar1abc']);
+
+        $this->actingAs($user)->post("/games/{$game->id}/igdb-background", ['image_id' => '']);
+
+        $this->assertNull($game->fresh()->igdb_background);
+    }
+
+    public function test_igdb_set_background_is_forbidden_for_another_users_game(): void
+    {
+        $owner = User::factory()->create();
+        $game = Game::factory()->for($owner)->create();
+
+        $this->actingAs(User::factory()->create())
+            ->post("/games/{$game->id}/igdb-background", ['image_id' => 'ar1abc'])
+            ->assertForbidden();
+    }
+
     public function test_user_can_quick_update_the_rating_of_their_own_game(): void
     {
         $user = User::factory()->create();

@@ -103,6 +103,8 @@ Route::middleware('auth')->group(function () {
     // vuelta a la ficha.
     Route::get('/games/{game}/igdb-search', [GameController::class, 'igdbSearch'])->name('web.games.igdb-search');
     Route::post('/games/{game}/igdb-apply', [GameController::class, 'igdbApply'])->name('web.games.igdb-apply');
+    Route::get('/games/{game}/igdb-artworks', [GameController::class, 'igdbArtworks'])->name('web.games.igdb-artworks');
+    Route::post('/games/{game}/igdb-background', [GameController::class, 'igdbSetBackground'])->name('web.games.igdb-background');
     Route::put('/games/{game}', [GameController::class, 'update'])->name('web.games.update');
     Route::delete('/games/{game}', [GameController::class, 'destroy'])->name('web.games.destroy');
     Route::get('/games/{game}', [GameController::class, 'show'])->name('web.games.show');

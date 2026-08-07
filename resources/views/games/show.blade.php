@@ -46,8 +46,15 @@
         </div>
 
         <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-            <div class="p-6 sm:p-8 bg-gradient-to-b from-slate-800/40 to-transparent">
-                <div class="flex flex-col sm:flex-row sm:items-center gap-6">
+            <div class="relative p-6 sm:p-8 overflow-hidden">
+                @if($game->backgroundUrl())
+                    <div class="absolute inset-0 bg-cover bg-center" style="background-image: url('{{ $game->backgroundUrl() }}')"></div>
+                    <div class="absolute inset-0 bg-gradient-to-b from-slate-950/75 via-slate-950/70 to-slate-900"></div>
+                @else
+                    <div class="absolute inset-0 bg-gradient-to-b from-slate-800/40 to-transparent"></div>
+                @endif
+
+                <div class="relative flex flex-col sm:flex-row sm:items-center gap-6">
                     <x-game-cover :game="$game" size="lg" class="!w-36 !rounded-2xl !text-4xl mx-auto sm:mx-0 flex-shrink-0 shadow-lg shadow-black/30" />
 
                     <div class="flex-1 min-w-0 flex flex-col justify-center">
@@ -181,6 +188,36 @@
                     </form>
                 </div>
 
+                <div class="mt-6 pt-6 border-t border-slate-800">
+                    <div class="flex items-center justify-between gap-3 mb-3">
+                        <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                            <x-gicon name="wallpaper" class="text-[16px]" />
+                            Fondo
+                        </h2>
+                        <div class="flex items-center gap-3">
+                            @if($game->igdb_background)
+                                <button type="button" id="igdb-background-clear" class="text-xs font-medium text-slate-500 hover:text-red-400">Quitar</button>
+                            @endif
+                            <button type="button" id="igdb-background-trigger" class="text-xs font-medium text-indigo-400 hover:text-indigo-300">
+                                Elegir fondo
+                            </button>
+                        </div>
+                    </div>
+
+                    <p class="text-sm text-slate-500">
+                        Nunca se aplica solo: eliges tú de entre las opciones de IGDB, o lo dejas sin fondo.
+                    </p>
+
+                    <p id="igdb-background-status" class="hidden text-xs text-slate-500 mt-2"></p>
+
+                    <div id="igdb-background-results" class="hidden mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
+
+                    <form id="igdb-background-form" action="{{ route('web.games.igdb-background', $game) }}" method="POST" class="hidden">
+                        @csrf
+                        <input type="hidden" name="image_id">
+                    </form>
+                </div>
+
                 @if($game->notes)
                     <div class="mt-6 pt-6 border-t border-slate-800">
                         <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
@@ -284,6 +321,61 @@
 
                 applyForm.submit();
             }
+        })();
+
+        (function () {
+            const trigger = document.getElementById('igdb-background-trigger');
+            if (!trigger) return;
+
+            const clearBtn = document.getElementById('igdb-background-clear');
+            const statusEl = document.getElementById('igdb-background-status');
+            const resultsEl = document.getElementById('igdb-background-results');
+            const form = document.getElementById('igdb-background-form');
+            const artworksUrl = '{{ route('web.games.igdb-artworks', $game) }}';
+
+            trigger.addEventListener('click', async () => {
+                trigger.disabled = true;
+                resultsEl.classList.add('hidden');
+                resultsEl.innerHTML = '';
+                statusEl.classList.remove('hidden');
+                statusEl.textContent = 'Buscando fondos en IGDB…';
+
+                try {
+                    const response = await fetch(artworksUrl, { headers: { 'Accept': 'application/json' } });
+                    if (!response.ok) throw new Error('request failed');
+                    const { results } = await response.json();
+
+                    if (!results.length) {
+                        statusEl.textContent = 'IGDB no tiene arte disponible para este juego.';
+                        return;
+                    }
+
+                    statusEl.classList.add('hidden');
+                    resultsEl.innerHTML = results.map((r, i) => `
+                        <button type="button" class="js-igdb-background-pick aspect-video rounded-lg overflow-hidden border border-slate-700 hover:border-indigo-500 transition-colors" data-index="${i}">
+                            <img src="${r.thumb_url}" alt="" class="w-full h-full object-cover">
+                        </button>
+                    `).join('');
+                    resultsEl.classList.remove('hidden');
+
+                    resultsEl.querySelectorAll('.js-igdb-background-pick').forEach((el) => {
+                        el.addEventListener('click', () => {
+                            form.querySelector('[name="image_id"]').value = results[Number(el.dataset.index)].image_id;
+                            form.submit();
+                        });
+                    });
+                } catch (err) {
+                    statusEl.classList.remove('hidden');
+                    statusEl.textContent = 'No se pudo buscar en IGDB. Comprueba tu conexión e inténtalo de nuevo.';
+                } finally {
+                    trigger.disabled = false;
+                }
+            });
+
+            clearBtn?.addEventListener('click', () => {
+                form.querySelector('[name="image_id"]').value = '';
+                form.submit();
+            });
         })();
     </script>
 @endsection
