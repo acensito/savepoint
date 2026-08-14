@@ -52,6 +52,12 @@ Route::middleware('auth')->group(function () {
     // colección, la papelera de reciclaje y el perfil del usuario (antes
     // sueltos como iconos propios del sidebar).
     Route::get('/panel', [PanelController::class, 'index'])->name('web.panel.index');
+    Route::get('/panel/settings', [PanelController::class, 'settings'])->name('web.panel.settings');
+    Route::put('/panel/settings', [PanelController::class, 'updateSettings'])->name('web.panel.settings.update');
+    // AJAX fire-and-forget desde el icono de tema y los botones de vista de la
+    // colección (ver initThemeToggle/initGamesViewToggle en app.js): no son
+    // parte del formulario de Ajustes, tienen su propio control ya existente.
+    Route::patch('/panel/settings/display', [PanelController::class, 'updateDisplay'])->name('web.panel.settings.display');
 
     // Lista de deseos: juegos con Propiedad = "wishlist", en su propia página
     // (nunca en la colección principal, ver GameController::index). Ruta

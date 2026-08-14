@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Web;
 
+use App\Models\Edition;
 use App\Models\Game;
 use App\Models\Platform;
 use App\Models\User;
@@ -79,6 +80,70 @@ class GameControllerTest extends TestCase
         $response->assertSee('value="wishlist" selected', false);
     }
 
+    public function test_creating_a_game_preselects_the_users_default_edition(): void
+    {
+        $edition = Edition::factory()->create(['name' => 'Coleccionista']);
+        $user = User::factory()->create(['default_edition_id' => $edition->id]);
+
+        $response = $this->actingAs($user)->get(route('web.games.create'));
+
+        $response->assertOk();
+        $content = preg_replace('/\s+/', ' ', $response->getContent());
+        $this->assertStringContainsString('value="' . $edition->id . '" data-platforms="" selected', $content);
+    }
+
+    public function test_creating_a_game_does_not_preselect_an_edition_without_a_default_configured(): void
+    {
+        // User::factory() no fija default_edition_id (null salvo backfill de
+        // usuarios ya existentes en la migración, que no aplica a un usuario
+        // creado aquí mismo): sin ajuste configurado, no se preselecciona nada.
+        $user = User::factory()->create();
+        $normal = Edition::where('name', 'Normal')->firstOrFail();
+
+        $response = $this->actingAs($user)->get(route('web.games.create'));
+
+        $response->assertOk();
+        $content = preg_replace('/\s+/', ' ', $response->getContent());
+        $this->assertStringNotContainsString('value="' . $normal->id . '" data-platforms="" selected', $content);
+    }
+
+    public function test_creating_a_game_preselects_the_users_default_region(): void
+    {
+        $user = User::factory()->create(['default_region' => 'NTSC-U']);
+
+        $response = $this->actingAs($user)->get(route('web.games.create'));
+
+        $response->assertOk();
+        $content = preg_replace('/\s+/', ' ', $response->getContent());
+        $this->assertStringContainsString('value="NTSC-U" selected', $content);
+    }
+
+    public function test_editing_a_game_keeps_its_own_edition_instead_of_normal(): void
+    {
+        $user = User::factory()->create();
+        $edition = Edition::factory()->create(['name' => 'Coleccionista']);
+        $game = Game::factory()->for($user)->create(['edition_id' => $edition->id]);
+
+        $response = $this->actingAs($user)->get(route('web.games.edit', $game->id));
+
+        $response->assertOk();
+        $content = preg_replace('/\s+/', ' ', $response->getContent());
+        $this->assertStringContainsString('value="' . $edition->id . '" data-platforms="" selected', $content);
+    }
+
+    public function test_editing_a_game_without_an_edition_does_not_default_to_normal(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['edition_id' => null]);
+
+        $response = $this->actingAs($user)->get(route('web.games.edit', $game->id));
+
+        $response->assertOk();
+        $normal = Edition::where('name', 'Normal')->firstOrFail();
+        $content = preg_replace('/\s+/', ' ', $response->getContent());
+        $this->assertStringNotContainsString('value="' . $normal->id . '" data-platforms="" selected', $content);
+    }
+
     public function test_index_sorts_by_title_ascending(): void
     {
         $user = User::factory()->create();
@@ -143,6 +208,65 @@ class GameControllerTest extends TestCase
         $response = $this->actingAs($user)->get('/?per_page=999');
 
         $this->assertCount(20, $response->viewData('games')->items());
+    }
+
+    public function test_index_uses_the_users_default_per_page_when_the_url_has_none(): void
+    {
+        $user = User::factory()->create(['default_per_page' => 10]);
+        Game::factory()->for($user)->count(15)->create();
+
+        $response = $this->actingAs($user)->get('/');
+
+        $this->assertCount(10, $response->viewData('games')->items());
+    }
+
+    public function test_index_ignores_an_invalid_per_page_and_falls_back_to_the_users_default(): void
+    {
+        $user = User::factory()->create(['default_per_page' => 10]);
+        Game::factory()->for($user)->count(15)->create();
+
+        $response = $this->actingAs($user)->get('/?per_page=999');
+
+        $this->assertCount(10, $response->viewData('games')->items());
+    }
+
+    public function test_index_explicit_per_page_in_the_url_overrides_the_users_default(): void
+    {
+        $user = User::factory()->create(['default_per_page' => 10]);
+        Game::factory()->for($user)->count(15)->create();
+
+        $response = $this->actingAs($user)->get('/?per_page=20');
+
+        $this->assertCount(15, $response->viewData('games')->items());
+    }
+
+    public function test_index_uses_the_users_default_sort_when_the_url_has_none(): void
+    {
+        $user = User::factory()->create(['default_sort' => 'title', 'default_dir' => 'asc']);
+        // Alpha creado antes (más antiguo) que Bravo (más reciente): así el
+        // orden alfabético ("título") y el de "más recientes" dan resultados
+        // opuestos, y el test distingue de verdad cuál se está aplicando.
+        Game::factory()->for($user)->create(['title' => 'Alpha']);
+        Game::factory()->for($user)->create(['title' => 'Bravo']);
+
+        $response = $this->actingAs($user)->get('/');
+
+        $titles = $response->viewData('games')->pluck('title')->all();
+        $this->assertSame(['Alpha', 'Bravo'], $titles);
+    }
+
+    public function test_index_explicit_sort_in_the_url_overrides_the_users_default(): void
+    {
+        $user = User::factory()->create(['default_sort' => 'title', 'default_dir' => 'asc']);
+        Game::factory()->for($user)->create(['title' => 'Alpha']);
+        Game::factory()->for($user)->create(['title' => 'Bravo']);
+
+        // ?sort= vacío es una elección válida ("más recientes"), no "ausente":
+        // debe ganar sobre el default del usuario (que ordenaría alfabéticamente).
+        $response = $this->actingAs($user)->get('/?sort=');
+
+        $titles = $response->viewData('games')->pluck('title')->all();
+        $this->assertSame(['Bravo', 'Alpha'], $titles);
     }
 
     public function test_index_shows_totals_for_the_whole_collection_regardless_of_filters(): void
@@ -419,6 +543,112 @@ class GameControllerTest extends TestCase
         $game = Game::where('title', 'Sin carátula')->firstOrFail();
         $this->assertNull($game->cover);
         Http::assertNothingSent();
+    }
+
+    public function test_creating_a_game_with_auto_igdb_background_enabled_sets_the_first_artwork(): void
+    {
+        $user = User::factory()->create(['auto_igdb_background' => true]);
+        $platform = Platform::factory()->create(['name' => 'Nintendo Switch']);
+
+        $this->mock(IgdbLookupService::class, function ($mock) {
+            $mock->shouldReceive('search')
+                ->once()
+                ->with('Celeste', 'Nintendo Switch', 10)
+                ->andReturn([new IgdbGameMatch(
+                    igdbId: 305,
+                    title: 'Celeste',
+                    platforms: 'Nintendo Switch',
+                    developer: 'Maddy Makes Games',
+                    releaseDate: '2018-01-25',
+                    genres: ['Platform', 'Indie'],
+                    rating: 87.65,
+                )]);
+            $mock->shouldReceive('artworks')->once()->with(305)->andReturn(['ar1abc', 'ar2def']);
+        });
+
+        $response = $this->actingAs($user)->post('/games', [
+            'title' => 'Celeste',
+            'platform_id' => $platform->id,
+            'play_status' => 'pending',
+        ]);
+
+        $response->assertRedirect(route('web.games.index'));
+
+        $game = Game::where('title', 'Celeste')->firstOrFail();
+        $this->assertSame(305, $game->igdb_id);
+        $this->assertSame('ar1abc', $game->igdb_background);
+    }
+
+    public function test_creating_a_game_with_auto_igdb_background_disabled_leaves_the_background_empty(): void
+    {
+        $user = User::factory()->create(['auto_igdb_background' => false]);
+
+        $this->mock(IgdbLookupService::class, function ($mock) {
+            $mock->shouldNotReceive('search');
+            $mock->shouldNotReceive('artworks');
+        });
+
+        $response = $this->actingAs($user)->post('/games', [
+            'title' => 'Celeste',
+            'play_status' => 'pending',
+        ]);
+
+        $response->assertRedirect(route('web.games.index'));
+
+        $game = Game::where('title', 'Celeste')->firstOrFail();
+        $this->assertNull($game->igdb_matched_at);
+        $this->assertNull($game->igdb_background);
+    }
+
+    public function test_creating_a_game_with_auto_igdb_background_enabled_but_no_igdb_match_leaves_the_background_empty(): void
+    {
+        $user = User::factory()->create(['auto_igdb_background' => true]);
+
+        $this->mock(IgdbLookupService::class, function ($mock) {
+            $mock->shouldReceive('search')->once()->andReturn([]);
+            $mock->shouldNotReceive('artworks');
+        });
+
+        $response = $this->actingAs($user)->post('/games', [
+            'title' => 'Un juego sin match',
+            'play_status' => 'pending',
+        ]);
+
+        $response->assertRedirect(route('web.games.index'));
+
+        $game = Game::where('title', 'Un juego sin match')->firstOrFail();
+        $this->assertNotNull($game->igdb_matched_at);
+        $this->assertNull($game->igdb_id);
+        $this->assertNull($game->igdb_background);
+    }
+
+    public function test_creating_a_game_with_auto_igdb_background_enabled_but_no_artworks_leaves_the_background_empty(): void
+    {
+        $user = User::factory()->create(['auto_igdb_background' => true]);
+
+        $this->mock(IgdbLookupService::class, function ($mock) {
+            $mock->shouldReceive('search')->once()->andReturn([new IgdbGameMatch(
+                igdbId: 42,
+                title: 'Sin arte',
+                platforms: null,
+                developer: null,
+                releaseDate: null,
+                genres: null,
+                rating: null,
+            )]);
+            $mock->shouldReceive('artworks')->once()->with(42)->andReturn([]);
+        });
+
+        $response = $this->actingAs($user)->post('/games', [
+            'title' => 'Sin arte',
+            'play_status' => 'pending',
+        ]);
+
+        $response->assertRedirect(route('web.games.index'));
+
+        $game = Game::where('title', 'Sin arte')->firstOrFail();
+        $this->assertSame(42, $game->igdb_id);
+        $this->assertNull($game->igdb_background);
     }
 
     public function test_creating_a_wishlist_game_saves_priority_estimated_price_and_store(): void

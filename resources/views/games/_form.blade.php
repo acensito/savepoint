@@ -16,11 +16,19 @@
     $convertToOwned ??= false;
 
     $defaultStatus = $convertToOwned ? 'owned' : ($game ? $game->status : 'owned');
+
+    // Solo al dar de alta (nunca editando, donde ya hay una edición elegida o
+    // deliberadamente ninguna): precarga la edición por defecto configurada
+    // en Ajustes (ver PanelController::updateSettings), si el usuario tiene
+    // una elegida.
+    $defaultEditionId = $game ? $game->edition_id : auth()->user()?->default_edition_id;
     $defaultPurchaseDate = $game?->purchase_date?->format('Y-m-d')
         ?? ($convertToOwned || !$game ? now()->format('Y-m-d') : null);
 
-    $regionPresets = ['PAL-ES', 'PAL-EU', 'PAL-UK', 'PAL-FR', 'PAL-DE', 'PAL-IT', 'NTSC-U', 'NTSC-J'];
-    $defaultRegionSelect = $game ? ($game->region ?? '') : 'PAL-ES';
+    $regionPresets = \App\Http\Controllers\Web\GameController::REGION_PRESETS;
+    // Misma idea que $defaultEditionId: región por defecto de Ajustes al dar
+    // de alta, vacío ("Sin especificar") si no la ha configurado.
+    $defaultRegionSelect = $game ? ($game->region ?? '') : (auth()->user()?->default_region ?? '');
     $currentRegionSelect = old('region_select', $defaultRegionSelect);
     $isCustomRegion = $currentRegionSelect !== '' && $currentRegionSelect !== 'other' && !in_array($currentRegionSelect, $regionPresets, true);
     $regionSelectValue = $isCustomRegion ? 'other' : $currentRegionSelect;
@@ -145,7 +153,7 @@
                     <option value="">Sin edición específica</option>
                     @foreach($editions as $edition)
                         <option value="{{ $edition->id }}" data-platforms="{{ $edition->platforms->pluck('id')->implode(',') }}"
-                            {{ old('edition_id', $game?->edition_id) == $edition->id ? 'selected' : '' }}>
+                            {{ old('edition_id', $defaultEditionId) == $edition->id ? 'selected' : '' }}>
                             {{ $edition->name }}
                         </option>
                     @endforeach

@@ -1,9 +1,23 @@
 <form action="{{ route('web.games.index') }}" method="GET">
+    <!-- El texto de búsqueda ya no es un input propio: la búsqueda por
+         título/EAN vive solo en el buscador rápido (Ctrl+K, ver
+         quick-search-dialog en layouts/app.blade.php), así que este botón
+         solo lo abre (con la búsqueda actual precargada, si hay una activa).
+         Se conserva como campo oculto para que el panel "Avanzado" de abajo
+         no pierda la búsqueda de texto al enviarse. -->
+    <input type="hidden" name="q" value="{{ $query ?? '' }}">
+
     <!-- A todo el ancho del panel que lo envuelve: es el control principal de la
          página, así que ocupa el espacio en vez de quedarse pequeño en una esquina. -->
     <div class="flex gap-2">
-        <input type="text" name="q" value="{{ $query ?? '' }}" placeholder="Buscar por título o EAN... (/)"
-            class="js-game-search js-live-search flex-1 min-w-0 rounded-lg border border-slate-700 bg-slate-800 text-slate-100 placeholder:text-slate-500 px-4 py-3 focus:border-indigo-500 focus:ring-indigo-500 outline-none text-base">
+        <button type="button" class="js-quick-search-trigger flex-1 min-w-0 flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-left hover:border-indigo-500 transition-colors"
+            data-prefill-query="{{ $query ?? '' }}">
+            <x-gicon name="search" class="text-[18px] text-slate-500 flex-shrink-0" />
+            <span class="flex-1 min-w-0 truncate text-base {{ ($query ?? '') !== '' ? 'text-slate-100' : 'text-slate-500' }}">
+                {{ ($query ?? '') !== '' ? $query : 'Buscar por título o EAN…' }}
+            </span>
+            <kbd class="hidden sm:inline-flex flex-shrink-0 text-[10px] font-semibold text-slate-500 border border-slate-700 rounded px-1.5 py-0.5">Ctrl K</kbd>
+        </button>
 
         <button type="button" class="js-advanced-toggle relative flex-shrink-0 inline-flex items-center justify-center px-4 py-3 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 border border-slate-700 transition-colors"
             aria-label="Filtros avanzados" title="Filtros avanzados">
@@ -15,8 +29,10 @@
     </div>
 
     <!-- Filtros avanzados: plegados por defecto (se despliegan con el botón de
-         arriba, ver initAdvancedFiltersToggle en app.js); el buscador simple ya
-         filtra solo con lo escrito, esto es para plataforma/estado/orden/paginación. -->
+         arriba, ver initAdvancedFiltersToggle en app.js). Gobiernan el listado
+         paginado (plataforma/estado/orden/paginación); estos mismos filtros
+         (salvo orden/paginación) también existen en versión compacta dentro
+         del buscador rápido, ver quick-search-dialog en layouts/app.blade.php. -->
     <div class="js-advanced-panel {{ $hasAdvancedFilters ? '' : 'hidden' }} flex flex-wrap gap-3 mt-3 pt-3 border-t border-slate-800">
         <select name="platform_id" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-none text-sm">
             <option value="">Todas las plataformas</option>

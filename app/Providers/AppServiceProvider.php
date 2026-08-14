@@ -2,9 +2,11 @@
 
 namespace App\Providers;
 
+use App\Models\Platform;
 use App\Services\GameLookup\CexGameLookupService;
 use App\Services\GameLookup\GameLookupInterface;
 use App\Services\GameLookup\IgdbLookupService;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -46,6 +48,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Los filtros compactos del buscador rápido (Ctrl+K, ver
+        // quick-search-dialog en layouts/app.blade.php) viven en el layout,
+        // que incluye toda página autenticada, no solo el listado de la
+        // colección: de ahí un composer en vez de pasarlo controlador a
+        // controlador.
+        View::composer('layouts.app', function ($view) {
+            $view->with('quickSearchPlatforms', Platform::orderBy('name')->get(['id', 'name']));
+        });
     }
 }

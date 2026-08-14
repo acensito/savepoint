@@ -80,4 +80,32 @@ class SearchControllerTest extends TestCase
         $response->assertOk();
         Http::assertNothingSent();
     }
+
+    public function test_quick_includes_wishlist_games_by_default(): void
+    {
+        $user = User::factory()->create();
+        Game::factory()->for($user)->create(['title' => 'Silksong', 'status' => 'wishlist']);
+
+        $response = $this->actingAs($user)->get(route('web.search.quick', ['q' => 'Silksong']));
+
+        $response->assertOk();
+        $response->assertSee('Silksong');
+    }
+
+    public function test_quick_excludes_wishlist_games_when_the_setting_is_enabled(): void
+    {
+        // Sin match local (se excluye la wishlist a propósito), se
+        // consultaría CEX: se falsea para no salir a la red desde el test.
+        Http::fake(['search.webuy.io/*' => Http::response(['hits' => []], 200)]);
+        $user = User::factory()->create(['quick_search_exclude_wishlist' => true]);
+        $game = Game::factory()->for($user)->create(['title' => 'Silksong', 'status' => 'wishlist']);
+
+        $response = $this->actingAs($user)->get(route('web.search.quick', ['q' => 'Silksong']));
+
+        $response->assertOk();
+        // No basta con assertDontSee('Silksong'): el enlace "Dar de alta a
+        // mano" repite el texto de la búsqueda aunque no haya match local.
+        $response->assertDontSee(route('web.games.show', $game->id), false);
+        $response->assertSee('Sin resultados para');
+    }
 }

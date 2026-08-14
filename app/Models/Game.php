@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -64,6 +65,23 @@ class Game extends Model
             'igdb_rating' => 'decimal:2',
             'igdb_matched_at' => 'datetime',
         ];
+    }
+
+    // ==========================================
+    // BÚSQUEDA
+    // ==========================================
+
+    /**
+     * Coincidencia por título (parcial, sin distinguir mayúsculas) o EAN
+     * (exacto). Mismo criterio usado por el buscador de la colección
+     * (GameController::filteredGamesQuery) y por el Ctrl+K (SearchController::quick).
+     */
+    public function scopeSearch(Builder $query, string $term): Builder
+    {
+        return $query->where(function (Builder $q) use ($term) {
+            $q->whereLike('title', '%' . $term . '%', caseSensitive: false)
+                ->orWhere('ean', $term);
+        });
     }
 
     // ==========================================

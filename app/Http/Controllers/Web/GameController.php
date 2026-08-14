@@ -32,7 +32,7 @@ class GameController extends Controller
      * a la columna real (evita pasar un nombre de columna arbitrario del
      * usuario directamente a orderBy()).
      */
-    private const SORTABLE_COLUMNS = [
+    public const SORTABLE_COLUMNS = [
         'title' => 'title',
         'price_paid' => 'price_paid',
         'rating' => 'rating',
@@ -43,8 +43,19 @@ class GameController extends Controller
      * Tamaños de página permitidos desde ?per_page= en el listado web (a
      * diferencia de la API, aquí se restringe a un puñado de valores fijos
      * pensados para un selector, no un número libre).
+     *
+     * Ambas constantes son public: PanelController las reutiliza para
+     * validar los ajustes de orden/paginación por defecto sin duplicar la
+     * lista (ver PanelController::updateSettings()).
      */
-    private const PER_PAGE_OPTIONS = [10, 20, 50, 100];
+    public const PER_PAGE_OPTIONS = [10, 20, 50, 100];
+
+    /**
+     * Presets de región del formulario de alta/edición (games/_form.blade.php)
+     * y del ajuste "Región por defecto" en Ajustes (PanelController): una
+     * sola lista para las dos, evita que se desincronicen.
+     */
+    public const REGION_PRESETS = ['PAL-ES', 'PAL-EU', 'PAL-UK', 'PAL-FR', 'PAL-DE', 'PAL-IT', 'NTSC-U', 'NTSC-J'];
 
     // Colección del usuario, con búsqueda por título/EAN, filtros por plataforma/estado
     // (?q=, ?platform_id=, ?play_status=, ?status=), orden (?sort=, ?dir=) y
@@ -58,11 +69,10 @@ class GameController extends Controller
         $platformId = (string) $request->input('platform_id', '');
         $playStatus = (string) $request->input('play_status', '');
         $status = (string) $request->input('status', '');
-        $sort = (string) $request->input('sort', '');
-        $dir = $request->input('dir') === 'asc' ? 'asc' : 'desc';
+        [$sort, $dir] = $this->resolveSort($request);
         $perPage = in_array((int) $request->input('per_page'), self::PER_PAGE_OPTIONS, true)
             ? (int) $request->input('per_page')
-            : 20;
+            : (int) (auth()->user()->default_per_page ?: 20);
 
         // Calculados aquí (no en la vista) porque los necesitan tanto la página
         // completa como el fragmento que se devuelve por AJAX al buscar en vivo.
@@ -124,8 +134,7 @@ class GameController extends Controller
         $platformId = (string) $request->input('platform_id', '');
         $playStatus = (string) $request->input('play_status', '');
         $status = (string) $request->input('status', '');
-        $sort = (string) $request->input('sort', '');
-        $dir = $request->input('dir') === 'asc' ? 'asc' : 'desc';
+        [$sort, $dir] = $this->resolveSort($request);
         $sortColumn = self::SORTABLE_COLUMNS[$sort] ?? null;
 
         return Game::where('user_id', auth()->id())
@@ -133,20 +142,40 @@ class GameController extends Controller
             // deseado todavía no forma parte de "tu colección", así que nunca
             // aparece aquí, ni siquiera con el filtro de Propiedad a mano.
             ->where('status', '!=', 'wishlist')
-            ->when($query !== '', function ($q) use ($query) {
-                $q->where(function ($sub) use ($query) {
-                    $sub->whereLike('title', '%' . $query . '%', caseSensitive: false)
-                        ->orWhere('ean', $query);
-                });
-            })
+            ->when($query !== '', fn ($q) => $q->search($query))
             ->when($platformId !== '', fn ($q) => $q->where('platform_id', $platformId))
             ->when($playStatus !== '', fn ($q) => $q->where('play_status', $playStatus))
             ->when($status !== '', fn ($q) => $q->where('status', $status))
             ->when(
                 $sortColumn !== null,
                 fn ($q) => $q->orderBy($sortColumn, $dir)->orderByDesc('id'),
-                fn ($q) => $q->latest(),
+                // orderByDesc('id') como desempate: dos juegos dados de alta en
+                // el mismo segundo (created_at empatado) sin esto quedarían en
+                // un orden no determinista entre carga y carga/página y página.
+                fn ($q) => $q->latest()->orderByDesc('id'),
             );
+    }
+
+    /**
+     * Orden efectivo del listado: si la URL trae ?sort=/?dir= (aunque sea
+     * vacío, que es una elección válida = "más recientes"), gana sobre
+     * cualquier otra cosa; si no trae esas claves en absoluto, se usa el
+     * ajuste "Orden por defecto" de Ajustes (ver PanelController), y si el
+     * usuario tampoco lo ha configurado, se cae a 'desc'. Compartido entre
+     * index() y filteredGamesQuery() para que imprimir/exportar respeten el
+     * mismo criterio que el listado.
+     */
+    private function resolveSort(Request $request): array
+    {
+        $sort = $request->has('sort')
+            ? (string) $request->input('sort', '')
+            : (string) (auth()->user()->default_sort ?? '');
+
+        $dir = $request->has('dir')
+            ? ($request->input('dir') === 'asc' ? 'asc' : 'desc')
+            : (auth()->user()->default_dir === 'asc' ? 'asc' : 'desc');
+
+        return [$sort, $dir];
     }
 
     /**
@@ -294,7 +323,11 @@ class GameController extends Controller
 
         $validated['user_id'] = auth()->id();
 
-        Game::create($validated);
+        $game = Game::create($validated);
+
+        if (auth()->user()->auto_igdb_background) {
+            $this->autoAssignIgdbBackground($game);
+        }
 
         return redirect()->route('web.games.index')->with('success', 'Juego añadido correctamente.');
     }
@@ -312,13 +345,7 @@ class GameController extends Controller
 
         $game->load(['platform.manufacturer', 'edition']);
 
-        if ($game->igdb_matched_at === null) {
-            // limit 10, no 1: search() reordena por título exacto/plataforma
-            // dentro de lo que devuelva IGDB (ver IgdbLookupService::search()),
-            // así que hace falta margen para que esa prioridad sirva de algo.
-            $match = $this->igdbLookup->search($game->title, $game->platform?->name, limit: 10)[0] ?? null;
-            $this->applyIgdbMatch($game, $match);
-        }
+        $this->matchIgdbIfNeeded($game);
 
         return view('games.show', compact('game'));
     }
@@ -411,9 +438,10 @@ class GameController extends Controller
     }
 
     /**
-     * Fija (o quita, con image_id vacío) el fondo elegido a mano entre las
-     * opciones de igdbArtworks(): nunca se aplica solo, siempre es una
-     * elección explícita del usuario (ver Game::backgroundUrl()).
+     * Fija (o quita, con image_id vacío) el fondo entre las opciones de
+     * igdbArtworks(): siempre disponible como elección explícita del
+     * usuario, tanto si el ajuste "Fondo automático" (ver
+     * PanelController::updateSettings) está activo como si no.
      */
     public function igdbSetBackground(Request $request, Game $game): RedirectResponse
     {
@@ -427,6 +455,26 @@ class GameController extends Controller
 
         return redirect()->route('web.games.show', $game)
             ->with('success', $validated['image_id'] ? 'Fondo actualizado.' : 'Fondo quitado.');
+    }
+
+    /**
+     * Intenta el match automático con IGDB (developer/release_date/géneros/
+     * nota) una sola vez por juego, haya encontrado algo o no (igdb_matched_at
+     * ya no es null): evita repetir la búsqueda en cada visita a la ficha, y
+     * también evita repetirla en store() si el ajuste "Fondo automático" ya
+     * la disparó ahí (ver autoAssignIgdbBackground()).
+     */
+    private function matchIgdbIfNeeded(Game $game): void
+    {
+        if ($game->igdb_matched_at !== null) {
+            return;
+        }
+
+        // limit 10, no 1: search() reordena por título exacto/plataforma
+        // dentro de lo que devuelva IGDB (ver IgdbLookupService::search()),
+        // así que hace falta margen para que esa prioridad sirva de algo.
+        $match = $this->igdbLookup->search($game->title, $game->platform?->name, limit: 10)[0] ?? null;
+        $this->applyIgdbMatch($game, $match);
     }
 
     /**
@@ -450,6 +498,29 @@ class GameController extends Controller
         ]);
 
         $game->save();
+    }
+
+    /**
+     * Ajuste "Fondo automático desde IGDB" (ver PanelController::settings):
+     * si el juego recién dado de alta se identifica en IGDB y tiene arte
+     * disponible, fija el primero como fondo, sin esperar a que el usuario
+     * lo elija a mano. Nunca bloquea el alta si IGDB falla o no encuentra
+     * nada — IgdbLookupService ya devuelve vacío/null en ese caso, nunca
+     * lanza una excepción.
+     */
+    private function autoAssignIgdbBackground(Game $game): void
+    {
+        $this->matchIgdbIfNeeded($game);
+
+        if ($game->igdb_id === null) {
+            return;
+        }
+
+        $artworkId = $this->igdbLookup->artworks($game->igdb_id)[0] ?? null;
+
+        if ($artworkId !== null) {
+            $game->update(['igdb_background' => $artworkId]);
+        }
     }
 
     /**

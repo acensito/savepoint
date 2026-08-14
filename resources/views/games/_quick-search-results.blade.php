@@ -1,5 +1,10 @@
-@if($query === '')
-    <p class="px-4 py-10 text-center text-sm text-slate-500">Escribe para buscar un juego por título o EAN.</p>
+@if($query === '' && !$hasFilters)
+    <p class="px-4 py-10 text-center text-sm text-slate-500">Escribe para buscar un juego por título o EAN, o elige un filtro.</p>
+@elseif($games->isEmpty() && $query === '')
+    {{-- Solo hay filtros activos (plataforma/estado), sin texto: no hay título
+         que ofrecer para dar de alta, así que no tiene sentido el CTA de CEX
+         ni el de "dar de alta a mano" de más abajo. --}}
+    <p class="px-4 py-10 text-center text-sm text-slate-500">Sin resultados con los filtros seleccionados.</p>
 @elseif($games->isEmpty())
     <div class="px-4 py-4 text-center">
         <p class="text-sm text-slate-500">
@@ -96,4 +101,13 @@
             </li>
         @endforeach
     </ul>
+
+    <!-- Puente a la vista completa: el modal no pagina ni ordena, se limita a
+         los primeros MAX_RESULTS (ver SearchController::quick). -->
+    <div class="px-4 py-3 border-t border-slate-800 text-center">
+        <a href="{{ $viewAllUrl }}" class="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-400 hover:text-indigo-300">
+            Ver todos los resultados en la colección
+            <x-gicon name="arrow_forward" class="text-[16px]" />
+        </a>
+    </div>
 @endif

@@ -18,6 +18,17 @@ class EditionControllerTest extends TestCase
         $this->get('/editions')->assertRedirect('/login');
     }
 
+    public function test_the_normal_edition_exists_and_is_available_for_any_platform(): void
+    {
+        // Poblada por la migración 2026_08_14_190156_seed_normal_edition, no
+        // por un seeder (ver su docblock: los seeders no corren siempre en
+        // producción). Sin filas en edition_platform = disponible para
+        // cualquier plataforma, incluidas las que se den de alta después.
+        $edition = Edition::where('name', 'Normal')->firstOrFail();
+
+        $this->assertCount(0, $edition->platforms);
+    }
+
     public function test_index_lists_editions_with_their_platforms_and_game_count(): void
     {
         $user = User::factory()->create();

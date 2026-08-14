@@ -32,14 +32,35 @@ function initSidebarToggle() {
 
 initSidebarToggle();
 
-const THEME_STORAGE_KEY = 'sp:theme';
+/**
+ * Persiste un ajuste de tema/vista en la cuenta (ver
+ * PanelController::updateDisplay): fire-and-forget, la clase ya se ha
+ * aplicado al <html> de forma síncrona antes de llamar a esto, así que un
+ * fallo de red no bloquea ni deshace el cambio visible, solo no sobrevive a
+ * la próxima carga de página.
+ */
+function saveDisplayPreference(payload) {
+    const token = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+
+    fetch('/panel/settings/display', {
+        method: 'PATCH',
+        credentials: 'same-origin',
+        headers: {
+            'X-CSRF-TOKEN': token,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+        },
+        body: JSON.stringify(payload),
+    }).catch(() => {});
+}
 
 /**
  * Alterna entre tema claro y oscuro. El cambio de color en sí lo hace
  * app.css (redefine las variables de Tailwind cuando <html> lleva la clase
  * 'light'); aquí solo se gestiona esa clase y su persistencia. El estado
- * inicial ya lo aplica el script bloqueante del <head> de cada página antes
- * del primer pintado, así que no hay parpadeo al cargar.
+ * inicial ya lo pinta el propio servidor en la clase de <html> (ver
+ * layouts/app.blade.php), a partir del ajuste de cuenta, así que no hay
+ * parpadeo al cargar ni falta que decidirlo aquí en JS.
  */
 function initThemeToggle() {
     document.querySelectorAll('.js-theme-toggle').forEach((toggle) => {
@@ -56,56 +77,12 @@ function initThemeToggle() {
 
             document.documentElement.classList.toggle('light', isLight);
             syncIcon(isLight);
-
-            try {
-                localStorage.setItem(THEME_STORAGE_KEY, isLight ? 'light' : 'dark');
-            } catch (e) {}
+            saveDisplayPreference({ theme: isLight ? 'light' : 'dark' });
         });
     });
 }
 
 initThemeToggle();
-
-/**
- * Atajo "/" para enfocar el buscador de la colección (games/index.blade.php),
- * como en GitHub o Gmail. El buscador está duplicado en el markup (una copia
- * dentro del <details> colapsable de móvil, otra en el panel fijo de
- * escritorio); solo una de las dos es visible según el ancho de pantalla, así
- * que hay que localizar esa antes de enfocarla.
- */
-function initGameSearchShortcut() {
-    const inputs = document.querySelectorAll('.js-game-search');
-    if (!inputs.length) return;
-
-    document.addEventListener('keydown', (e) => {
-        if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
-
-        const active = document.activeElement;
-        const isTyping = active && (
-            active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT' || active.isContentEditable
-        );
-        if (isTyping) return;
-
-        // En móvil el buscador vive dentro de un <details> colapsado: si su
-        // envoltorio está en pantalla (estamos en móvil) pero cerrado, lo
-        // abrimos antes de comprobar qué instancia enfocar.
-        inputs.forEach((input) => {
-            const details = input.closest('details');
-            if (details && !details.open && details.offsetParent !== null) {
-                details.open = true;
-            }
-        });
-
-        const visible = Array.from(inputs).find((input) => input.offsetParent !== null);
-        if (!visible) return;
-
-        e.preventDefault();
-        visible.focus();
-        visible.select();
-    });
-}
-
-initGameSearchShortcut();
 
 /**
  * Acciones en bloque en la colección (games/index.blade.php): las casillas
@@ -116,9 +93,9 @@ initGameSearchShortcut();
  * estén en el documento.
  *
  * Usa delegación de eventos sobre #games-results (no listeners atados a
- * cada casilla) a propósito: ese contenedor se reemplaza entero cada vez
- * que el buscador en vivo trae resultados nuevos (ver initGamesLiveSearch),
- * y con delegación no hace falta volver a enganchar nada tras cada refresco.
+ * cada casilla) a propósito: ese contenedor se reemplaza entero tras cada
+ * edición rápida (ver refreshGamesResults/initQuickEdit más abajo), y con
+ * delegación no hace falta volver a enganchar nada tras cada refresco.
  */
 function initBulkActions() {
     const results = document.getElementById('games-results');
@@ -168,7 +145,6 @@ function initBulkActions() {
 
 initBulkActions();
 
-const GAMES_VIEW_STORAGE_KEY = 'sp:gamesView';
 const GAMES_VIEW_CLASSES = { compact: 'games-compact-view', grid: 'games-grid-view' };
 
 /**
@@ -176,8 +152,9 @@ const GAMES_VIEW_CLASSES = { compact: 'games-compact-view', grid: 'games-grid-vi
  * tabla en escritorio), una tabla compacta (menos alto por fila) y la
  * estantería (grid de carátulas grandes). Igual que el tema, el cambio de
  * vista en sí lo hace app.css según la clase en <html>; aquí solo se
- * gestiona esa clase y su persistencia, y el estado inicial ya lo aplica el
- * script bloqueante del <head> antes del primer pintado.
+ * gestiona esa clase y su persistencia (ver saveDisplayPreference), y el
+ * estado inicial ya lo pinta el servidor en la clase de <html> (ver
+ * layouts/app.blade.php).
  */
 function initGamesViewToggle() {
     const buttons = {
@@ -210,10 +187,7 @@ function initGamesViewToggle() {
             document.documentElement.classList.add(GAMES_VIEW_CLASSES[mode]);
         }
         syncButtons(mode);
-
-        try {
-            localStorage.setItem(GAMES_VIEW_STORAGE_KEY, mode);
-        } catch (e) {}
+        saveDisplayPreference({ games_view: mode });
     };
 
     syncButtons(currentMode);
@@ -257,8 +231,8 @@ function initSelectionMode() {
             // Al salir del modo selección se limpia lo marcado, para no
             // arrastrar una selección "invisible" si se vuelve a entrar.
             // Se busca en vivo (no una lista capturada al iniciar) porque el
-            // contenido de #games-results puede haberse reemplazado por el
-            // buscador en vivo desde entonces.
+            // contenido de #games-results puede haberse reemplazado (edición
+            // rápida) desde entonces.
             results.querySelectorAll('.js-bulk-checkbox').forEach((cb) => { cb.checked = false; });
             window.__syncBulkActions?.();
         }
@@ -293,9 +267,9 @@ initAdvancedFiltersToggle();
 /**
  * Refresca #games-results por AJAX con la URL dada (filtros/orden/página
  * incluidos en la query string) y vuelve a sincronizar lo que dependa de su
- * contenido. Lo usan tanto el buscador en vivo como la edición rápida
- * (tras guardar, para que la fila/tarjeta muestre el valor ya actualizado
- * sin tener que reimplementar en JS el mismo HTML que ya genera Blade).
+ * contenido. Lo usa la edición rápida (tras guardar, para que la
+ * fila/tarjeta muestre el valor ya actualizado sin tener que reimplementar
+ * en JS el mismo HTML que ya genera Blade).
  */
 async function refreshGamesResults(url) {
     const results = document.getElementById('games-results');
@@ -326,55 +300,11 @@ async function refreshGamesResults(url) {
     }
 }
 
-const GAMES_LIVE_SEARCH_DEBOUNCE_MS = 300;
-
-/**
- * Buscador simple de la colección: filtra según se escribe (sin recargar la
- * página), conservando cualquier filtro "Avanzado" ya aplicado (van en el
- * mismo <form>, así que el FormData los incluye aunque el panel esté
- * plegado). El campo está duplicado (móvil/escritorio, ver
- * initGameSearchShortcut) y ambas copias se mantienen sincronizadas tras
- * cada búsqueda.
- */
-function initGamesLiveSearch() {
-    const inputs = Array.from(document.querySelectorAll('.js-live-search'));
-    if (!inputs.length || !document.getElementById('games-results')) return;
-
-    let debounceTimer = null;
-
-    const runSearch = (sourceInput) => {
-        const form = sourceInput.closest('form');
-        if (!form) return;
-
-        const params = new URLSearchParams(new FormData(form));
-        const url = `${form.getAttribute('action')}?${params.toString()}`;
-
-        refreshGamesResults(url).then(() => {
-            history.replaceState(null, '', url);
-        });
-
-        // La copia del buscador que no se está usando (móvil o escritorio,
-        // según desde dónde se escriba) se mantiene con el mismo texto.
-        inputs.forEach((input) => {
-            if (input !== sourceInput) input.value = sourceInput.value;
-        });
-    };
-
-    inputs.forEach((input) => {
-        input.addEventListener('input', () => {
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => runSearch(input), GAMES_LIVE_SEARCH_DEBOUNCE_MS);
-        });
-    });
-}
-
-initGamesLiveSearch();
-
 /**
  * Edición rápida de valoración de juego desde la propia fila/tarjeta
  * (tabla, tarjetas o estantería), sin abrir el formulario completo.
  * Delegado sobre #games-results por el mismo motivo que las acciones en
- * bloque: sobrevive a los refrescos del buscador en vivo sin tener que
+ * bloque: sobrevive a los refrescos de refreshGamesResults sin tener que
  * volver a engancharse.
  */
 function initQuickEdit() {
@@ -716,18 +646,25 @@ initConfirmDialogs();
 const QUICK_SEARCH_DEBOUNCE_MS = 200;
 
 /**
- * Búsqueda rápida global (Ctrl+K / Cmd+K): abre un <dialog> centrado con un
- * campo de texto que busca en la colección según se escribe. El servidor
- * devuelve el fragmento ya renderizado (mismo patrón que refreshGamesResults
- * más arriba) para reutilizar los componentes de carátula/chip/estrellas;
- * los resultados son enlaces normales a la ficha del juego, sin navegación
- * por JS.
+ * Búsqueda rápida global (Ctrl+K / Cmd+K, también "/" y el botón-buscador de
+ * la colección): abre un <dialog> centrado con un campo de texto y filtros
+ * opcionales de plataforma/estado que buscan en la colección según se
+ * cambian. Es el único buscador de texto de la app. El servidor devuelve el
+ * fragmento ya renderizado (mismo patrón que refreshGamesResults más arriba)
+ * para reutilizar los componentes de carátula/chip/estrellas; los resultados
+ * son enlaces normales a la ficha del juego, sin navegación por JS.
  */
 function initQuickSearch() {
     const dialog = document.getElementById('quick-search-dialog');
     const input = document.getElementById('quick-search-input');
     const results = document.getElementById('quick-search-results');
-    const trigger = document.getElementById('quick-search-trigger');
+    // Único buscador de texto de la app: el icono del header y el "buscador"
+    // de la colección (games/_filters.blade.php, ahora un botón, no un
+    // input) comparten esta misma clase para abrir el mismo diálogo.
+    const triggers = document.querySelectorAll('.js-quick-search-trigger');
+    const platformFilter = document.getElementById('quick-search-platform');
+    const playStatusFilter = document.getElementById('quick-search-play-status');
+    const statusFilter = document.getElementById('quick-search-status');
     const url = dialog?.dataset.url;
 
     if (!dialog || !input || !results || !url) return;
@@ -736,6 +673,9 @@ function initQuickSearch() {
 
     const runSearch = async () => {
         const params = new URLSearchParams({ q: input.value.trim() });
+        if (platformFilter?.value) params.set('platform_id', platformFilter.value);
+        if (playStatusFilter?.value) params.set('play_status', playStatusFilter.value);
+        if (statusFilter?.value) params.set('status', statusFilter.value);
 
         try {
             const response = await fetch(`${url}?${params.toString()}`, {
@@ -750,19 +690,29 @@ function initQuickSearch() {
         }
     };
 
-    const open = () => {
-        input.value = '';
+    // El trigger pulsado puede traer una búsqueda ya escrita (el "buscador"
+    // de la colección precarga la suya vía data-prefill-query); el resto
+    // (icono del header, atajos de teclado) siempre abre en blanco. Los
+    // filtros se reinician en cada apertura para no arrastrar una selección
+    // de una búsqueda anterior sin que se note.
+    const open = (trigger) => {
+        input.value = trigger?.dataset.prefillQuery || '';
+        if (platformFilter) platformFilter.value = '';
+        if (playStatusFilter) playStatusFilter.value = '';
+        if (statusFilter) statusFilter.value = '';
         dialog.showModal();
         input.focus();
+        input.select();
         runSearch();
     };
 
-    trigger?.addEventListener('click', open);
+    triggers.forEach((trigger) => {
+        trigger.addEventListener('click', () => open(trigger));
+    });
 
-    // Atajo global: funciona aunque el foco esté en otro campo de texto (a
-    // diferencia de "/" para el buscador de la colección), como en cualquier
-    // paleta de comandos. preventDefault() también evita que el navegador
-    // enfoque la barra de direcciones con este mismo atajo.
+    // Atajo global: funciona aunque el foco esté en otro campo de texto, como
+    // en cualquier paleta de comandos. preventDefault() también evita que el
+    // navegador enfoque la barra de direcciones con este mismo atajo.
     document.addEventListener('keydown', (e) => {
         if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 'k') return;
 
@@ -770,9 +720,28 @@ function initQuickSearch() {
         dialog.open ? dialog.close() : open();
     });
 
+    // Atajo "/", como en GitHub o Gmail: solo cuando no se está ya
+    // escribiendo en otro campo, a diferencia de Ctrl+K de arriba.
+    document.addEventListener('keydown', (e) => {
+        if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
+
+        const active = document.activeElement;
+        const isTyping = active && (
+            active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT' || active.isContentEditable
+        );
+        if (isTyping) return;
+
+        e.preventDefault();
+        open();
+    });
+
     input.addEventListener('input', () => {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(runSearch, QUICK_SEARCH_DEBOUNCE_MS);
+    });
+
+    [platformFilter, playStatusFilter, statusFilter].forEach((select) => {
+        select?.addEventListener('change', runSearch);
     });
 
     // Enter navega directamente al primer resultado, sin tener que soltar el

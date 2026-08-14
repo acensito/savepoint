@@ -1,5 +1,19 @@
 <!DOCTYPE html>
-<html lang="es">
+@php
+    // Tema y vista de la colección son ajustes de cuenta (ver Ajustes /
+    // PanelController), no de localStorage: se pintan aquí directamente para
+    // que lleguen correctos en el primer HTML, sin depender de un script
+    // bloqueante ni arriesgar un parpadeo al cargar.
+    $htmlClasses = collect([
+        auth()->user()->theme === 'light' ? 'light' : null,
+        match (auth()->user()->games_view) {
+            'grid' => 'games-grid-view',
+            'compact' => 'games-compact-view',
+            default => null,
+        },
+    ])->filter()->implode(' ');
+@endphp
+<html lang="es" class="{{ $htmlClasses }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,24 +31,14 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
     <script>
-        // Bloqueante a propósito: aplica el estado guardado del sidebar y del tema antes
-        // del primer pintado para que no haya parpadeo (sidebar expandido/plegado, u
-        // oscuro/claro) al cargar o al navegar entre páginas.
+        // Bloqueante a propósito: aplica el estado guardado del sidebar antes del
+        // primer pintado para que no haya parpadeo (expandido/plegado) al cargar o
+        // al navegar entre páginas. Tema y vista de la colección ya no viven aquí:
+        // se pintan server-side arriba, en la clase de <html> (ver Ajustes).
         (function () {
             try {
                 if (localStorage.getItem('sp:sidebarCollapsed') === '1') {
                     document.documentElement.classList.add('sidebar-collapsed');
-                }
-                if (localStorage.getItem('sp:theme') === 'light') {
-                    document.documentElement.classList.add('light');
-                }
-                // Sin preferencia guardada todavía, la vista por defecto es la compacta
-                // (antes cualquier valor ausente caía en la lista/tarjetas normal).
-                var gamesView = localStorage.getItem('sp:gamesView');
-                if (gamesView === 'grid') {
-                    document.documentElement.classList.add('games-grid-view');
-                } else if (gamesView === 'compact' || gamesView === null) {
-                    document.documentElement.classList.add('games-compact-view');
                 }
             } catch (e) {}
         })();
@@ -62,7 +66,7 @@
 
             <div class="flex items-center gap-4 flex-shrink-0">
                 <button type="button" id="quick-search-trigger"
-                    class="flex items-center justify-center w-8 h-8 rounded-lg text-indigo-100 hover:bg-white/10 hover:text-white transition-colors"
+                    class="js-quick-search-trigger flex items-center justify-center w-8 h-8 rounded-lg text-indigo-100 hover:bg-white/10 hover:text-white transition-colors"
                     aria-label="Buscar (Ctrl+K)" title="Buscar (Ctrl+K)">
                     <x-gicon name="search" class="text-[20px]" />
                 </button>
@@ -198,9 +202,13 @@
         </div>
     </dialog>
 
-    <!-- Búsqueda rápida (Ctrl+K / Cmd+K): resultados en vivo por título/EAN, ver
-         initQuickSearch en app.js. Los resultados son enlaces normales a la
-         ficha del juego, sin navegación por JS. -->
+    <!-- Búsqueda rápida (Ctrl+K / Cmd+K, también "/" y el buscador de la
+         colección vía .js-quick-search-trigger): resultados en vivo por
+         título/EAN con filtros opcionales de plataforma/estado, ver
+         initQuickSearch en app.js. Es el único buscador de texto de la app:
+         la colección (games/_filters.blade.php) ya no tiene su propio input,
+         solo un botón que abre este mismo diálogo. Los resultados son
+         enlaces normales a la ficha del juego, sin navegación por JS. -->
     <dialog id="quick-search-dialog" data-url="{{ route('web.search.quick') }}"
         class="rounded-xl border border-slate-800 bg-slate-900 text-slate-100 p-0 backdrop:bg-black/60 w-full max-w-lg">
         <div class="flex items-center gap-3 px-4 py-3 border-b border-slate-800">
@@ -214,6 +222,33 @@
                 <x-gicon name="qr_code_scanner" class="text-[18px]" />
             </button>
             <kbd class="flex-shrink-0 text-[10px] font-semibold text-slate-500 border border-slate-700 rounded px-1.5 py-0.5">Esc</kbd>
+        </div>
+
+        <!-- Filtros compactos: mismos campos que el panel "Avanzado" de la
+             colección (games/_filters.blade.php), para no tener que salir del
+             modal a filtrar por plataforma/estado. Ver runSearch en
+             initQuickSearch (app.js), que los añade a la query en cada
+             búsqueda y en cada 'change'. -->
+        <div class="flex items-center gap-2 px-4 py-2 border-b border-slate-800 overflow-x-auto">
+            <select id="quick-search-platform" class="flex-shrink-0 rounded-lg border border-slate-700 bg-slate-800 text-slate-300 px-2 py-1.5 text-xs focus:border-indigo-500 focus:ring-indigo-500 outline-none">
+                <option value="">Cualquier plataforma</option>
+                @foreach($quickSearchPlatforms as $platform)
+                    <option value="{{ $platform->id }}">{{ $platform->name }}</option>
+                @endforeach
+            </select>
+
+            <select id="quick-search-play-status" class="flex-shrink-0 rounded-lg border border-slate-700 bg-slate-800 text-slate-300 px-2 py-1.5 text-xs focus:border-indigo-500 focus:ring-indigo-500 outline-none">
+                <option value="">Cualquier estado</option>
+                <option value="pending">Pendiente</option>
+                <option value="playing">Jugando</option>
+                <option value="finished">Terminado</option>
+            </select>
+
+            <select id="quick-search-status" class="flex-shrink-0 rounded-lg border border-slate-700 bg-slate-800 text-slate-300 px-2 py-1.5 text-xs focus:border-indigo-500 focus:ring-indigo-500 outline-none">
+                <option value="">Cualquier propiedad</option>
+                <option value="owned">En colección</option>
+                <option value="sold">Vendido</option>
+            </select>
         </div>
 
         <div id="quick-search-results" class="max-h-[60vh] overflow-y-auto"></div>

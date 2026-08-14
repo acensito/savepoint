@@ -12,7 +12,11 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password'])]
+#[Fillable([
+    'name', 'email', 'password', 'auto_igdb_background',
+    'theme', 'games_view', 'default_sort', 'default_dir', 'default_per_page',
+    'default_region', 'default_edition_id', 'quick_search_exclude_wishlist',
+])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -29,6 +33,10 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'auto_igdb_background' => 'boolean',
+            'default_per_page' => 'integer',
+            'default_edition_id' => 'integer',
+            'quick_search_exclude_wishlist' => 'boolean',
         ];
     }
 

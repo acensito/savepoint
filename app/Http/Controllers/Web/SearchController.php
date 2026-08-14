@@ -31,9 +31,10 @@ class SearchController extends Controller
     /**
      * Resultados en vivo para la búsqueda rápida (Ctrl+K): mismo criterio de
      * coincidencia que el buscador de la colección (título o EAN exacto),
-     * acotado al usuario autenticado. Devuelve un fragmento Blade (no JSON)
-     * para poder reutilizar los mismos componentes de carátula/chip/estrellas
-     * que el resto de la app.
+     * acotado al usuario autenticado, y admite los mismos filtros
+     * (plataforma/estado de juego/propiedad) que el listado paginado. Devuelve
+     * un fragmento Blade (no JSON) para poder reutilizar los mismos
+     * componentes de carátula/chip/estrellas que el resto de la app.
      *
      * Cuando el juego no está en la colección, se ofrecen además sugerencias
      * de un catálogo externo (ver GameLookupInterface) para autorrellenar el
@@ -42,8 +43,12 @@ class SearchController extends Controller
     public function quick(Request $request)
     {
         $query = trim((string) $request->input('q', ''));
+        $platformId = (string) $request->input('platform_id', '');
+        $playStatus = (string) $request->input('play_status', '');
+        $status = (string) $request->input('status', '');
+        $hasFilters = $platformId !== '' || $playStatus !== '' || $status !== '';
 
-        $games = $query === ''
+        $games = ($query === '' && !$hasFilters)
             ? collect()
             : Game::where('user_id', auth()->id())
                 ->select(['id', 'title', 'cover', 'platform_id', 'rating', 'price_paid'])
@@ -51,10 +56,14 @@ class SearchController extends Controller
                     'platform:id,name,label,bg_color,text_color,border_color,manufacturer_id',
                     'platform.manufacturer:id,bg_color,text_color,border_color',
                 ])
-                ->where(function ($q) use ($query) {
-                    $q->whereLike('title', '%' . $query . '%', caseSensitive: false)
-                        ->orWhere('ean', $query);
-                })
+                ->when($query !== '', fn ($q) => $q->search($query))
+                ->when($platformId !== '', fn ($q) => $q->where('platform_id', $platformId))
+                ->when($playStatus !== '', fn ($q) => $q->where('play_status', $playStatus))
+                ->when($status !== '', fn ($q) => $q->where('status', $status))
+                // Ajuste "Excluir la wishlist" de Ajustes (ver
+                // PanelController::updateSettings): desactivado por defecto,
+                // así que por defecto sigue apareciendo como hasta ahora.
+                ->when(auth()->user()->quick_search_exclude_wishlist, fn ($q) => $q->where('status', '!=', 'wishlist'))
                 ->orderBy('title')
                 ->limit(self::MAX_RESULTS)
                 ->get();
@@ -65,10 +74,24 @@ class SearchController extends Controller
         // otro caso.
         $isEan = ctype_digit($query) && strlen($query) >= 8;
 
-        $externalResults = $games->isEmpty() && mb_strlen($query) >= self::MIN_EXTERNAL_QUERY_LENGTH
+        // Solo tiene sentido consultar CEX por texto: no hay forma de buscar
+        // ahí "juegos de PS2 pendientes de jugar", solo título/EAN.
+        $externalResults = $games->isEmpty() && $query !== '' && mb_strlen($query) >= self::MIN_EXTERNAL_QUERY_LENGTH
             ? $this->gameLookup->search($query)
             : [];
 
-        return view('games._quick-search-results', compact('games', 'query', 'isEan', 'externalResults'));
+        // Enlace a la colección paginada con la misma búsqueda/filtros ya
+        // aplicados, para cuando el resultado se queda corto en el modal
+        // (limitado a MAX_RESULTS, sin orden ni paginación).
+        $viewAllUrl = route('web.games.index', array_filter([
+            'q' => $query ?: null,
+            'platform_id' => $platformId ?: null,
+            'play_status' => $playStatus ?: null,
+            'status' => $status ?: null,
+        ]));
+
+        return view('games._quick-search-results', compact(
+            'games', 'query', 'isEan', 'externalResults', 'hasFilters', 'viewAllUrl',
+        ));
     }
 }

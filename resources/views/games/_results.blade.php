@@ -1,8 +1,8 @@
 <!-- Resultado del listado (tarjetas/tabla + estantería + paginación): parcial
      reutilizable para poder devolverlo tal cual, tanto en la carga normal de
      la página (incluido con @@include dentro de #games-results en index.blade.php)
-     como por AJAX cuando el buscador filtra en vivo (ver initGamesLiveSearch en
-     app.js y la rama $request->ajax() en GameController). A propósito NO incluye
+     como por AJAX tras una edición rápida (ver refreshGamesResults en app.js
+     y la rama $request->ajax() en GameController). A propósito NO incluye
      el <div id="games-results"> en sí: ese contenedor vive en index.blade.php y
      nunca se destruye, solo se le reemplaza el innerHTML por este parcial en
      cada refresco, para que los listeners delegados sobre él sigan funcionando

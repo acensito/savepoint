@@ -35,6 +35,12 @@
             'title' => 'Perfil',
             'description' => 'Nombre, email y contraseña de tu cuenta.',
         ],
+        [
+            'route' => route('web.panel.settings'),
+            'icon' => 'tune',
+            'title' => 'Ajustes',
+            'description' => 'Comportamiento de la app, como el fondo automático de IGDB.',
+        ],
     ];
 @endphp
 
