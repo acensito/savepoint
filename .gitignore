@@ -45,6 +45,10 @@ docker-compose.override.yml
 *.log
 *.tmp
 
+# CSVs de importación con datos reales de la colección (precios, tiendas...)
+# preparados en la raíz para subirlos por /games/import: nunca a git.
+/import_*.csv
+
 # Claude Code: settings.local.json es local por máquina (permisos, etc.),
 # no debe compartirse entre quien clone el repo.
 .claude/settings.local.json
