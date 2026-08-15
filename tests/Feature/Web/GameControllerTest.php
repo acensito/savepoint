@@ -57,6 +57,19 @@ class GameControllerTest extends TestCase
         $this->assertSame(20.0, $response->viewData('collectionTotals')['spent']);
     }
 
+    public function test_index_filters_by_for_sale(): void
+    {
+        $user = User::factory()->create();
+        Game::factory()->for($user)->create(['title' => 'En venta', 'for_sale' => true]);
+        Game::factory()->for($user)->create(['title' => 'No en venta', 'for_sale' => false]);
+
+        $response = $this->actingAs($user)->get('/?for_sale=1');
+
+        $games = $response->viewData('games');
+        $this->assertCount(1, $games);
+        $this->assertSame('En venta', $games->first()->title);
+    }
+
     public function test_editing_with_convert_to_owned_preselects_owned_status_and_todays_purchase_date(): void
     {
         $user = User::factory()->create();
@@ -1072,6 +1085,32 @@ class GameControllerTest extends TestCase
         $this->assertSame('finished', $game->fresh()->play_status);
     }
 
+    public function test_user_can_quick_update_the_for_sale_flag_of_their_own_game(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['for_sale' => false]);
+
+        $response = $this->actingAs($user)->patchJson("/games/{$game->id}/quick-update", ['for_sale' => true]);
+
+        $response->assertOk()->assertJson(['for_sale' => true]);
+        $this->assertTrue($game->fresh()->for_sale);
+    }
+
+    public function test_quick_update_toggles_for_sale_from_a_plain_form_and_redirects_back(): void
+    {
+        // El botón "Marcar en venta" de la ficha de detalle no usa JS/fetch: es
+        // un <form> normal, así que quick-update debe redirigir en vez de
+        // devolver JSON cuando la petición no pide explícitamente JSON.
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['for_sale' => false]);
+
+        $response = $this->actingAs($user)->from("/games/{$game->id}")
+            ->patch("/games/{$game->id}/quick-update", ['for_sale' => 1]);
+
+        $response->assertRedirect("/games/{$game->id}");
+        $this->assertTrue($game->fresh()->for_sale);
+    }
+
     public function test_quick_update_requires_a_valid_play_status(): void
     {
         $user = User::factory()->create();
@@ -1317,6 +1356,76 @@ class GameControllerTest extends TestCase
         $response = $this->actingAs($user)->delete("/games/{$game->id}");
 
         $response->assertSessionHas('undoUrl', route('web.games.restore', $game->id));
+    }
+
+    public function test_user_can_mark_their_own_game_as_sold(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['status' => 'owned', 'for_sale' => true, 'price_paid' => 40]);
+
+        $response = $this->actingAs($user)->post("/games/{$game->id}/mark-sold", [
+            'sale_price' => 55,
+            'sold_at' => '2026-03-10',
+            'notes' => 'Vendido en mano',
+        ]);
+
+        $response->assertRedirect(route('web.games.index'));
+        $response->assertSessionHas('undoUrl', route('web.sales.restore', $game->id));
+
+        $this->assertSoftDeleted('games', ['id' => $game->id]);
+
+        $game->refresh();
+        $this->assertSame('sold', $game->status);
+        $this->assertFalse($game->for_sale);
+        $this->assertSame('55.00', $game->sale_price);
+        $this->assertSame('2026-03-10', $game->sold_at->format('Y-m-d'));
+        $this->assertSame('Vendido en mano', $game->notes);
+    }
+
+    public function test_marking_a_game_as_sold_requires_a_price_and_a_date(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['status' => 'owned']);
+
+        $response = $this->actingAs($user)->post("/games/{$game->id}/mark-sold", []);
+
+        $response->assertSessionHasErrors(['sale_price', 'sold_at']);
+        $this->assertDatabaseHas('games', ['id' => $game->id, 'deleted_at' => null, 'status' => 'owned']);
+    }
+
+    public function test_user_cannot_mark_another_users_game_as_sold(): void
+    {
+        $owner = User::factory()->create();
+        $game = Game::factory()->for($owner)->create(['status' => 'owned']);
+
+        $response = $this->actingAs(User::factory()->create())->post("/games/{$game->id}/mark-sold", [
+            'sale_price' => 10,
+            'sold_at' => '2026-03-10',
+        ]);
+
+        $response->assertForbidden();
+        $this->assertDatabaseHas('games', ['id' => $game->id, 'deleted_at' => null, 'status' => 'owned']);
+    }
+
+    public function test_trash_excludes_sold_games(): void
+    {
+        $user = User::factory()->create();
+        $sold = Game::factory()->for($user)->create(['title' => 'Juego que se vendió', 'status' => 'owned']);
+        $this->actingAs($user)->post("/games/{$sold->id}/mark-sold", ['sale_price' => 10, 'sold_at' => '2026-01-01']);
+
+        $deleted = Game::factory()->for($user)->create(['title' => 'Borrado sin más']);
+        $deleted->delete();
+
+        // No usamos assertSee/assertDontSee con el título del juego: el toast
+        // "«Juego que se vendió» marcado como vendido." de la petición
+        // anterior sigue en el flash de la sesión de test durante esta
+        // petición y aparecería igualmente en el HTML aunque la fila de la
+        // tabla no esté.
+        $response = $this->actingAs($user)->get('/games/trash');
+
+        $titles = $response->viewData('games')->pluck('title');
+        $this->assertNotContains('Juego que se vendió', $titles);
+        $this->assertContains('Borrado sin más', $titles);
     }
 
     public function test_user_cannot_delete_another_users_game(): void

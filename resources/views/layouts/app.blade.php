@@ -126,6 +126,12 @@
                         <span class="sidebar-label">Lista de deseos</span>
                     </a>
 
+                    <a href="{{ route('web.sales.index') }}" title="Ventas"
+                        class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('web.sales.*') ? 'bg-indigo-500/10 text-indigo-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' }}">
+                        <x-gicon name="sell" class="text-[20px]" />
+                        <span class="sidebar-label">Ventas</span>
+                    </a>
+
                     <a href="{{ route('web.stats.index') }}" title="Estadísticas"
                         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('web.stats.*') ? 'bg-indigo-500/10 text-indigo-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' }}">
                         <x-gicon name="bar_chart" class="text-[20px]" />

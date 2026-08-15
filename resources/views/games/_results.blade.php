@@ -30,10 +30,15 @@
                             <x-platform-chip :platform="$game->platform" class="!px-2 !py-0.5 !text-[10px] flex-shrink-0" />
                         </div>
 
-                        <div class="mt-1.5">
+                        <div class="mt-1.5 flex items-center gap-2">
                             <div class="js-quick-rating" data-game-id="{{ $game->id }}" data-rating="{{ $game->rating }}">
                                 <x-star-rating :rating="$game->rating" size="text-[11px]" />
                             </div>
+                            @if($game->for_sale)
+                                <span class="inline-flex items-center gap-0.5 text-[10px] font-medium text-amber-400" title="En venta">
+                                    <x-gicon name="sell" class="text-[12px]" />
+                                </span>
+                            @endif
                         </div>
 
                         <div class="mt-2 flex items-center justify-between gap-2">
@@ -93,6 +98,9 @@
                                 <div class="flex items-center gap-3">
                                     <x-game-cover :game="$game" size="sm" />
                                     <a href="{{ route('web.games.show', $game->id) }}" class="text-sm font-bold text-slate-100 hover:text-indigo-300 transition-colors">{{ $game->title }}</a>
+                                    @if($game->for_sale)
+                                        <x-gicon name="sell" class="text-[15px] text-amber-400" title="En venta" />
+                                    @endif
                                 </div>
                             </td>
 
@@ -164,8 +172,13 @@
                     class="js-bulk-checkbox absolute top-2 left-2 z-10 w-4 h-4 rounded border-slate-500 bg-slate-900/80 text-indigo-600 focus:ring-indigo-500"
                     aria-label="Seleccionar {{ $game->title }}">
 
-                <a href="{{ route('web.games.show', $game->id) }}" class="block">
+                <a href="{{ route('web.games.show', $game->id) }}" class="block relative">
                     <x-game-cover :game="$game" size="lg" class="!w-full !aspect-[3/4] !h-auto !rounded-xl !text-3xl group-hover:opacity-80 transition-opacity" />
+                    @if($game->for_sale)
+                        <span class="absolute top-1.5 right-1.5 flex items-center justify-center w-5 h-5 rounded-full bg-amber-500 text-slate-950" title="En venta">
+                            <x-gicon name="sell" class="text-[12px]" />
+                        </span>
+                    @endif
                 </a>
 
                 <div class="mt-2">

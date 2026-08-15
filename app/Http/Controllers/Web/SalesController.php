@@ -1,0 +1,74 @@
+<?php
+
+namespace App\Http\Controllers\Web;
+
+use App\Http\Controllers\Controller;
+use App\Models\Game;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Gate;
+
+class SalesController extends Controller
+{
+    /**
+     * Histórico de juegos vendidos (ver GameController::markAsSold), agrupado
+     * por año de venta. Un juego vendido es un borrado blando con
+     * status=sold, así que se lee con onlyTrashed() en vez de la colección
+     * normal (que ya no lo verá nunca).
+     */
+    public function index()
+    {
+        $games = Game::onlyTrashed()
+            ->where('user_id', auth()->id())
+            ->where('status', 'sold')
+            ->whereNotNull('sold_at')
+            ->with([
+                'platform:id,name,label,bg_color,text_color,border_color,manufacturer_id',
+                'platform.manufacturer:id,bg_color,text_color,border_color',
+                'edition:id,name',
+            ])
+            ->orderByDesc('sold_at')
+            ->get();
+
+        $byYear = $games
+            ->groupBy(fn (Game $game) => $game->sold_at->format('Y'))
+            ->sortKeysDesc()
+            ->map(function ($yearGames) {
+                $paid = (float) $yearGames->sum('price_paid');
+                $sold = (float) $yearGames->sum('sale_price');
+                $profit = $sold - $paid;
+
+                return [
+                    'games' => $yearGames,
+                    'count' => $yearGames->count(),
+                    'paid' => $paid,
+                    'sold' => $sold,
+                    'profit' => $profit,
+                    'profit_percent' => $paid > 0 ? round($profit / $paid * 100, 1) : null,
+                ];
+            });
+
+        return view('sales.index', compact('byYear'));
+    }
+
+    /**
+     * Deshace una venta: restaura el juego de la papelera y limpia los datos
+     * de la venta, no solo el soft delete (si no, volvería a la colección
+     * marcado como vendido y con precio de venta puestos).
+     */
+    public function restore(int $id): RedirectResponse
+    {
+        $game = Game::onlyTrashed()->findOrFail($id);
+
+        Gate::authorize('restore', $game);
+
+        $game->restore();
+        $game->update([
+            'status' => 'owned',
+            'for_sale' => false,
+            'sale_price' => null,
+            'sold_at' => null,
+        ]);
+
+        return redirect()->route('web.sales.index')->with('success', 'Venta deshecha: el juego ha vuelto a tu colección.');
+    }
+}

@@ -68,6 +68,31 @@ class StatsControllerTest extends TestCase
         $this->assertSame(1, $byStatus['Lista de deseos']['total']);
     }
 
+    public function test_stats_breaks_down_sales_by_year(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+
+        $mine = Game::factory()->for($user)->create(['status' => 'owned', 'price_paid' => 20]);
+        $this->actingAs($user)->post("/games/{$mine->id}/mark-sold", ['sale_price' => 35, 'sold_at' => '2026-03-01']);
+
+        $notMine = Game::factory()->for($otherUser)->create(['status' => 'owned', 'price_paid' => 20]);
+        $this->actingAs($otherUser)->post("/games/{$notMine->id}/mark-sold", ['sale_price' => 35, 'sold_at' => '2026-03-01']);
+
+        $response = $this->actingAs($user)->get('/stats');
+
+        $salesByYear = $response->viewData('salesByYear');
+
+        // groupBy()/format('Y') produce claves numéricas: PHP las convierte a
+        // int automáticamente en el array subyacente de la Collection.
+        $this->assertSame([2026], $salesByYear->keys()->all());
+        $this->assertSame(1, $salesByYear[2026]['count']);
+        $this->assertSame(20.0, $salesByYear[2026]['paid']);
+        $this->assertSame(35.0, $salesByYear[2026]['sold']);
+        $this->assertSame(15.0, $salesByYear[2026]['profit']);
+        $this->assertSame(75.0, $salesByYear[2026]['profit_percent']);
+    }
+
     public function test_stats_breaks_down_spending_by_month(): void
     {
         $user = User::factory()->create();

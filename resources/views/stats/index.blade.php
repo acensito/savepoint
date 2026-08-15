@@ -84,6 +84,49 @@
             @endif
         </div>
 
+        <!-- Ventas por año -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 lg:col-span-2">
+            <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-5">Ventas por año</h2>
+
+            @if($salesByYear->isEmpty())
+                <p class="text-sm text-slate-500">Todavía no has marcado ningún juego como vendido.
+                    <a href="{{ route('web.sales.index') }}" class="text-indigo-400 hover:text-indigo-300">Ver ventas →</a>
+                </p>
+            @else
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-sm">
+                        <thead>
+                            <tr class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                <th class="py-2 pr-4">Año</th>
+                                <th class="py-2 pr-4 text-right">Ventas</th>
+                                <th class="py-2 pr-4 text-right">Invertido</th>
+                                <th class="py-2 pr-4 text-right">Obtenido</th>
+                                <th class="py-2 pr-4 text-right">Beneficio</th>
+                                <th class="py-2 text-right">Rendimiento</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800">
+                            @foreach($salesByYear as $year => $row)
+                                <tr>
+                                    <td class="py-2 pr-4 font-medium text-slate-200">{{ $year }}</td>
+                                    <td class="py-2 pr-4 text-right text-slate-300 tabular-nums">{{ $row['count'] }}</td>
+                                    <td class="py-2 pr-4 text-right text-slate-300 tabular-nums">{{ number_format($row['paid'], 2, ',', '.') }} €</td>
+                                    <td class="py-2 pr-4 text-right text-slate-300 tabular-nums">{{ number_format($row['sold'], 2, ',', '.') }} €</td>
+                                    <td class="py-2 pr-4 text-right font-medium tabular-nums {{ $row['profit'] >= 0 ? 'text-emerald-400' : 'text-red-400' }}">
+                                        {{ $row['profit'] >= 0 ? '+' : '' }}{{ number_format($row['profit'], 2, ',', '.') }} €
+                                    </td>
+                                    <td class="py-2 text-right tabular-nums {{ $row['profit'] >= 0 ? 'text-emerald-400' : 'text-red-400' }}">
+                                        {{ $row['profit_percent'] !== null ? ($row['profit_percent'] >= 0 ? '+' : '') . number_format($row['profit_percent'], 1, ',', '.') . ' %' : '—' }}
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                <a href="{{ route('web.sales.index') }}" class="inline-block mt-4 text-sm text-indigo-400 hover:text-indigo-300">Ver histórico completo →</a>
+            @endif
+        </div>
+
         <!-- Top géneros -->
         <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
             <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-5">Top géneros</h2>

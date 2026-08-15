@@ -9,6 +9,7 @@ use App\Http\Controllers\Web\PanelController;
 use App\Http\Controllers\Web\PasswordResetController;
 use App\Http\Controllers\Web\PlatformController;
 use App\Http\Controllers\Web\ProfileController;
+use App\Http\Controllers\Web\SalesController;
 use App\Http\Controllers\Web\SearchController;
 use App\Http\Controllers\Web\StatsController;
 use App\Http\Controllers\Web\WishlistController;
@@ -67,6 +68,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/wishlist', [WishlistController::class, 'store'])->name('web.wishlist.store');
     Route::get('/wishlist', [WishlistController::class, 'index'])->name('web.wishlist.index');
 
+    // Ventas: histórico por año de los juegos marcados como vendidos (ver
+    // GameController::markAsSold), fuera de la colección principal.
+    Route::get('/sales', [SalesController::class, 'index'])->name('web.sales.index');
+    Route::post('/sales/{id}/restore', [SalesController::class, 'restore'])->name('web.sales.restore');
+
     // Búsqueda rápida global (Ctrl+K): unos pocos resultados en vivo por título/EAN.
     Route::get('/search/quick', [SearchController::class, 'quick'])->name('web.search.quick');
 
@@ -112,6 +118,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/games/{game}/igdb-artworks', [GameController::class, 'igdbArtworks'])->name('web.games.igdb-artworks');
     Route::post('/games/{game}/igdb-background', [GameController::class, 'igdbSetBackground'])->name('web.games.igdb-background');
     Route::put('/games/{game}', [GameController::class, 'update'])->name('web.games.update');
+    Route::post('/games/{game}/mark-sold', [GameController::class, 'markAsSold'])->name('web.games.mark-sold');
     Route::delete('/games/{game}', [GameController::class, 'destroy'])->name('web.games.destroy');
     Route::get('/games/{game}', [GameController::class, 'show'])->name('web.games.show');
 

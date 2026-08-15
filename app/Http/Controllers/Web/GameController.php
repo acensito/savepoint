@@ -69,6 +69,7 @@ class GameController extends Controller
         $platformId = (string) $request->input('platform_id', '');
         $playStatus = (string) $request->input('play_status', '');
         $status = (string) $request->input('status', '');
+        $forSale = (string) $request->input('for_sale', '');
         [$sort, $dir] = $this->resolveSort($request);
         $perPage = in_array((int) $request->input('per_page'), self::PER_PAGE_OPTIONS, true)
             ? (int) $request->input('per_page')
@@ -76,16 +77,16 @@ class GameController extends Controller
 
         // Calculados aquí (no en la vista) porque los necesitan tanto la página
         // completa como el fragmento que se devuelve por AJAX al buscar en vivo.
-        $hasActiveFilters = $query !== '' || $platformId !== '' || $playStatus !== '' || $status !== '';
-        $hasAdvancedFilters = $platformId !== '' || $playStatus !== '' || $status !== '';
-        $activeFilterCount = collect([$query !== '', $platformId !== '', $playStatus !== '', $status !== ''])->filter()->count();
+        $hasActiveFilters = $query !== '' || $platformId !== '' || $playStatus !== '' || $status !== '' || $forSale !== '';
+        $hasAdvancedFilters = $platformId !== '' || $playStatus !== '' || $status !== '' || $forSale !== '';
+        $activeFilterCount = collect([$query !== '', $platformId !== '', $playStatus !== '', $status !== '', $forSale !== ''])->filter()->count();
 
         $games = $this->filteredGamesQuery($request)
             // Solo las columnas que pinta el listado: notes/data/genres/etc. serían
             // peso muerto en una tabla paginada y no se usan aquí.
             ->select([
                 'id', 'title', 'cover', 'platform_id', 'edition_id',
-                'play_status', 'status', 'rating', 'price_paid', 'purchase_date',
+                'play_status', 'status', 'for_sale', 'rating', 'price_paid', 'purchase_date',
                 'region', 'manual_status', 'created_at',
             ])
             // Relaciones acotadas a las columnas que realmente pinta el chip de
@@ -116,7 +117,7 @@ class GameController extends Controller
         ];
 
         return view('games.index', compact(
-            'games', 'query', 'platforms', 'platformId', 'playStatus', 'status', 'sort', 'dir', 'perPage',
+            'games', 'query', 'platforms', 'platformId', 'playStatus', 'status', 'forSale', 'sort', 'dir', 'perPage',
             'collectionTotals', 'hasActiveFilters', 'hasAdvancedFilters', 'activeFilterCount',
         ));
     }
@@ -134,6 +135,7 @@ class GameController extends Controller
         $platformId = (string) $request->input('platform_id', '');
         $playStatus = (string) $request->input('play_status', '');
         $status = (string) $request->input('status', '');
+        $forSale = (string) $request->input('for_sale', '');
         [$sort, $dir] = $this->resolveSort($request);
         $sortColumn = self::SORTABLE_COLUMNS[$sort] ?? null;
 
@@ -146,6 +148,7 @@ class GameController extends Controller
             ->when($platformId !== '', fn ($q) => $q->where('platform_id', $platformId))
             ->when($playStatus !== '', fn ($q) => $q->where('play_status', $playStatus))
             ->when($status !== '', fn ($q) => $q->where('status', $status))
+            ->when($forSale === '1', fn ($q) => $q->where('for_sale', true))
             ->when(
                 $sortColumn !== null,
                 fn ($q) => $q->orderBy($sortColumn, $dir)->orderByDesc('id'),
@@ -535,6 +538,7 @@ class GameController extends Controller
         $validated = $request->validate([
             'rating' => 'sometimes|nullable|integer|min:1|max:5',
             'play_status' => 'sometimes|required|string|in:pending,playing,finished',
+            'for_sale' => 'sometimes|boolean',
         ]);
 
         if ($validated === []) {
@@ -543,9 +547,19 @@ class GameController extends Controller
 
         $game->update($validated);
 
+        // El listado usa fetch con Accept: application/json (ver quickUpdate en
+        // resources/js/app.js) para poder actualizar la fila/tarjeta sin
+        // navegar; el botón "En venta" de la ficha de detalle, en cambio, es
+        // un <form> normal sin JS, así que aquí conviene un redirect en vez
+        // de JSON.
+        if (! $request->wantsJson()) {
+            return back()->with('success', $game->for_sale ? 'Marcado como en venta.' : 'Quitado de en venta.');
+        }
+
         return response()->json([
             'rating' => $game->rating,
             'play_status' => $game->play_status,
+            'for_sale' => $game->for_sale,
         ]);
     }
 
@@ -667,6 +681,39 @@ class GameController extends Controller
     }
 
     /**
+     * Marca un juego como vendido: pide precio y fecha de venta (a diferencia
+     * del resto de Propiedad, "Vendido" ya no es una opción libre del
+     * desplegable del formulario, ver games/_form.blade.php) y lo envía a la
+     * papelera igual que destroy() — recuperable desde /sales si el usuario
+     * se equivoca, no un borrado a lo bruto. La tabla "Ventas por año" (ver
+     * SalesController) lee directamente estos juegos borrados con status=sold.
+     */
+    public function markAsSold(Request $request, Game $game): RedirectResponse
+    {
+        Gate::authorize('update', $game);
+
+        $validated = $request->validate([
+            'sale_price' => 'required|numeric|min:0',
+            'sold_at' => 'required|date',
+            'notes' => 'sometimes|nullable|string',
+        ]);
+
+        $id = $game->id;
+        $title = $game->title;
+
+        $game->update([
+            ...$validated,
+            'status' => 'sold',
+            'for_sale' => false,
+        ]);
+        $game->delete();
+
+        return redirect()->route('web.games.index')
+            ->with('success', "«{$title}» marcado como vendido.")
+            ->with('undoUrl', route('web.sales.restore', $id));
+    }
+
+    /**
      * Envía a la papelera de golpe todos los juegos seleccionados en el listado.
      */
     public function bulkDestroy(Request $request): RedirectResponse
@@ -731,6 +778,11 @@ class GameController extends Controller
 
         $games = Game::onlyTrashed()
             ->where('user_id', auth()->id())
+            // Los juegos vendidos (ver markAsSold()) también son un borrado
+            // blando, pero tienen su propia página (/sales): la papelera se
+            // queda solo para borrados accidentales, si no un vistazo rápido
+            // a "lo borrado" se llenaría de ventas normales.
+            ->where('status', '!=', 'sold')
             ->with([
                 'platform:id,name,label,bg_color,text_color,border_color,manufacturer_id',
                 'platform.manufacturer:id,bg_color,text_color,border_color',
@@ -798,7 +850,9 @@ class GameController extends Controller
             'edition_id'     => 'nullable|exists:editions,id',
             'release_date'   => 'nullable|date',
             'genres'         => 'nullable|string|max:500',
-            'status'         => 'nullable|string|in:owned,wishlist,sold',
+            // 'sold' no es un valor asignable aquí: requiere precio/fecha de
+            // venta, se marca desde GameController::markAsSold().
+            'status'         => 'nullable|string|in:owned,wishlist',
             'wishlist_priority' => 'nullable|integer|min:1|max:3',
             'wishlist_estimated_price' => 'nullable|numeric|min:0',
             'wishlist_store' => 'nullable|string|max:255',
@@ -817,6 +871,10 @@ class GameController extends Controller
 
         $validated['genres'] = $this->parseGenres($request->input('genres'));
         $validated['region'] = $this->resolveRegion($validated);
+        // Checkbox HTML: si no está marcado, el navegador ni siquiera manda el
+        // campo, así que no puede tratarse como "sometimes" o desmarcarlo en
+        // la edición nunca se guardaría.
+        $validated['for_sale'] = $request->boolean('for_sale');
 
         unset($validated['region_select'], $validated['region_other']);
 

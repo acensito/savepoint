@@ -213,8 +213,10 @@
                 <option value="">—</option>
                 <option value="owned" {{ old('status', $defaultStatus) == 'owned' ? 'selected' : '' }}>En colección</option>
                 <option value="wishlist" {{ old('status', $defaultStatus) == 'wishlist' ? 'selected' : '' }}>Lista de deseos</option>
-                <option value="sold" {{ old('status', $defaultStatus) == 'sold' ? 'selected' : '' }}>Vendido</option>
             </select>
+            <!-- "Vendido" ya no se elige aquí: requiere precio y fecha de venta,
+                 se marca desde el botón "Marcar como vendido" de la ficha de
+                 detalle (games/show.blade.php), que archiva el juego en /sales. -->
             @error('status') <span class="{{ $error }}">{{ $message }}</span> @enderror
         </div>
         <div>
@@ -226,6 +228,13 @@
             </select>
             @error('play_status') <span class="{{ $error }}">{{ $message }}</span> @enderror
         </div>
+    </div>
+
+    <div class="flex items-center gap-2">
+        <input type="checkbox" name="for_sale" id="for_sale" value="1" {{ old('for_sale', $game?->for_sale) ? 'checked' : '' }}
+            class="w-4 h-4 rounded border-slate-600 bg-slate-800 text-indigo-600 focus:ring-indigo-500">
+        <label for="for_sale" class="text-sm text-slate-300">En venta</label>
+        @error('for_sale') <span class="{{ $error }}">{{ $message }}</span> @enderror
     </div>
 
     <div>

@@ -20,6 +20,7 @@ class GameResource extends JsonResource
             'ean' => $this->ean,
             'cover_url' => $this->cover ? url('storage/' . $this->cover) : null,
             'status' => $this->status,
+            'for_sale' => $this->for_sale,
             'play_status' => $this->play_status,
             // Aplanamos la relación para que a Flutter le llegue el nombre directamente
             'platform' => $this->whenLoaded('platform', fn() => $this->platform->name), 

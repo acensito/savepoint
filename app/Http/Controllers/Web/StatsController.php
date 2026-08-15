@@ -26,10 +26,11 @@ class StatsController extends Controller
         $byDecade = $this->byDecade(clone $base);
         $mostExpensive = (clone $base)->whereNotNull('price_paid')->with('platform')->orderByDesc('price_paid')->first();
         $topRated = (clone $base)->whereNotNull('rating')->with('platform')->orderByDesc('rating')->orderByDesc('id')->first();
+        $salesByYear = $this->salesByYear();
 
         return view('stats.index', compact(
             'totalGames', 'totalSpent', 'averageRating', 'byPlatform', 'byPlayStatus', 'byStatus',
-            'spendingByMonth', 'topGenres', 'byDecade', 'mostExpensive', 'topRated',
+            'spendingByMonth', 'topGenres', 'byDecade', 'mostExpensive', 'topRated', 'salesByYear',
         ));
     }
 
@@ -73,7 +74,10 @@ class StatsController extends Controller
     }
 
     /**
-     * Reparto por propiedad (en posesión/lista de deseos/vendido), con su % sobre el total.
+     * Reparto por propiedad (en posesión/lista de deseos), con su % sobre el
+     * total. No incluye "vendido": un juego vendido (ver
+     * GameController::markAsSold) es un borrado blando, así que nunca
+     * aparece aquí — su propio reparto por año vive en salesByYear().
      */
     private function byOwnershipStatus($base, int $total): array
     {
@@ -81,8 +85,8 @@ class StatsController extends Controller
             ->groupBy('status')
             ->pluck('total', 'status');
 
-        $labels = ['owned' => 'En colección', 'wishlist' => 'Lista de deseos', 'sold' => 'Vendido'];
-        $colors = ['owned' => '#818cf8', 'wishlist' => '#fbbf24', 'sold' => '#94a3b8'];
+        $labels = ['owned' => 'En colección', 'wishlist' => 'Lista de deseos'];
+        $colors = ['owned' => '#818cf8', 'wishlist' => '#fbbf24'];
 
         // 'status' es opcional en el formulario: los juegos sin valor asignado
         // se agrupan aparte para que el reparto siga sumando el 100% del total.
@@ -167,5 +171,39 @@ class StatsController extends Controller
             'total' => $total,
             'percent' => round($total / $max * 100),
         ])->values();
+    }
+
+    /**
+     * Nº de ventas y rendimiento (precio de compra vs. precio de venta) por
+     * año, para el bloque "Ventas por año". Mismo query que
+     * SalesController::index() pero sin cargar relaciones (aquí solo hacen
+     * falta los importes) y agrupado en PHP por el mismo motivo que
+     * spendingByMonth()/byDecade(): funciona igual en Postgres (producción) y
+     * SQLite (tests) sin depender de funciones de fecha propias de cada motor.
+     */
+    private function salesByYear()
+    {
+        $sales = Game::onlyTrashed()
+            ->where('user_id', auth()->id())
+            ->where('status', 'sold')
+            ->whereNotNull('sold_at')
+            ->get(['sold_at', 'price_paid', 'sale_price']);
+
+        return $sales
+            ->groupBy(fn (Game $game) => $game->sold_at->format('Y'))
+            ->sortKeysDesc()
+            ->map(function ($yearGames) {
+                $paid = (float) $yearGames->sum('price_paid');
+                $sold = (float) $yearGames->sum('sale_price');
+                $profit = $sold - $paid;
+
+                return [
+                    'count' => $yearGames->count(),
+                    'paid' => $paid,
+                    'sold' => $sold,
+                    'profit' => $profit,
+                    'profit_percent' => $paid > 0 ? round($profit / $paid * 100, 1) : null,
+                ];
+            });
     }
 }

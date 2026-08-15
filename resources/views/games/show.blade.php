@@ -25,6 +25,25 @@
             </a>
 
             <div class="flex items-center gap-2">
+                @if($game->status === 'owned')
+                    <form action="{{ route('web.games.quick-update', $game->id) }}" method="POST">
+                        @csrf
+                        @method('PATCH')
+                        <input type="hidden" name="for_sale" value="{{ $game->for_sale ? 0 : 1 }}">
+                        <button type="submit"
+                            class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border transition-colors {{ $game->for_sale ? 'bg-amber-500/10 border-amber-500/40 text-amber-300 hover:bg-amber-500/20' : 'border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-slate-100' }}">
+                            <x-gicon name="sell" class="text-[16px]" />
+                            {{ $game->for_sale ? 'Quitar de en venta' : 'Marcar en venta' }}
+                        </button>
+                    </form>
+
+                    <button type="button" id="mark-sold-trigger"
+                        class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-emerald-400 transition-colors">
+                        <x-gicon name="paid" class="text-[16px]" />
+                        Marcar como vendido
+                    </button>
+                @endif
+
                 <a href="{{ route('web.games.edit', $game->id) }}"
                     class="flex items-center gap-1.5 bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-500 transition-colors">
                     <x-gicon name="edit" class="text-[16px]" />
@@ -44,6 +63,40 @@
                 </form>
             </div>
         </div>
+
+        @if($game->status === 'owned')
+            <div id="mark-sold-panel" class="{{ $errors->has('sale_price') || $errors->has('sold_at') ? '' : 'hidden' }} mb-6 bg-slate-900 border border-slate-800 rounded-xl p-4">
+                <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Marcar «{{ $game->title }}» como vendido</h2>
+                <form action="{{ route('web.games.mark-sold', $game->id) }}" method="POST" class="space-y-3">
+                    @csrf
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label for="sale_price" class="block text-xs font-medium text-slate-400 mb-1">Precio de venta</label>
+                            <input type="number" step="0.01" min="0" name="sale_price" id="sale_price" value="{{ old('sale_price') }}" required
+                                class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500 outline-none">
+                            @error('sale_price') <span class="text-xs text-red-400">{{ $message }}</span> @enderror
+                        </div>
+                        <div>
+                            <label for="sold_at" class="block text-xs font-medium text-slate-400 mb-1">Fecha de venta</label>
+                            <input type="date" name="sold_at" id="sold_at" value="{{ old('sold_at', now()->toDateString()) }}" required
+                                class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500 outline-none">
+                            @error('sold_at') <span class="text-xs text-red-400">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+                    <div>
+                        <label for="sale_notes" class="block text-xs font-medium text-slate-400 mb-1">Notas</label>
+                        <textarea name="notes" id="sale_notes" rows="2"
+                            class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500 outline-none">{{ old('notes', $game->notes) }}</textarea>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                            Confirmar venta
+                        </button>
+                        <button type="button" id="mark-sold-cancel" class="text-sm text-slate-400 hover:text-slate-100 px-2">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        @endif
 
         <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
             <div class="relative p-6 sm:p-8 overflow-hidden">
@@ -90,6 +143,14 @@
                             @if($game->status && isset($statusLabels[$game->status]))
                                 <span class="text-slate-600">·</span>
                                 <span class="text-slate-400">{{ $statusLabels[$game->status] }}</span>
+                            @endif
+
+                            @if($game->for_sale)
+                                <span class="text-slate-600">·</span>
+                                <span class="inline-flex items-center gap-1 text-amber-400">
+                                    <x-gicon name="sell" class="text-[14px]" />
+                                    En venta
+                                </span>
                             @endif
                         </div>
                     </div>
@@ -376,6 +437,20 @@
                 form.querySelector('[name="image_id"]').value = '';
                 form.submit();
             });
+        })();
+
+        (function () {
+            const trigger = document.getElementById('mark-sold-trigger');
+            const panel = document.getElementById('mark-sold-panel');
+            const cancelBtn = document.getElementById('mark-sold-cancel');
+            if (!trigger || !panel) return;
+
+            trigger.addEventListener('click', () => {
+                panel.classList.remove('hidden');
+                document.getElementById('sale_price')?.focus();
+            });
+
+            cancelBtn?.addEventListener('click', () => panel.classList.add('hidden'));
         })();
     </script>
 @endsection
