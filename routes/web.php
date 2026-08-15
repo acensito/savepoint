@@ -12,6 +12,7 @@ use App\Http\Controllers\Web\ProfileController;
 use App\Http\Controllers\Web\SalesController;
 use App\Http\Controllers\Web\SearchController;
 use App\Http\Controllers\Web\StatsController;
+use App\Http\Controllers\Web\UserController;
 use App\Http\Controllers\Web\WishlistController;
 use Illuminate\Support\Facades\Route;
 
@@ -59,6 +60,17 @@ Route::middleware('auth')->group(function () {
     // colección (ver initThemeToggle/initGamesViewToggle en app.js): no son
     // parte del formulario de Ajustes, tienen su propio control ya existente.
     Route::patch('/panel/settings/display', [PanelController::class, 'updateDisplay'])->name('web.panel.settings.display');
+
+    // Gestión de usuarios de la plataforma (solo admin, ver UserPolicy): no
+    // hay alta pública, esta es la única forma de crear/editar/borrar
+    // cuentas sin tirar de tinker. Ruta estática /panel/users/create antes
+    // de /panel/users/{user} por el mismo motivo que /games/create.
+    Route::get('/panel/users/create', [UserController::class, 'create'])->name('web.panel.users.create');
+    Route::post('/panel/users', [UserController::class, 'store'])->name('web.panel.users.store');
+    Route::get('/panel/users', [UserController::class, 'index'])->name('web.panel.users.index');
+    Route::get('/panel/users/{user}/edit', [UserController::class, 'edit'])->name('web.panel.users.edit');
+    Route::put('/panel/users/{user}', [UserController::class, 'update'])->name('web.panel.users.update');
+    Route::delete('/panel/users/{user}', [UserController::class, 'destroy'])->name('web.panel.users.destroy');
 
     // Lista de deseos: juegos con Propiedad = "wishlist", en su propia página
     // (nunca en la colección principal, ver GameController::index). Ruta

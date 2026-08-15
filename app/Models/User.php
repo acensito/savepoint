@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Laravel\Sanctum\HasApiTokens;
 
 #[Fillable([
-    'name', 'email', 'password', 'auto_igdb_background',
+    'name', 'email', 'password', 'is_admin', 'auto_igdb_background',
     'theme', 'games_view', 'default_sort', 'default_dir', 'default_per_page',
     'default_region', 'default_edition_id', 'quick_search_exclude_wishlist',
 ])]
@@ -33,6 +33,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_admin' => 'boolean',
             'auto_igdb_background' => 'boolean',
             'default_per_page' => 'integer',
             'default_edition_id' => 'integer',

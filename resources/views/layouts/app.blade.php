@@ -120,6 +120,11 @@
                         <span class="sidebar-label">Colección</span>
                     </a>
 
+                    <!-- Separadores con inset propio (nunca a ras del borde del sidebar,
+                         ni en móvil ni en escritorio, ni compacto ni normal): heredan el
+                         px-3 de <nav> y no llevan -mx que lo cancele. -->
+                    <div class="my-2 border-t border-slate-800"></div>
+
                     <a href="{{ route('web.wishlist.index') }}" title="Lista de deseos"
                         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('web.wishlist.*') ? 'bg-indigo-500/10 text-indigo-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' }}">
                         <x-gicon name="favorite" class="text-[20px]" />
@@ -132,11 +137,7 @@
                         <span class="sidebar-label">Ventas</span>
                     </a>
 
-                    <a href="{{ route('web.stats.index') }}" title="Estadísticas"
-                        class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('web.stats.*') ? 'bg-indigo-500/10 text-indigo-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' }}">
-                        <x-gicon name="bar_chart" class="text-[20px]" />
-                        <span class="sidebar-label">Estadísticas</span>
-                    </a>
+                    <div class="my-2 border-t border-slate-800"></div>
 
                     <a href="{{ route('web.platforms.index') }}" title="Plataformas"
                         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('web.platforms.*') ? 'bg-indigo-500/10 text-indigo-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' }}">
@@ -144,16 +145,24 @@
                         <span class="sidebar-label">Plataformas</span>
                     </a>
 
+                    <a href="{{ route('web.manufacturers.index') }}" title="Fabricantes"
+                        class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('web.manufacturers.*') ? 'bg-indigo-500/10 text-indigo-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' }}">
+                        <x-gicon name="factory" class="text-[20px]" />
+                        <span class="sidebar-label">Fabricantes</span>
+                    </a>
+
                     <a href="{{ route('web.editions.index') }}" title="Ediciones"
                         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('web.editions.*') ? 'bg-indigo-500/10 text-indigo-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' }}">
-                        <x-gicon name="workspace_premium" class="text-[20px]" />
+                        <x-gicon name="interests" class="text-[20px]" />
                         <span class="sidebar-label">Ediciones</span>
                     </a>
 
-                    <a href="{{ route('web.manufacturers.index') }}" title="Fabricantes"
-                        class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('web.manufacturers.*') ? 'bg-indigo-500/10 text-indigo-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' }}">
-                        <x-gicon name="storefront" class="text-[20px]" />
-                        <span class="sidebar-label">Fabricantes</span>
+                    <div class="my-2 border-t border-slate-800"></div>
+
+                    <a href="{{ route('web.stats.index') }}" title="Estadísticas"
+                        class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('web.stats.*') ? 'bg-indigo-500/10 text-indigo-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' }}">
+                        <x-gicon name="bar_chart" class="text-[20px]" />
+                        <span class="sidebar-label">Estadísticas</span>
                     </a>
                 </nav>
 
@@ -289,6 +298,12 @@
     @if(session('success'))
         <script>
             document.addEventListener('DOMContentLoaded', () => window.showToast?.(@json(session('success')), 'success', @json(session('undoUrl'))));
+        </script>
+    @endif
+
+    @if(session('error'))
+        <script>
+            document.addEventListener('DOMContentLoaded', () => window.showToast?.(@json(session('error')), 'error'));
         </script>
     @endif
 
