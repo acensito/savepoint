@@ -5,6 +5,10 @@ sección al final de `README.md`; se separó a este fichero para que el README
 pueda ser un documento de presentación del proyecto en vez de una lista que
 crece sin parar.
 
+## 2026-08-16
+- **Fix: las tarjetas de la colección en móvil necesitaban a veces varios toques para abrir la ficha**: solo el título del juego era un `<a>` real, el resto de la tarjeta (carátula, chip de plataforma, fecha y precio) dependía únicamente del `click` delegado por JS sobre un `<div>` (`initGameCardTap`, `resources/js/app.js`) — el bug clásico de Safari/WebKit en iOS, donde un elemento sin ningún nativo interactivo a veces solo registra el estado `:active`/`:hover` en el primer toque y hace falta un segundo para disparar el `click`. Ahora la carátula y las filas de título+plataforma y fecha+precio son enlaces `<a>` reales (mismo patrón que ya usaba correctamente la vista de estantería), dejando fuera solo el checkbox de selección y las estrellas de valoración rápida, que necesitan su propio toque independiente.
+- **Los botones de "en venta"/"marcar como vendido" se mueven al final de la ficha de detalle**: antes vivían junto a Editar/Borrar en la cabecera, donde con hasta 4 botones la fila se deformaba en móvil y quedaba una zona demasiado cargada para una acción poco habitual. Ahora tienen su propia sección "Venta" al final de la ficha (mismo estilo que Detalles/Compra/IGDB/Notas), justo antes de cerrarse la tarjeta; la cabecera se queda solo con Editar/Borrar.
+
 ## 2026-08-15 (3)
 - **Reordenado el menú lateral y el Panel de control**: en el sidebar, Colección va sola, luego Lista de deseos/Ventas, luego el catálogo (Plataformas/Fabricantes/Ediciones, con Fabricantes antes que Ediciones) y por último Estadísticas — cada grupo separado por una línea horizontal con el mismo margen lateral que los propios enlaces (hereda el `px-3` de `<nav>`, nunca a ras del borde del sidebar, ni en móvil ni colapsado). Iconos más apropiados para Fabricantes (`factory`, antes `storefront`) y Ediciones (`interests`, antes `workspace_premium`). El Panel de control agrupa ahora sus tarjetas bajo "Colección", "Cuenta" y "Administración" en vez de una lista suelta.
 
