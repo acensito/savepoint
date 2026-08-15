@@ -22,13 +22,23 @@
                         class="js-bulk-checkbox self-start mt-1 w-4 h-4 flex-shrink-0 rounded border-slate-600 bg-slate-800 text-indigo-600 focus:ring-indigo-500"
                         aria-label="Seleccionar {{ $game->title }}">
 
-                    <x-game-cover :game="$game" size="lg" class="!w-16 !rounded-xl !text-xl shadow-sm shadow-black/20" />
+                    <!-- Carátula, título+plataforma y fecha+precio son <a> reales (no solo
+                         el div.js-game-card con su click delegado, ver initGameCardTap en
+                         app.js): en iOS/Safari móvil un <div> sin elemento nativo interactivo
+                         a veces necesita un primer toque solo para el estado :active/:hover y
+                         un segundo para disparar el click, así que la mayor parte visual de la
+                         tarjeta respondía mal al primer tap. Los enlaces reales no tienen ese
+                         problema. La valoración se queda fuera de cualquier <a> a propósito:
+                         cada estrella tiene su propio click (quick-rating). -->
+                    <a href="{{ route('web.games.show', $game->id) }}" class="flex-shrink-0">
+                        <x-game-cover :game="$game" size="lg" class="!w-16 !rounded-xl !text-xl shadow-sm shadow-black/20" />
+                    </a>
 
                     <div class="flex-1 min-w-0">
-                        <div class="flex items-start justify-between gap-2">
-                            <a href="{{ route('web.games.show', $game->id) }}" class="min-w-0 text-[15px] font-bold text-slate-100 line-clamp-2 leading-snug">{{ $game->title }}</a>
+                        <a href="{{ route('web.games.show', $game->id) }}" class="flex items-start justify-between gap-2">
+                            <span class="min-w-0 text-[15px] font-bold text-slate-100 line-clamp-2 leading-snug">{{ $game->title }}</span>
                             <x-platform-chip :platform="$game->platform" class="!px-2 !py-0.5 !text-[10px] flex-shrink-0" />
-                        </div>
+                        </a>
 
                         <div class="mt-1.5 flex items-center gap-2">
                             <div class="js-quick-rating" data-game-id="{{ $game->id }}" data-rating="{{ $game->rating }}">
@@ -41,7 +51,7 @@
                             @endif
                         </div>
 
-                        <div class="mt-2 flex items-center justify-between gap-2">
+                        <a href="{{ route('web.games.show', $game->id) }}" class="mt-2 flex items-center justify-between gap-2">
                             <span class="inline-flex items-center gap-1 text-[11px] text-slate-500">
                                 <x-gicon name="event" class="text-[13px]" />
                                 {{ $game->purchase_date?->format('d/m/Y') ?? '—' }}
@@ -49,7 +59,7 @@
                             @if($game->price_paid !== null)
                                 <span class="text-[11px] font-semibold text-emerald-400 tabular-nums bg-emerald-500/10 px-1.5 py-0.5 rounded-md">{{ number_format($game->price_paid, 2, ',', '.') }} €</span>
                             @endif
-                        </div>
+                        </a>
                     </div>
                 </div>
             @empty
