@@ -1239,6 +1239,55 @@ class GameControllerTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_cover_lookup_for_new_searches_cex_without_a_saved_game(): void
+    {
+        Http::fake([
+            'search.webuy.io/*' => Http::response([
+                'hits' => [[
+                    'boxName' => 'Hollow Knight',
+                    'boxId' => '5060146467315',
+                    'imageUrls' => ['large' => 'https://es.static.webuy.com/hk_l.jpg'],
+                    'categoryFriendlyName' => 'Switch Juegos',
+                ]],
+            ], 200),
+        ]);
+
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->getJson('/games/cover-lookup?q=Hollow+Knight');
+
+        $response->assertOk();
+        $response->assertJson(['results' => [[
+            'title' => 'Hollow Knight',
+            'ean' => '5060146467315',
+            'cover_url' => 'https://es.static.webuy.com/hk_l.jpg',
+            'platform' => 'Switch',
+        ]]]);
+        Http::assertSent(fn ($request) => str_contains($request['params'], 'query=Hollow+Knight'));
+    }
+
+    public function test_cover_lookup_for_new_without_a_query_returns_no_results_without_calling_cex(): void
+    {
+        Http::fake();
+
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->getJson('/games/cover-lookup')
+            ->assertOk()
+            ->assertJson(['results' => []]);
+
+        Http::assertNothingSent();
+    }
+
+    public function test_cover_lookup_for_new_requires_authentication(): void
+    {
+        Http::fake();
+
+        $this->getJson('/games/cover-lookup?q=Hollow+Knight')->assertUnauthorized();
+
+        Http::assertNothingSent();
+    }
+
     public function test_updating_a_game_downloads_the_chosen_cex_cover_and_replaces_the_old_one(): void
     {
         Storage::fake('public');
