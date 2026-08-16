@@ -106,4 +106,27 @@ class WebAuthTest extends TestCase
         $response->assertSessionHasErrors('email');
         $this->assertGuest();
     }
+
+    public function test_login_is_throttled_by_email_alone_even_when_rotating_ip(): void
+    {
+        $user = User::factory()->create(['password' => Hash::make('password')]);
+
+        // El límite por email+IP (5 intentos) se resetea en la práctica al
+        // cambiar de IP en cada intento, así que hacen falta más de 10 para
+        // comprobar que el límite por email solo (más laxo) sigue frenando.
+        for ($i = 0; $i < 10; $i++) {
+            $this->call('POST', '/login', [
+                'email' => $user->email,
+                'password' => 'wrong-password',
+            ], [], [], ['REMOTE_ADDR' => "10.0.0.$i"]);
+        }
+
+        $response = $this->call('POST', '/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ], [], [], ['REMOTE_ADDR' => '10.0.0.99']);
+
+        $response->assertSessionHasErrors('email');
+        $this->assertGuest();
+    }
 }
