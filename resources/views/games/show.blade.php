@@ -79,7 +79,7 @@
 
                         <div class="mt-3 flex items-center gap-1.5 text-sm {{ $game->play_status === 'finished' ? 'text-emerald-400' : 'text-slate-400' }}">
                             @if($game->play_status === 'finished')
-                                <x-gicon name="check_circle" class="text-[18px]" />
+                                <x-gicon name="emoji_events" class="text-[18px]" />
                             @else
                                 <x-gicon name="schedule" class="text-[18px]" />
                             @endif

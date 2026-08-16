@@ -5,6 +5,9 @@ sección al final de `README.md`; se separó a este fichero para que el README
 pueda ser un documento de presentación del proyecto en vez de una lista que
 crece sin parar.
 
+## 2026-08-16 (5)
+- **Fix: el icono de "Terminado" en la ficha de detalle pasa a ser el trofeo** (`emoji_events`, antes `check_circle`), a juego con la insignia nueva de estantería/tarjetas en vez de un icono distinto para el mismo estado.
+
 ## 2026-08-16 (4)
 - **Tres ideas de interfaz sin priorizar, implementadas**:
   - **Skeleton loaders en el buscador rápido (Ctrl+K)**: `#quick-search-results` mostraba los resultados de la búsqueda anterior congelados mientras llegaba la respuesta y saltaba de golpe a los nuevos. Ahora, en cuanto se dispara una búsqueda (`runSearch()`, `resources/js/app.js`), se pinta un esqueleto de 4 filas con la misma silueta que un resultado real (carátula + dos líneas), con `animate-pulse`, hasta que llega la respuesta.
