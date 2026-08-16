@@ -30,8 +30,13 @@
                          tarjeta respondía mal al primer tap. Los enlaces reales no tienen ese
                          problema. La valoración se queda fuera de cualquier <a> a propósito:
                          cada estrella tiene su propio click (quick-rating). -->
-                    <a href="{{ route('web.games.show', $game->id) }}" class="flex-shrink-0">
+                    <a href="{{ route('web.games.show', $game->id) }}" class="relative flex-shrink-0">
                         <x-game-cover :game="$game" size="lg" class="!w-16 !rounded-xl !text-xl shadow-sm shadow-black/20" />
+                        @if($game->play_status === 'finished')
+                            <span class="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 rounded-full bg-yellow-500 text-slate-950" title="Terminado">
+                                <x-gicon name="emoji_events" class="text-[10px]" />
+                            </span>
+                        @endif
                     </a>
 
                     <div class="flex-1 min-w-0">
@@ -202,6 +207,11 @@
                     @if($game->for_sale)
                         <span class="absolute top-1.5 right-1.5 flex items-center justify-center w-5 h-5 rounded-full bg-amber-500 text-slate-950" title="En venta">
                             <x-gicon name="sell" class="text-[12px]" />
+                        </span>
+                    @endif
+                    @if($game->play_status === 'finished')
+                        <span class="absolute bottom-1.5 right-1.5 flex items-center justify-center w-5 h-5 rounded-full bg-yellow-500 text-slate-950" title="Terminado">
+                            <x-gicon name="emoji_events" class="text-[12px]" />
                         </span>
                     @endif
                 </a>
