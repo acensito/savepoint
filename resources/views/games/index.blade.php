@@ -79,11 +79,11 @@
                  algo visible en cualquier ancho). -->
             <button type="button" id="games-view-list-btn" aria-label="Ver como lista" aria-pressed="true"
                 class="hidden md:flex items-center justify-center w-8 text-indigo-400 hover:bg-slate-800 transition-colors">
-                <x-gicon name="view_list" class="text-[15px]" />
+                <x-gicon name="density_small" class="text-[15px]" />
             </button>
             <button type="button" id="games-view-compact-btn" aria-label="Ver como tabla compacta" aria-pressed="false"
                 class="hidden md:flex items-center justify-center w-8 text-slate-500 hover:bg-slate-800 md:border-l md:border-slate-800 transition-colors">
-                <x-gicon name="density_small" class="text-[15px]" />
+                <x-gicon name="view_list" class="text-[15px]" />
             </button>
             <button type="button" id="games-view-grid-btn" aria-label="Ver como estantería" aria-pressed="false"
                 class="flex items-center justify-center w-8 text-slate-500 hover:bg-slate-800 md:border-l md:border-slate-800 transition-colors">
