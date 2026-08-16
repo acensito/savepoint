@@ -5,6 +5,12 @@ sección al final de `README.md`; se separó a este fichero para que el README
 pueda ser un documento de presentación del proyecto en vez de una lista que
 crece sin parar.
 
+## 2026-08-16 (3)
+- **Tres huecos de seguridad cerrados del apartado "Pendiente" del README**:
+  - **Límite de login también por email solo**: `ThrottlesLogins` ya frenaba por `email|IP` (5 intentos/60s), pero un atacante rotando de IP en cada intento reseteaba ese límite cada vez sin ningún tope global contra la cuenta. Nuevo límite adicional, más laxo (10 intentos/5 minutos), solo por email, que no depende de la IP.
+  - **`SESSION_SECURE_COOKIE`**: investigado en vez de fijarlo a ciegas — ya funciona sin tocar nada gracias a `trustProxies(at: '*')` (`bootstrap/app.php`): Symfony marca la cookie de sesión como `Secure` automáticamente en cuanto la petición llega con `X-Forwarded-Proto: https` desde el proxy inverso de producción. Forzarlo a `true` a mano habría roto el acceso por HTTP plano en `localhost`/LAN. Test nuevo (`SessionCookieSecurityTest`) que fija este comportamiento para que no se rompa sin darse cuenta.
+  - **Expiración de tokens Sanctum**: no caducaban nunca (`'expiration' => null`). Ahora expiran a los 30 días de emitidos por defecto, configurable con `SANCTUM_TOKEN_EXPIRATION_MINUTES`.
+
 ## 2026-08-16 (2)
 - **Formato de edición (físico/digital/CIAB)**: las ediciones (Normal, Coleccionista...) no distinguían si esa edición concreta es física, digital o CIAB (caja completa) — nueva columna `editions.format` (string, "físico" por defecto), seleccionable desde `/editions` al dar de alta o editar una edición. Se muestra como icono junto al nombre en la gestión de ediciones (`album` físico, `cloud` digital, `inventory_2` CIAB) y en la ficha de detalle del juego; en la tabla de escritorio del listado de la colección aparece siempre junto al nombre de la edición, y en las tarjetas móviles/estantería solo cuando la edición no es física (el caso por defecto no necesita marcarse aparte). El alta rápida de una edición al vuelo (modal dentro del formulario de juego) sigue creando ediciones físicas por defecto; para digital/CIAB hay que usar la gestión de ediciones.
 - **Fix: iconos de vista Lista/Compacta intercambiados**: `density_small` y `view_list` estaban asignados según el nombre semántico de cada botón, pero renderizados a 15px daban la impresión visual contraria (el de "Compacta" parecía más espaciado que el de "Lista"). Se intercambian entre ambos botones.

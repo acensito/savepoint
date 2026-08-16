@@ -59,6 +59,7 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 - El listado (`index`) pagina: 20 juegos por página por defecto, admite `?per_page=` con tope de 100. Admite los mismos filtros que el listado web: `?q=` (título o EAN), `?platform_id=`, `?play_status=` y `?status=`.
 - Respuestas transformadas con `GameResource` (aplana la plataforma a su nombre, expone URL de carátula, etc.).
 - Validación de entrada separada en `StoreGameRequest` / `UpdateGameRequest`.
+- Tokens Sanctum con expiración global de 30 días desde su emisión (`SANCTUM_TOKEN_EXPIRATION_MINUTES` en `.env`, `config/sanctum.php`): pasado ese tiempo dejan de autenticar aunque no se hayan revocado a mano, así que un token filtrado no queda válido para siempre.
 
 ### Estadísticas
 - Panel (`/stats`) con total de juegos, gasto total y conservación media, reparto de juegos por plataforma (barra por plataforma), y reparto por estado de juego y por propiedad (barras apiladas con leyenda).
@@ -81,7 +82,7 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 - Cada juego pertenece a un usuario (`user_id`), asignado siempre al usuario autenticado (`auth()->id()` / `$request->user()->id`) al crearlo, tanto en web como en API.
 - Listados y búsqueda (web y API) filtrados por `user_id`: cada usuario solo ve su propia colección.
 - `GamePolicy` aplicada con `Gate::authorize()` en editar, borrar, restaurar y eliminar definitivamente (web y API), para que nadie pueda tocar un juego ajeno aunque adivine su ID por URL.
-- Login (web y API) con protección contra fuerza bruta: bloqueo de 60 segundos tras 5 intentos fallidos, con clave email+IP (`ThrottlesLogins`), así que un atacante no puede bloquear a otros usuarios que compartan su misma IP.
+- Login (web y API) con protección contra fuerza bruta: bloqueo de 60 segundos tras 5 intentos fallidos, con clave email+IP (`ThrottlesLogins`), así que un atacante no puede bloquear a otros usuarios que compartan su misma IP. Además, un segundo límite más laxo (10 intentos / 5 minutos) solo por email frena a quien rota de IP en cada intento para saltarse el primero.
 - Botón de cerrar sesión ("Salir") en la navegación.
 
 ### Interfaz
@@ -155,6 +156,8 @@ Por defecto la app sirve por HTTP plano en el puerto 8081, sin TLS — de sobra 
 
 En `docker-compose.yml`, el servicio `nginx` publica su puerto con dos líneas alternativas (una comentada): la de desarrollo/testeo (`HTTP_PORT`, 8081 por defecto) y la de producción (`HTTPS_PORT`, 8443 por defecto — el puerto al que apunta tu proxy inverso, que sigue hablando HTTP normal con nginx por detrás). Comenta una y descomenta la otra según toque, y `docker compose up -d --build` para que se aplique.
 
+La cookie de sesión no necesita ningún ajuste aparte para llevar el flag `Secure` en este escenario: `bootstrap/app.php` confía en las cabeceras `X-Forwarded-*` de cualquier origen (`trustProxies(at: '*')`, seguro aquí porque el proxy inverso es el único punto de entrada), así que en cuanto este manda `X-Forwarded-Proto: https`, Laravel detecta la petición como segura y marca la cookie sola — sin tocar `SESSION_SECURE_COOKIE` en `.env` (se deja sin definir a propósito, ver comentario en `.env.example`).
+
 Para un despliegue "en serio" en un servidor, además de lo anterior:
 
 - Ajusta en tu `.env` `APP_ENV=production`, `APP_DEBUG=false` y `APP_URL` con el dominio final.
@@ -171,8 +174,9 @@ docker compose exec app php artisan test
 El entorno de test es independiente del de desarrollo: `phpunit.xml` fuerza `APP_ENV=testing`, SQLite en memoria, sesión/caché en array, etc., así que correr los tests nunca toca la base Postgres real ni Redis.
 
 Cobertura actual:
-- `Tests\Feature\Auth\WebAuthTest`: login/logout, credenciales inválidas, redirect a la página originalmente solicitada, protección de rutas para invitados, bloqueo por fuerza bruta.
-- `Tests\Feature\Api\AuthTest`: login/logout vía Sanctum (emisión y revocación de token), `/api/user` protegido, bloqueo por fuerza bruta.
+- `Tests\Feature\Auth\WebAuthTest`: login/logout, credenciales inválidas, redirect a la página originalmente solicitada, protección de rutas para invitados, bloqueo por fuerza bruta (por email+IP y, rotando de IP en cada intento, por el límite adicional solo por email).
+- `Tests\Feature\Api\AuthTest`: login/logout vía Sanctum (emisión y revocación de token), `/api/user` protegido, bloqueo por fuerza bruta, expiración de token (rechazado pasado el límite configurado, aceptado justo antes).
+- `Tests\Feature\SessionCookieSecurityTest`: la cookie de sesión no lleva `Secure` por HTTP plano, pero sí en cuanto la petición llega con `X-Forwarded-Proto: https` (simula el proxy inverso de producción).
 - `Tests\Feature\Api\GameControllerTest`: CRUD completo de la API, paginación (tamaño por defecto, `per_page` a medida y con tope), filtros (`q`, `platform_id`, `play_status`, `status`), scoping por usuario y `GamePolicy` bloqueando acceso a juegos ajenos (403 en view/update/delete).
 - `Tests\Feature\Web\GameControllerTest`: alta y edición de juegos con subida/reemplazo de carátula real, validación, aviso de EAN duplicado (con y sin confirmar), `GamePolicy` aplicada en las rutas web, la ficha de detalle, la edición rápida (conservación/estado/en venta) por AJAX y por formulario normal, el filtro "en venta", marcar un juego como vendido (validación, envío a la papelera, `GamePolicy`) y que la papelera excluye los juegos vendidos, el fragmento que devuelve `index()` para peticiones AJAX, la papelera (listar/restaurar/eliminar definitivamente, buscador/filtro propio, con scoping por usuario), el orden/paginación/región/edición por defecto de Ajustes (aplicados solo cuando la URL o el formulario no traen un valor explícito) y el autoasignado de fondo desde IGDB al dar de alta con ese ajuste activo.
 - `Tests\Feature\Web\GameImportControllerTest`: importación desde CSV (con/sin BOM, separador coma o punto y coma), creación automática de plataformas/ediciones que no existían, filas sin título omitidas y reportadas como incidencia, validación del fichero subido, y la vista previa (columnas reconocidas/no reconocidas, filas de ejemplo, que no importa nada).
@@ -191,9 +195,6 @@ Cobertura actual:
 - Sin backups automatizados de Postgres (ni `pg_dump` programado ni snapshot del volumen).
 - Sin HTTPS en el despliegue actual: bloquea el escaneo de código de barras desde el móvil fuera de `localhost` (ver [Desplegar para uso propio](#desplegar-para-uso-propio)).
 - **2FA por email en el login**: la app está expuesta a internet, así que un password filtrado/reusado en otro sitio (credential stuffing) es un vector real, no solo teórico. El modelo `User` ya tiene `MustVerifyEmail` comentado en el código como punto de partida. Falta: configurar un mailer real (`MAIL_MAILER` está en `log`, no envía nada todavía), columnas en `users` para código + expiración, pantalla de verificación tras el login por password, y reenvío de código con cooldown.
-- `ThrottlesLogins` limita intentos por `email|ip` (app/Http/Controllers/Concerns/ThrottlesLogins.php): un atacante que rote de IP no tiene tope global contra una cuenta. Sumar un límite también por email solo.
-- `SESSION_SECURE_COOKIE` sin setear en `.env` → la cookie de sesión no lleva el flag `Secure`. Ponerla en `true` si el acceso externo va por HTTPS.
-- Tokens de Sanctum sin expiración (`config/sanctum.php`: `'expiration' => null`) — un token de la API, una vez emitido, no caduca solo.
 
 ### Ideas de interfaz/funcionalidad sin priorizar
 
