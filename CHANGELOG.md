@@ -5,6 +5,9 @@ sección al final de `README.md`; se separó a este fichero para que el README
 pueda ser un documento de presentación del proyecto en vez de una lista que
 crece sin parar.
 
+## 2026-08-16 (8)
+- **Buscar carátula y EAN en CEX también en el alta de un juego, no solo editando uno ya guardado**: el botón "Buscar carátula y EAN en CEX" (`games/_form.blade.php`) solo se pintaba con `@if($game)`, así que solo existía en la edición — la búsqueda ya guardaba `cover_url` sin descargarlo hasta enviar el formulario (mismo mecanismo que la carátula sugerida desde una búsqueda rápida), pero solo estaba disponible una vez el juego ya estaba creado. `GameController::coverLookup()` necesitaba un `Game` real para autorizar y para su valor por defecto de búsqueda (EAN/título ya guardados), que no existen en el alta. Nuevo endpoint separado `GameController::coverLookupForNew()` (ruta estática `/games/cover-lookup`, antes de `/games/{game}` por la misma razón que `/games/create`) sin atarlo a ningún juego: solo requiere sesión iniciada, y "q" es obligatorio (sin resultados ni llamada a CEX si viene vacío). El botón ahora usa la EAN/título ya tecleados en el propio formulario como búsqueda por defecto en vez de depender de una fila guardada, así que el comportamiento es el mismo en alta que en edición.
+
 ## 2026-08-16 (7)
 - **Badge de precio más grande en la tarjeta móvil de la colección**: de 11px a 13px (era el único de la fila con estilo de badge, no de texto plano).
 
