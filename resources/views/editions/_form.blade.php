@@ -11,6 +11,20 @@
 </div>
 
 <div>
+    <label for="format" class="block font-medium text-sm text-slate-300 mb-1">Formato</label>
+    <select name="format" id="format"
+        class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500 outline-none">
+        @foreach(\App\Models\Edition::FORMATS as $value => $meta)
+            <option value="{{ $value }}" {{ old('format', $edition?->format ?? \App\Models\Edition::FORMAT_PHYSICAL) == $value ? 'selected' : '' }}>
+                {{ $meta['label'] }}
+            </option>
+        @endforeach
+    </select>
+    <p class="text-xs text-slate-500 mt-1">Por defecto, físico (con ícono de disco). Marca digital o CIAB si esta edición se distingue por eso.</p>
+    @error('format') <span class="text-red-400 text-sm mt-1 block">{{ $message }}</span> @enderror
+</div>
+
+<div>
     <div class="flex items-center justify-between mb-2">
         <span class="block font-medium text-sm text-slate-300">Disponible en</span>
         <div class="flex items-center gap-3 text-xs font-medium">

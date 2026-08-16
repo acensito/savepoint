@@ -27,7 +27,10 @@ class EditionController extends Controller
     {
         $validated = $this->validated($request);
 
-        $edition = Edition::create(['name' => $validated['name']]);
+        $edition = Edition::create([
+            'name' => $validated['name'],
+            'format' => $validated['format'] ?? Edition::FORMAT_PHYSICAL,
+        ]);
         $edition->platforms()->sync($validated['platform_ids'] ?? []);
 
         // El alta de un juego permite crear una edición al vuelo (modal, sin
@@ -52,7 +55,10 @@ class EditionController extends Controller
     {
         $validated = $this->validated($request);
 
-        $edition->update(['name' => $validated['name']]);
+        $edition->update([
+            'name' => $validated['name'],
+            'format' => $validated['format'] ?? Edition::FORMAT_PHYSICAL,
+        ]);
         $edition->platforms()->sync($validated['platform_ids'] ?? []);
 
         return redirect()->route('web.editions.index')->with('success', 'Edición actualizada correctamente.');
@@ -70,6 +76,7 @@ class EditionController extends Controller
     {
         return $request->validate([
             'name'           => 'required|string|max:255',
+            'format'         => 'nullable|string|in:' . implode(',', array_keys(Edition::FORMATS)),
             'platform_ids'   => 'nullable|array',
             'platform_ids.*' => 'exists:platforms,id',
         ]);

@@ -63,7 +63,8 @@
                         <div class="mt-2 flex items-center gap-2 flex-wrap">
                             <x-platform-chip :platform="$game->platform" />
                             @if($game->edition)
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700">
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700">
+                                    <x-gicon :name="$game->edition->formatIcon()" :title="$game->edition->formatLabel()" class="text-[13px] text-slate-400" />
                                     {{ $game->edition->name }}
                                 </span>
                             @endif

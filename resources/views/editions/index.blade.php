@@ -20,9 +20,12 @@
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
-                        <h3 class="text-[15px] font-bold text-slate-100 truncate">{{ $edition->name }}</h3>
+                        <h3 class="text-[15px] font-bold text-slate-100 truncate flex items-center gap-1.5">
+                            <x-gicon :name="$edition->formatIcon()" :title="$edition->formatLabel()" class="text-[16px] text-slate-400" />
+                            {{ $edition->name }}
+                        </h3>
                         <p class="text-xs text-slate-500 mt-0.5">
-                            {{ $edition->games_count }} {{ \Illuminate\Support\Str::plural('juego', $edition->games_count) }}
+                            {{ $edition->formatLabel() }} · {{ $edition->games_count }} {{ \Illuminate\Support\Str::plural('juego', $edition->games_count) }}
                         </p>
                     </div>
 
@@ -70,6 +73,7 @@
             <thead class="bg-slate-800/50">
                 <tr>
                     <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Nombre</th>
+                    <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Formato</th>
                     <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Plataformas</th>
                     <th scope="col" class="px-6 py-3.5 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">Juegos</th>
                     <th scope="col" class="px-6 py-3.5 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">Acciones</th>
@@ -79,6 +83,12 @@
                 @forelse($editions as $edition)
                     <tr class="hover:bg-slate-800/40 transition-colors">
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-100">{{ $edition->name }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
+                            <span class="inline-flex items-center gap-1.5">
+                                <x-gicon :name="$edition->formatIcon()" :title="$edition->formatLabel()" class="text-[16px] text-slate-400" />
+                                {{ $edition->formatLabel() }}
+                            </span>
+                        </td>
                         <td class="px-6 py-4">
                             @forelse($edition->platforms as $platform)
                                 <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700 mr-1 mb-1">
@@ -108,7 +118,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="4" class="px-6 py-12 text-center text-slate-500 text-sm">
+                        <td colspan="5" class="px-6 py-12 text-center text-slate-500 text-sm">
                             No hay ediciones registradas todavía.
                         </td>
                     </tr>
