@@ -5,6 +5,12 @@ sección al final de `README.md`; se separó a este fichero para que el README
 pueda ser un documento de presentación del proyecto en vez de una lista que
 crece sin parar.
 
+## 2026-08-16 (4)
+- **Tres ideas de interfaz sin priorizar, implementadas**:
+  - **Skeleton loaders en el buscador rápido (Ctrl+K)**: `#quick-search-results` mostraba los resultados de la búsqueda anterior congelados mientras llegaba la respuesta y saltaba de golpe a los nuevos. Ahora, en cuanto se dispara una búsqueda (`runSearch()`, `resources/js/app.js`), se pinta un esqueleto de 4 filas con la misma silueta que un resultado real (carátula + dos líneas), con `animate-pulse`, hasta que llega la respuesta.
+  - **Insignia de "completado"** (icono de trofeo, `emoji_events`): badge en la esquina de la carátula para los juegos con estado de juego = terminado, en la vista de estantería (esquina inferior derecha, los otros dos badges ya ocupan las de arriba) y en la miniatura de las tarjetas móviles.
+  - **Transición suave entre las tres vistas de la colección**: el cambio entre lista/estantería usaba `display: none`/`grid` sin más, un salto instantáneo. Ahora usa `@starting-style` + `transition: ... allow-discrete` (`resources/css/app.css`) para un fundido de opacidad al entrar y salir; en un navegador sin soporte de estas propiedades, ambas reglas se ignoran sin más y el resultado es exactamente el salto instantáneo de antes, sin riesgo de romper nada. El cambio a/desde la tabla compacta (mismo `<table>`, solo cambia el padding de filas) anima ese padding en vez del salto de tamaño.
+
 ## 2026-08-16 (3)
 - **Tres huecos de seguridad cerrados del apartado "Pendiente" del README**:
   - **Límite de login también por email solo**: `ThrottlesLogins` ya frenaba por `email|IP` (5 intentos/60s), pero un atacante rotando de IP en cada intento reseteaba ese límite cada vez sin ningún tope global contra la cuenta. Nuevo límite adicional, más laxo (10 intentos/5 minutos), solo por email, que no depende de la IP.

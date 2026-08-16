@@ -93,9 +93,10 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 - Orden del listado por título, precio, conservación o fecha de compra (con un valor por defecto configurable desde Ajustes); atajo de teclado `/` abre el buscador rápido, igual que `Ctrl+K`.
 - Acciones en bloque: seleccionar varios juegos a la vez para enviarlos a la papelera o cambiarles el estado de golpe.
 - Botón flotante de "Añadir juego" en móvil, para no tener que volver arriba al hacer scroll por una colección larga.
-- Tres formas de ver la colección: la habitual, una tabla compacta y una estantería de carátulas grandes.
+- Tres formas de ver la colección: la habitual, una tabla compacta y una estantería de carátulas grandes, con un fundido suave al cambiar entre ellas en vez del salto instantáneo de antes.
 - Barra de estado discreta con el total de juegos y el gasto invertido en toda la colección, siempre visible.
-- **Buscador único de la app** (`Ctrl+K`/`Cmd+K`, también la tecla `/` y el botón-buscador de la propia colección): resultados en vivo por título o EAN mientras se escribe, con filtros opcionales de plataforma/estado de juego/propiedad y un enlace para ver todos los resultados en la colección paginada cuando hace falta más que eso. Si el juego no está en tu colección, se ofrecen además **sugerencias de CEX** (webuy.com) con EAN y carátula reales para rellenar el alta con un clic; la lista de deseos se puede excluir de estos resultados desde Ajustes.
+- **Insignia de "completado"** (icono de trofeo): los juegos con estado de juego = terminado la llevan en la esquina de la carátula, tanto en la vista de estantería como en la miniatura de la tarjeta (móvil).
+- **Buscador único de la app** (`Ctrl+K`/`Cmd+K`, también la tecla `/` y el botón-buscador de la propia colección): resultados en vivo por título o EAN mientras se escribe (con un esqueleto de carga mientras llegan, en vez de dejar los resultados anteriores congelados), con filtros opcionales de plataforma/estado de juego/propiedad y un enlace para ver todos los resultados en la colección paginada cuando hace falta más que eso. Si el juego no está en tu colección, se ofrecen además **sugerencias de CEX** (webuy.com) con EAN y carátula reales para rellenar el alta con un clic; la lista de deseos se puede excluir de estos resultados desde Ajustes.
 - **Escaneo de código de barras** con la cámara desde la propia búsqueda rápida: detecta el EAN y lo vuelca en el buscador, enlazando con las sugerencias de CEX si el juego todavía no está en tu colección. Necesita HTTPS para acceder a la cámara fuera de `localhost` (ver [Desplegar para uso propio](#desplegar-para-uso-propio)).
 - **Instalable como PWA**: manifest (`public/manifest.json`) y service worker (`public/sw.js`, cache-first solo para los assets versionados de Vite) para poder "añadir a pantalla de inicio" en móvil y abrirla como app aparte. Igual que el escaneo de código de barras, el service worker solo se registra en HTTPS o `localhost`.
 
@@ -200,9 +201,6 @@ Cobertura actual:
 
 Pequeñas (estética):
 - Estados vacíos ilustrados en colección, lista de deseos y papelera cuando no hay elementos, en vez del texto plano actual.
-- Skeleton loaders en el buscador AJAX de la colección y en la búsqueda rápida (Ctrl+K) mientras llegan los resultados, en vez del salto brusco al reemplazarlos.
-- Insignia visual de "completado" (icono de trofeo) en los juegos con estado de juego = terminado: en la vista de estantería, en la esquina de la carátula; en la vista de tarjetas (móvil), en la propia tarjeta.
-- Transición suave al cambiar entre las tres vistas de la colección (tarjetas/tabla/estantería), hoy instantánea y algo brusca.
 
 ## Contribuir
 
