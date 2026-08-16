@@ -5,6 +5,9 @@ sección al final de `README.md`; se separó a este fichero para que el README
 pueda ser un documento de presentación del proyecto en vez de una lista que
 crece sin parar.
 
+## 2026-08-16 (6)
+- **Fix: insignia de trofeo ilegible en la tarjeta móvil**: a 16px de círculo con el icono a 10px quedaba demasiado diminuta para reconocerse. Ahora 20px (mismo tamaño que en la estantería), icono relleno (`:filled`) en vez de solo contorno, y un anillo oscuro (`ring-slate-900`) para que se recorte bien contra la carátula en vez de mezclarse con el borde.
+
 ## 2026-08-16 (5)
 - **Fix: el icono de "Terminado" en la ficha de detalle pasa a ser el trofeo** (`emoji_events`, antes `check_circle`), a juego con la insignia nueva de estantería/tarjetas en vez de un icono distinto para el mismo estado.
 

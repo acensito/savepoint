@@ -33,8 +33,8 @@
                     <a href="{{ route('web.games.show', $game->id) }}" class="relative flex-shrink-0">
                         <x-game-cover :game="$game" size="lg" class="!w-16 !rounded-xl !text-xl shadow-sm shadow-black/20" />
                         @if($game->play_status === 'finished')
-                            <span class="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 rounded-full bg-yellow-500 text-slate-950" title="Terminado">
-                                <x-gicon name="emoji_events" class="text-[10px]" />
+                            <span class="absolute -top-1.5 -right-1.5 flex items-center justify-center w-5 h-5 rounded-full bg-yellow-500 text-slate-950 ring-2 ring-slate-900" title="Terminado">
+                                <x-gicon name="emoji_events" :filled="true" class="text-[13px]" />
                             </span>
                         @endif
                     </a>
