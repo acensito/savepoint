@@ -646,6 +646,25 @@ initConfirmDialogs();
 const QUICK_SEARCH_DEBOUNCE_MS = 200;
 
 /**
+ * Filas de relleno con la misma silueta que una fila real de
+ * _quick-search-results.blade.php (carátula + dos líneas de texto), para
+ * mostrar mientras se espera la respuesta del servidor en vez de dejar los
+ * resultados anteriores congelados y saltar de golpe a los nuevos.
+ */
+function quickSearchSkeleton() {
+    const row = `
+        <li class="flex items-center gap-3 px-4 py-2.5">
+            <div class="w-10 h-10 rounded-lg bg-slate-800 flex-shrink-0"></div>
+            <div class="flex-1 min-w-0 space-y-2">
+                <div class="h-3 w-3/5 rounded bg-slate-800"></div>
+                <div class="h-2.5 w-2/5 rounded bg-slate-800"></div>
+            </div>
+        </li>`;
+
+    return `<ul class="py-2 animate-pulse" aria-hidden="true">${row.repeat(4)}</ul>`;
+}
+
+/**
  * Búsqueda rápida global (Ctrl+K / Cmd+K, también "/" y el botón-buscador de
  * la colección): abre un <dialog> centrado con un campo de texto y filtros
  * opcionales de plataforma/estado que buscan en la colección según se
@@ -676,6 +695,8 @@ function initQuickSearch() {
         if (platformFilter?.value) params.set('platform_id', platformFilter.value);
         if (playStatusFilter?.value) params.set('play_status', playStatusFilter.value);
         if (statusFilter?.value) params.set('status', statusFilter.value);
+
+        results.innerHTML = quickSearchSkeleton();
 
         try {
             const response = await fetch(`${url}?${params.toString()}`, {
