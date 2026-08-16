@@ -77,31 +77,35 @@
     </div>
 </div>
 
-@if($game)
-    <!-- Fuera de la columna estrecha de arriba (junto a la miniatura) para
-         que ocupe el ancho completo del formulario, igual que el resto de
-         campos (Título, EAN...) en vez de quedar desplazado a la derecha. -->
-    <div class="mt-3">
-        <button type="button" id="cex-cover-lookup-btn" data-url="{{ route('web.games.cover-lookup', $game) }}"
-            class="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-400 hover:text-indigo-300">
-            <x-gicon name="search" class="text-[14px]" />
-            Buscar carátula y EAN en CEX
-        </button>
-        <p id="cex-cover-status" class="hidden text-xs text-slate-500 mt-1.5"></p>
-        <ul id="cex-cover-results" class="hidden mt-1.5 space-y-1 max-h-48 overflow-y-auto rounded-lg border border-slate-700 bg-slate-800/50 p-1.5"></ul>
+<!-- Fuera de la columna estrecha de arriba (junto a la miniatura) para
+     que ocupe el ancho completo del formulario, igual que el resto de
+     campos (Título, EAN...) en vez de quedar desplazado a la derecha.
+     Misma búsqueda en alta y edición: en el alta no hay todavía un Game
+     guardado al que atar la ruta, así que usa un endpoint aparte sin
+     autorización por juego (ver GameController::coverLookupForNew) y la
+     búsqueda por defecto sale del EAN/título ya tecleados en el propio
+     formulario en vez de una fila de la base de datos. -->
+<div class="mt-3">
+    <button type="button" id="cex-cover-lookup-btn"
+        data-url="{{ $game ? route('web.games.cover-lookup', $game) : route('web.games.cover-lookup.new') }}"
+        class="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-400 hover:text-indigo-300">
+        <x-gicon name="search" class="text-[14px]" />
+        Buscar carátula y EAN en CEX
+    </button>
+    <p id="cex-cover-status" class="hidden text-xs text-slate-500 mt-1.5"></p>
+    <ul id="cex-cover-results" class="hidden mt-1.5 space-y-1 max-h-48 overflow-y-auto rounded-lg border border-slate-700 bg-slate-800/50 p-1.5"></ul>
 
-        <!-- Búsqueda manual: se muestra sin resultados (título mal escrito,
-             subtítulo distinto al que usa CEX...) o para refinar una
-             búsqueda que sí dio resultados pero no el esperado. -->
-        <div id="cex-cover-manual" class="hidden mt-1.5 flex gap-1.5">
-            <input type="text" id="cex-cover-manual-input" placeholder="Buscar con otras palabras…"
-                autocomplete="off" autocorrect="off" spellcheck="false"
-                class="flex-1 min-w-0 rounded-lg border border-slate-700 bg-slate-800 text-slate-100 text-xs px-2.5 py-1.5 focus:border-indigo-500 focus:ring-indigo-500 outline-none">
-            <button type="button" id="cex-cover-manual-btn"
-                class="flex-shrink-0 text-xs font-medium text-indigo-400 hover:text-indigo-300 px-2">Buscar</button>
-        </div>
+    <!-- Búsqueda manual: se muestra sin resultados (título mal escrito,
+         subtítulo distinto al que usa CEX...) o para refinar una
+         búsqueda que sí dio resultados pero no el esperado. -->
+    <div id="cex-cover-manual" class="hidden mt-1.5 flex gap-1.5">
+        <input type="text" id="cex-cover-manual-input" placeholder="Buscar con otras palabras…"
+            autocomplete="off" autocorrect="off" spellcheck="false"
+            class="flex-1 min-w-0 rounded-lg border border-slate-700 bg-slate-800 text-slate-100 text-xs px-2.5 py-1.5 focus:border-indigo-500 focus:ring-indigo-500 outline-none">
+        <button type="button" id="cex-cover-manual-btn"
+            class="flex-shrink-0 text-xs font-medium text-indigo-400 hover:text-indigo-300 px-2">Buscar</button>
     </div>
-@endif
+</div>
 
 <!-- Datos básicos -->
 <div class="pt-6 border-t border-slate-800 space-y-4">
@@ -503,16 +507,18 @@
     })();
 
     /**
-     * "Buscar carátula en CEX": busca este juego (ya guardado) en el
-     * catálogo externo y deja elegir una carátula entre los resultados. No
-     * se descarga hasta guardar el formulario (mismo mecanismo que la
-     * carátula sugerida desde la búsqueda rápida): aquí solo se rellena el
-     * campo oculto cover_url y se actualiza la vista previa. Al elegir un
-     * resultado también se rellena el campo EAN (visible, editable, no se
-     * guarda hasta enviar el formulario como el resto de campos).
+     * "Buscar carátula en CEX": busca este juego (guardado o todavía en
+     * alta) en el catálogo externo y deja elegir una carátula entre los
+     * resultados. No se descarga hasta guardar el formulario (mismo
+     * mecanismo que la carátula sugerida desde la búsqueda rápida): aquí
+     * solo se rellena el campo oculto cover_url y se actualiza la vista
+     * previa. Al elegir un resultado también se rellena el campo EAN
+     * (visible, editable, no se guarda hasta enviar el formulario como el
+     * resto de campos).
      *
-     * Por defecto busca por el EAN/título ya guardados (?q= vacío, ver
-     * GameController::coverLookup), pero si no da resultados o el usuario
+     * Por defecto busca por el EAN/título ya tecleados en el propio
+     * formulario (funciona igual en alta que en edición: no depende de que
+     * el juego ya esté guardado), pero si no da resultados o el usuario
      * quiere afinar, se puede repetir la búsqueda a mano con otras palabras
      * (input "Buscar con otras palabras").
      */
@@ -599,7 +605,7 @@
             }
         }
 
-        btn.addEventListener('click', () => search());
+        btn.addEventListener('click', () => search(eanInput.value.trim() || titleInput.value.trim()));
 
         manualBtn.addEventListener('click', () => {
             const query = manualInput.value.trim();

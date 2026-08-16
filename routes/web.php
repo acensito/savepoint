@@ -108,6 +108,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/games/print', [GameController::class, 'print'])->name('web.games.print');
     Route::get('/games/export', [GameController::class, 'export'])->name('web.games.export');
 
+    // Buscar carátula/EAN en CEX durante el alta: el juego todavía no existe,
+    // así que no hay {game} al que atar esta ruta. Misma razón de orden que
+    // las de arriba: antes de '/games/{game}' (show), si no "cover-lookup"
+    // entraría por ahí y buscaría un juego con ese id.
+    Route::get('/games/cover-lookup', [GameController::class, 'coverLookupForNew'])->name('web.games.cover-lookup.new');
+
     Route::get('/games/trash', [GameController::class, 'trash'])->name('web.games.trash');
     Route::post('/games/{id}/restore', [GameController::class, 'restore'])->name('web.games.restore');
     Route::delete('/games/{id}/force-delete', [GameController::class, 'forceDelete'])->name('web.games.force-delete');

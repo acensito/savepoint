@@ -583,7 +583,30 @@ class GameController extends Controller
             $query = $game->ean ?: $game->title;
         }
 
-        $results = collect($this->gameLookup->search($query))
+        return response()->json(['results' => $this->searchCoverLookup($query)]);
+    }
+
+    /**
+     * Misma búsqueda que coverLookup() de arriba, pero para un juego que
+     * TODAVÍA no existe (durante el alta): no hay ningún Game al que atar la
+     * autorización ni un EAN/título ya guardados como valor por defecto, así
+     * que "q" es obligatorio aquí (el propio formulario lo rellena con lo
+     * que el usuario ya haya tecleado en EAN/título antes de pulsar el
+     * botón, ver initCexCoverLookup en games/_form.blade.php).
+     */
+    public function coverLookupForNew(Request $request)
+    {
+        $query = trim((string) $request->query('q', ''));
+        if ($query === '') {
+            return response()->json(['results' => []]);
+        }
+
+        return response()->json(['results' => $this->searchCoverLookup($query)]);
+    }
+
+    private function searchCoverLookup(string $query)
+    {
+        return collect($this->gameLookup->search($query))
             ->map(fn ($result) => [
                 'title' => $result->title,
                 'ean' => $result->ean,
@@ -591,8 +614,6 @@ class GameController extends Controller
                 'platform' => $result->platform,
             ])
             ->values();
-
-        return response()->json(['results' => $results]);
     }
 
     /**
