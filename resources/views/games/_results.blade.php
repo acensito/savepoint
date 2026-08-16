@@ -65,7 +65,7 @@
                                 {{ $game->purchase_date?->format('d/m/Y') ?? '—' }}
                             </span>
                             @if($game->price_paid !== null)
-                                <span class="text-[11px] font-semibold text-emerald-400 tabular-nums bg-emerald-500/10 px-1.5 py-0.5 rounded-md">{{ number_format($game->price_paid, 2, ',', '.') }} €</span>
+                                <span class="text-[13px] font-semibold text-emerald-400 tabular-nums bg-emerald-500/10 px-1.5 py-0.5 rounded-md">{{ number_format($game->price_paid, 2, ',', '.') }} €</span>
                             @endif
                         </a>
                     </div>
