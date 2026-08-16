@@ -48,9 +48,14 @@ return [
     | considered expired. This will override any values set in the token's
     | "expires_at" attribute, but first-party sessions are not affected.
     |
+    | Por defecto 30 días: los tokens de la API (pensada para un futuro
+    | cliente móvil, ver README) se emiten sin "expires_at" propio
+    | (Api\AuthController::login()), así que sin este límite global no
+    | caducarían nunca por su cuenta.
+    |
     */
 
-    'expiration' => null,
+    'expiration' => env('SANCTUM_TOKEN_EXPIRATION_MINUTES', 60 * 24 * 30),
 
     /*
     |--------------------------------------------------------------------------

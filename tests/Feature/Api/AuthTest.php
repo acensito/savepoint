@@ -83,6 +83,34 @@ class AuthTest extends TestCase
             ->assertStatus(401);
     }
 
+    public function test_a_token_older_than_the_configured_expiration_is_rejected(): void
+    {
+        $user = User::factory()->create();
+        $token = $user->createToken('test')->plainTextToken;
+
+        $user->tokens()->update([
+            'created_at' => now()->subMinutes(config('sanctum.expiration') + 1),
+        ]);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/user')
+            ->assertStatus(401);
+    }
+
+    public function test_a_token_within_the_configured_expiration_still_works(): void
+    {
+        $user = User::factory()->create();
+        $token = $user->createToken('test')->plainTextToken;
+
+        $user->tokens()->update([
+            'created_at' => now()->subMinutes(config('sanctum.expiration') - 1),
+        ]);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/user')
+            ->assertOk();
+    }
+
     public function test_login_is_throttled_after_too_many_failed_attempts(): void
     {
         $user = User::factory()->create(['password' => Hash::make('password')]);
