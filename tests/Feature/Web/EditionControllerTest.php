@@ -60,6 +60,53 @@ class EditionControllerTest extends TestCase
         $this->assertTrue($edition->platforms->contains($platform));
     }
 
+    public function test_creating_an_edition_without_a_format_defaults_to_physical(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post('/editions', ['name' => 'Edición al vuelo']);
+
+        $edition = Edition::where('name', 'Edición al vuelo')->firstOrFail();
+        $this->assertSame(Edition::FORMAT_PHYSICAL, $edition->format);
+    }
+
+    public function test_user_can_create_an_edition_with_a_specific_format(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post('/editions', [
+            'name' => 'Edición digital',
+            'format' => Edition::FORMAT_DIGITAL,
+        ]);
+
+        $edition = Edition::where('name', 'Edición digital')->firstOrFail();
+        $this->assertSame(Edition::FORMAT_DIGITAL, $edition->format);
+    }
+
+    public function test_creating_an_edition_rejects_an_invalid_format(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post('/editions', [
+            'name' => 'Edición rara',
+            'format' => 'cartridge',
+        ])->assertSessionHasErrors('format');
+    }
+
+    public function test_user_can_update_an_editions_format(): void
+    {
+        $user = User::factory()->create();
+        $edition = Edition::factory()->create(['format' => Edition::FORMAT_PHYSICAL]);
+
+        $response = $this->actingAs($user)->put("/editions/{$edition->id}", [
+            'name' => $edition->name,
+            'format' => Edition::FORMAT_CIAB,
+        ]);
+
+        $response->assertRedirect(route('web.editions.index'));
+        $this->assertSame(Edition::FORMAT_CIAB, $edition->fresh()->format);
+    }
+
     public function test_creating_an_edition_via_ajax_returns_json(): void
     {
         $user = User::factory()->create();
