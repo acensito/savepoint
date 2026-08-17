@@ -23,10 +23,7 @@ class DatabaseSeeder extends Seeder
     }
 
     /**
-     * Usuarios de desarrollo.
-     *
-     * El segundo usuario existe para poder comprobar el aislamiento entre
-     * colecciónes: entrando como Admin no deberías ver nada suyo.
+     * Usuario de desarrollo por defecto.
      */
     private function seedUsers(): void
     {
@@ -35,15 +32,6 @@ class DatabaseSeeder extends Seeder
             ['email' => 'admin@savepoint.test'],
             [
                 'name'              => 'Admin',
-                'password'          => Hash::make('password'),
-                'email_verified_at' => now(),
-            ]
-        );
-
-        User::updateOrCreate(
-            ['email' => 'test@example.com'],
-            [
-                'name'              => 'Test User',
                 'password'          => Hash::make('password'),
                 'email_verified_at' => now(),
             ]
