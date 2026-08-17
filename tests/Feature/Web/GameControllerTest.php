@@ -70,6 +70,42 @@ class GameControllerTest extends TestCase
         $this->assertSame('En venta', $games->first()->title);
     }
 
+    public function test_index_shows_for_sale_games_by_default(): void
+    {
+        $user = User::factory()->create(['hide_for_sale_from_collection' => false]);
+        Game::factory()->for($user)->create(['title' => 'En venta', 'for_sale' => true]);
+
+        $response = $this->actingAs($user)->get('/');
+
+        $this->assertCount(1, $response->viewData('games'));
+    }
+
+    public function test_index_hides_for_sale_games_when_the_setting_is_enabled(): void
+    {
+        $user = User::factory()->create(['hide_for_sale_from_collection' => true]);
+        Game::factory()->for($user)->create(['title' => 'En venta', 'for_sale' => true]);
+        Game::factory()->for($user)->create(['title' => 'No en venta', 'for_sale' => false]);
+
+        $response = $this->actingAs($user)->get('/');
+
+        $games = $response->viewData('games');
+        $this->assertCount(1, $games);
+        $this->assertSame('No en venta', $games->first()->title);
+    }
+
+    public function test_index_for_sale_filter_still_works_when_the_setting_hides_them_by_default(): void
+    {
+        $user = User::factory()->create(['hide_for_sale_from_collection' => true]);
+        Game::factory()->for($user)->create(['title' => 'En venta', 'for_sale' => true]);
+        Game::factory()->for($user)->create(['title' => 'No en venta', 'for_sale' => false]);
+
+        $response = $this->actingAs($user)->get('/?for_sale=1');
+
+        $games = $response->viewData('games');
+        $this->assertCount(1, $games);
+        $this->assertSame('En venta', $games->first()->title);
+    }
+
     public function test_editing_with_convert_to_owned_preselects_owned_status_and_todays_purchase_date(): void
     {
         $user = User::factory()->create();

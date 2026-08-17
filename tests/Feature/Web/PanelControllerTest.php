@@ -215,6 +215,49 @@ class PanelControllerTest extends TestCase
         $this->assertNull($otherUser->fresh()->igdb_client_id);
     }
 
+    public function test_settings_shows_the_hide_for_sale_checkbox_unchecked_by_default(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get('/panel/settings');
+
+        $response->assertOk();
+        $content = preg_replace('/\s+/', ' ', $response->getContent());
+        $this->assertStringContainsString('name="hide_for_sale_from_collection" value="1"', $content);
+        $this->assertStringNotContainsString('name="hide_for_sale_from_collection" value="1" checked', $content);
+    }
+
+    public function test_user_can_enable_hiding_for_sale_games_from_the_collection(): void
+    {
+        $user = User::factory()->create(['hide_for_sale_from_collection' => false]);
+
+        $response = $this->actingAs($user)->put('/panel/settings', [
+            'hide_for_sale_from_collection' => '1',
+        ]);
+
+        $response->assertRedirect(route('web.panel.settings'));
+        $this->assertTrue($user->fresh()->hide_for_sale_from_collection);
+    }
+
+    public function test_user_can_disable_hiding_for_sale_games_by_omitting_the_checkbox(): void
+    {
+        $user = User::factory()->create(['hide_for_sale_from_collection' => true]);
+
+        $this->actingAs($user)->put('/panel/settings', []);
+
+        $this->assertFalse($user->fresh()->hide_for_sale_from_collection);
+    }
+
+    public function test_updating_the_hide_for_sale_setting_does_not_affect_other_users(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create(['hide_for_sale_from_collection' => false]);
+
+        $this->actingAs($user)->put('/panel/settings', ['hide_for_sale_from_collection' => '1']);
+
+        $this->assertFalse($otherUser->fresh()->hide_for_sale_from_collection);
+    }
+
     public function test_updating_settings_with_blank_selects_clears_the_defaults(): void
     {
         $edition = Edition::factory()->create();
