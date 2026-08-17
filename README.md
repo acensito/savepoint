@@ -192,7 +192,7 @@ docker compose exec app npm install
 docker compose exec app npm run build       # o "npm run dev" si expones el puerto 5173 para hot-reload
 
 docker compose exec app php artisan migrate
-docker compose exec app php artisan db:seed   # usuarios de prueba: admin@savepoint.test / test@example.com, contraseña "password"
+docker compose exec app php artisan db:seed   # usuario por defecto: admin@savepoint.test, contraseña "password"
 docker compose exec app php artisan storage:link
 
 # storage/ y bootstrap/cache vienen del bind-mount del host: si el repo se
@@ -260,12 +260,7 @@ Cobertura actual:
 
 - Sin backups automatizados de Postgres (ni `pg_dump` programado ni snapshot del volumen).
 - Sin HTTPS en el despliegue actual: bloquea el escaneo de código de barras desde el móvil fuera de `localhost` (ver [Desplegar para uso propio](#desplegar-para-uso-propio)).
-- **2FA por email en el login**: la app está expuesta a internet, así que un password filtrado/reusado en otro sitio (credential stuffing) es un vector real, no solo teórico. El modelo `User` ya tiene `MustVerifyEmail` comentado en el código como punto de partida. Falta: configurar un mailer real (`MAIL_MAILER` está en `log`, no envía nada todavía), columnas en `users` para código + expiración, pantalla de verificación tras el login por password, y reenvío de código con cooldown.
-
-### Ideas de interfaz/funcionalidad sin priorizar
-
-Pequeñas (estética):
-- Estados vacíos ilustrados en colección, lista de deseos y papelera cuando no hay elementos, en vez del texto plano actual.
+- **Sin segundo factor en el login**: la app está expuesta a internet, así que un password filtrado/reusado en otro sitio (credential stuffing) es un vector real, no solo teórico. Valorado (2FA por email, tarjeta de códigos de coordenadas, TOTP) y descartado por ahora; de momento se sigue solo con login por contraseña.
 
 ## Contribuir
 
