@@ -97,7 +97,7 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 - **Importación masiva** desde un CSV: solo el título es obligatorio, cada fila se procesa de forma independiente (una fila con error no bloquea al resto) y las plataformas/ediciones que el CSV mencione y no existan todavía en el catálogo se crean automáticamente. Antes de importar se muestra una vista previa de lo que se va a crear, con una plantilla de ejemplo descargable.
 - **Buscar carátula y EAN en CEX** (webuy.com) desde el propio formulario de alta o edición: busca por EAN o título en su catálogo, muestra los resultados con carátula/EAN/plataforma para elegir con confianza, y rellena ambos campos al elegir uno. En el alta busca por lo que ya se haya tecleado en EAN/título antes de pulsar el botón (el juego todavía no está guardado); en la edición, por defecto usa el EAN/título ya guardados. Si la búsqueda automática no encuentra nada, se puede repetir a mano con otras palabras.
 - Panel de gestión de ediciones (normal/especial/coleccionista...) asociadas a una o varias plataformas — o a ninguna, lo que la deja disponible para cualquier plataforma, presente o futura. Una edición **"Normal"** con ese criterio viene creada de fábrica y es la que se preselecciona por defecto al dar de alta un juego (configurable desde Ajustes, junto con la región por defecto). Si la edición que necesitas no existe todavía, se puede crear al vuelo desde el propio formulario de alta/edición de juego sin perder lo ya rellenado. Cada edición tiene además un **formato** (físico/digital/CIAB, físico por defecto) marcado con icono en la gestión de ediciones, la ficha del juego y el listado de la colección.
-- **Marcar un juego como "en venta"**: etiqueta independiente del estado de Propiedad (un juego sigue en tu colección y además puede estar en venta), con badge en las tres vistas de la colección (tarjetas, tabla, estantería) y su propio filtro. Se activa desde la ficha de detalle del juego o desde el propio formulario de alta/edición.
+- **Marcar un juego como "en venta"**: etiqueta independiente del estado de Propiedad (un juego sigue en tu colección y además puede estar en venta), con badge en las tres vistas de la colección (tarjetas, tabla, estantería) y su propio filtro. Se activa desde la ficha de detalle del juego o desde el propio formulario de alta/edición. Tiene además su propia página, **En venta** (`/for-sale`, enlazada desde el sidebar junto a Ventas), pensada para dar mantenimiento a esos juegos (quitarlos de venta, marcarlos como vendidos) sin mezclarlos con el resto — un ajuste en Ajustes permite además ocultarlos del listado de la colección sin filtrar (ver Panel de control).
 - **Vender un juego**: desde su ficha de detalle, un botón "Marcar como vendido" pide precio y fecha de venta (y permite ajustar las notas) y envía el juego a la papelera — deja de aparecer en tu colección, pero recuperable como cualquier borrado. Una página aparte, **Ventas** (`/sales`), reúne el histórico agrupado por año (título, plataforma, edición, región, precio de compra/venta, rendimiento, notas), con opción de deshacer una venta y que el juego vuelva a la colección.
 
 ### Lista de deseos
@@ -105,6 +105,13 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 - **Alta reducida**: a diferencia del alta normal, solo pide título, plataforma y edición — el resto de campos (precio, conservación, manual...) no tienen sentido todavía.
 - Cada juego admite **prioridad** (alta/media/baja), **precio estimado** y **dónde comprarlo**. Buscador por título/EAN y orden por prioridad, título o precio estimado.
 - Acción **"Pasar a la colección"**: abre el formulario de edición completo con los datos ya insertados y Propiedad/fecha de compra preseleccionadas, para no tener que rellenar todo de nuevo cuando por fin compras un juego de tu lista.
+
+### Encargos
+- Página propia (`/commissions`) para la logística de juegos que compran/envían amigos, o que tú compras/envías a alguien — un concepto aparte de "En venta"/"Ventas" (eso es vender lo tuyo, esto es recibir o enviar a través de otra persona) y de la colección (no cuentan en ella hasta que llegan de verdad).
+- Cada encargo guarda título, plataforma, **a quién**, **dirección** ("Me lo deben" / "Se lo debo"), precio y fecha de compra. CRUD completo (editar/borrar) por si hay que corregir algo.
+- **Marcar como recibido** (dirección "Me lo deben"): dado de alta un `Game` de verdad en tu colección (estado "En colección", pendiente de jugar) y te lleva directo a su edición para completar lo que el encargo no recoge (EAN, condición, manual, notas...).
+- **Marcar como enviado** (dirección "Se lo debo"): solo anota la fecha, nunca crea un juego en tu colección — el juego se va, no se queda.
+- El encargo **nunca desaparece ni se borra al resolverse**: se queda listado como histórico, con enlace directo a la ficha del juego cuando se creó uno, para poder consultar más adelante qué se envió o recibió y cuándo.
 
 ### Catálogo (fabricantes y plataformas)
 - Panel de gestión para dar de alta, editar y borrar tus propios fabricantes y plataformas, en vez de depender de un catálogo precargado fijo.
@@ -141,6 +148,7 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
   - **Fondo automático desde IGDB**: requiere IGDB activado arriba. Si está activo, al dar de alta un juego se intenta identificar en IGDB y, si tiene arte disponible, se fija el primero como fondo de la ficha sin ninguna acción del usuario — se puede seguir cambiando a mano entre el resto de opciones, igual que siempre. Desactivado, el fondo se queda vacío hasta elegirlo a mano, como hasta ahora. Desactivado por defecto.
   - **Orden y tamaño de página por defecto** con los que arranca el listado de la colección, y **región y edición por defecto** que se preseleccionan al dar de alta un juego: un filtro o una elección explícita en el momento siguen ganando siempre a estos valores por defecto.
   - **Excluir la lista de deseos** de los resultados del buscador rápido (Ctrl+K), para quien prefiera no verla mezclada con la colección ahí (incluida por defecto, como hasta ahora).
+  - **Ocultar los juegos en venta** del listado de la colección sin filtrar: siguen viéndose con el filtro "En venta" y en su propia página (`/for-sale`), pero desaparecen del listado por defecto. Incluidos por defecto, como hasta ahora.
   - Tema claro/oscuro y la vista de la colección elegida (ver Interfaz) también se guardan aquí, aunque se cambian desde sus propios controles (icono del header, botones de vista), no desde este formulario.
 
 ### Seguridad de datos
@@ -261,6 +269,20 @@ Cobertura actual:
 - Sin backups automatizados de Postgres (ni `pg_dump` programado ni snapshot del volumen).
 - Sin HTTPS en el despliegue actual: bloquea el escaneo de código de barras desde el móvil fuera de `localhost` (ver [Desplegar para uso propio](#desplegar-para-uso-propio)).
 - **Sin segundo factor en el login**: la app está expuesta a internet, así que un password filtrado/reusado en otro sitio (credential stuffing) es un vector real, no solo teórico. Valorado (2FA por email, tarjeta de códigos de coordenadas, TOTP) y descartado por ahora; de momento se sigue solo con login por contraseña.
+
+### Mejoras técnicas identificadas (auditoría 2026-08-17)
+
+Sin implementar todavía, por orden aproximado de impacto:
+
+- **Estadísticas sin caché**: `/stats` recalcula ~9 queries de agregación en cada carga; un `Cache::remember` de unos minutos (invalidado al mutar un juego) lo evitaría — Redis ya está puesto como `CACHE_STORE` y no se usa para esto.
+- **El worker de cola está desplegado pero ocioso**: no hay ni un solo `Job`/`dispatch()` en toda la app. Encajaría bien con mover a segundo plano el match automático de IGDB en `GameController::show()` (hoy bloquea la carga de la ficha con una llamada HTTP externa síncrona) y/o la importación CSV.
+- **Importación CSV fila a fila, síncrona**, sin chunking ni progreso — relevante justo porque la carga de la colección real (1000+ juegos) sigue pendiente.
+- **`GameController` con 999 líneas y 23 métodos**: CRUD, IGDB, CEX, papelera y acciones en bloque mezclados. Separar al menos lo de IGDB a su propio controlador/servicio.
+- **Validación divergente entre API y web**: `StoreGameRequest` (API) acepta `rating` 1-10 y `status`/`play_status` como string libre; el formulario web los restringe a 1-5 y a enums cerrados. Un alta por API fuera de esos rangos rendería raro en la web.
+- Sin PHPStan/Larastan configurado.
+- CSP (`docker/nginx.conf`) con `'unsafe-inline' 'unsafe-eval'` en `script-src`: tantearía un nonce por petición para los `<script>` inline del layout, y probar si el escáner de códigos de barras (`@zxing/library`) realmente necesita `unsafe-eval` o le basta con `wasm-unsafe-eval`.
+- Índices que faltan en `wishlist_priority`/`wishlist_estimated_price` (se usan para ordenar la lista de deseos) — baja urgencia para una colección personal.
+- Redis sin AOF (solo snapshots RDB): en un crash no limpio se podrían perder los últimos segundos de sesiones/caché. Bajo riesgo, ahí no vive ningún dato que no esté también en Postgres.
 
 ## Contribuir
 
