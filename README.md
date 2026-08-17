@@ -1,13 +1,41 @@
+<div align="center">
+<img src="public/icons/icon-512.png" alt="Logo de Savepoint" width="96" height="96">
+
 # Savepoint
 
-Savepoint es una aplicación para catalogar y gestionar una colección personal de videojuegos: qué juegos tienes, en qué plataforma, su estado de conservación, si los has terminado o no, precio de compra, y mucho más — con importación masiva, búsqueda de carátulas y datos en catálogos externos, estadísticas de la colección y exportación imprimible, entre otras cosas.
+**Tu colección de videojuegos, catalogada de verdad — y solo tuya.**
 
-Construida como backend Laravel que sirve tanto una interfaz web (Blade + Tailwind) como una API REST (Sanctum) pensada para un futuro cliente externo (p. ej. app móvil). Pensada para desplegarse fácilmente con Docker en tu propio servidor o máquina — ver [Desplegar para uso propio](#desplegar-para-uso-propio).
+[![Licencia](https://img.shields.io/badge/licencia-PolyForm%20Noncommercial-blue)](LICENSE)
+![PHP](https://img.shields.io/badge/PHP-8.3-777BB4?logo=php&logoColor=white)
+![Laravel](https://img.shields.io/badge/Laravel-13-FF2D20?logo=laravel&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
+![Docker Compose](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
+
+</div>
+
+Se acabó llevar la colección en una hoja de cálculo. Savepoint cataloga cada juego con su carátula, desarrollador, fecha de lanzamiento y nota reales (autocompletados desde IGDB y CEX, no tecleados a mano), deja escanear el código de barras con la cámara del móvil, sigue cuánto te ha costado y cuánto has sacado al vender, y lo enseña todo en estadísticas de verdad — plataformas, gasto por mes, géneros favoritos, rendimiento de ventas.
+
+Es 100% autoalojada: se despliega con un `docker compose up` en tu propio servidor o NAS, guarda los datos en tu Postgres, no en la nube de nadie, y no depende de ninguna clave de API que no sea la tuya (cada cuenta usa las suyas propias con IGDB, opcionalmente). Backend Laravel que sirve tanto la interfaz web (Blade + Tailwind) como una API REST (Sanctum) lista para un futuro cliente externo, como una app móvil.
 
 Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 
+## Lo más destacado
+
+- **Alta con datos reales, no a pelo**: busca la carátula y el EAN en CEX, y completa desarrollador/fecha/géneros/nota desde IGDB — con tus propias credenciales, gratuitas, ni una llamada más de las necesarias.
+- **Escaneo de código de barras** con la cámara del móvil, e instalable como PWA para abrirla como una app aparte.
+- **Importación/exportación masiva por CSV**, con vista previa de lo que se va a crear antes de confirmar nada.
+- **Estadísticas de la colección**: gasto total y por mes, reparto por plataforma/estado/década, top de géneros, destacados y rendimiento de ventas.
+- **Lista de deseos** independiente y **seguimiento de ventas** con beneficio real por juego y por año.
+- **Multiusuario con roles**, aislamiento total de datos por cuenta y sin alta pública — cada cuenta ve solo lo suyo.
+- **Tuya de verdad**: autoalojada con Docker, tus datos en tu propio Postgres, sin límites ni suscripción.
+
+## Capturas
+
+_(Pendiente: añadir aquí 2-3 capturas reales — colección, ficha de detalle y estadísticas — antes de publicar el repositorio. Es lo primero que ve quien aterriza aquí, así que pesa más que cualquier bullet de esta página.)_
+
 ## Índice
 
+- [Lo más destacado](#lo-más-destacado)
 - [Características](#características)
 - [Stack técnico](#stack-técnico)
 - [Desplegar para uso propio](#desplegar-para-uso-propio)
@@ -73,7 +101,8 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 ### Panel de control
 - Página (`/panel`, enlazada desde el sidebar) que agrupa tareas que no son del día a día con la colección: importar/exportar, la papelera de reciclaje (con el nº de juegos que contiene), el perfil del usuario y los ajustes de comportamiento (ver debajo). Sustituye a los iconos "Importar" y "Papelera" que antes vivían sueltos en el sidebar (siguen accesibles por URL directa, y el icono del panel se resalta como activo también en esas páginas).
 - **Ajustes** (`/panel/settings`): comportamiento de la app configurable por cuenta, no de instancia (esta app no tiene concepto de administrador global).
-  - **Fondo automático desde IGDB**: si está activo, al dar de alta un juego se intenta identificar en IGDB y, si tiene arte disponible, se fija el primero como fondo de la ficha sin ninguna acción del usuario — se puede seguir cambiando a mano entre el resto de opciones, igual que siempre. Desactivado, el fondo se queda vacío hasta elegirlo a mano, como hasta ahora. Desactivado por defecto.
+  - **IGDB**: activar la búsqueda en IGDB (desarrollador, fecha de lanzamiento, géneros, nota y fondos) requiere darse de alta como desarrollador en Twitch (gratis, https://dev.twitch.tv/console/apps) e introducir el Client ID y Client Secret propios — son credenciales por cuenta, no de instancia, así que quien se despliegue esta app no depende de las de nadie más. Desactivado por defecto; sin credenciales válidas, la app nunca hace ninguna petición a IGDB.
+  - **Fondo automático desde IGDB**: requiere IGDB activado arriba. Si está activo, al dar de alta un juego se intenta identificar en IGDB y, si tiene arte disponible, se fija el primero como fondo de la ficha sin ninguna acción del usuario — se puede seguir cambiando a mano entre el resto de opciones, igual que siempre. Desactivado, el fondo se queda vacío hasta elegirlo a mano, como hasta ahora. Desactivado por defecto.
   - **Orden y tamaño de página por defecto** con los que arranca el listado de la colección, y **región y edición por defecto** que se preseleccionan al dar de alta un juego: un filtro o una elección explícita en el momento siguen ganando siempre a estos valores por defecto.
   - **Excluir la lista de deseos** de los resultados del buscador rápido (Ctrl+K), para quien prefiera no verla mezclada con la colección ahí (incluida por defecto, como hasta ahora).
   - Tema claro/oscuro y la vista de la colección elegida (ver Interfaz) también se guardan aquí, aunque se cambian desde sus propios controles (icono del header, botones de vista), no desde este formulario.
