@@ -31,14 +31,22 @@ class AppServiceProvider extends ServiceProvider
         });
 
         // Complemento a CEX, no un sustituto (ver IgdbLookupService): solo
-        // autocompleta desarrollador/fecha de lanzamiento cuando hay
-        // credenciales de IGDB configuradas.
-        $this->app->singleton(IgdbLookupService::class, function () {
-            $config = config('services.igdb');
+        // autocompleta desarrollador/fecha de lanzamiento cuando la cuenta
+        // autenticada ha activado IGDB y dado sus propias credenciales
+        // (users.igdb_enabled/igdb_client_id/igdb_client_secret, ver
+        // Ajustes) — son por cuenta, no de instancia, así que se resuelven
+        // en cada petición (bind, no singleton) en vez de una sola vez con
+        // config() como antes. Sin usuario autenticado (no debería darse:
+        // el único consumidor vive tras el middleware 'auth') o con IGDB
+        // desactivado, se instancia sin credenciales: IgdbLookupService ya
+        // sabe no hacer ninguna petición en ese caso.
+        $this->app->bind(IgdbLookupService::class, function () {
+            $user = auth()->user();
+            $enabled = $user?->igdb_enabled ?? false;
 
             return new IgdbLookupService(
-                clientId: $config['client_id'],
-                clientSecret: $config['client_secret'],
+                clientId: $enabled ? (string) $user->igdb_client_id : '',
+                clientSecret: $enabled ? (string) $user->igdb_client_secret : '',
             );
         });
     }

@@ -26,14 +26,6 @@
         <env name="DB_CONNECTION" value="sqlite" force="true"/>
         <env name="DB_DATABASE" value=":memory:" force="true"/>
         <env name="DB_URL" value="" force="true"/>
-        <!-- Vacías a propósito: sin esto, show() intentaría un enlace real con
-             IGDB en cualquier test que visite la ficha de un juego (usando las
-             credenciales reales de .env), y Http::preventStrayRequests()
-             (Tests\TestCase) haría fallar esos tests sin relación con IGDB. Los
-             tests que sí necesitan IGDB configurado sustituyen el binding del
-             contenedor a mano (ver GameControllerTest). -->
-        <env name="IGDB_CLIENT_ID" value="" force="true"/>
-        <env name="IGDB_CLIENT_SECRET" value="" force="true"/>
         <env name="LOG_CHANNEL" value="null" force="true"/>
         <env name="MAIL_MAILER" value="array" force="true"/>
         <env name="QUEUE_CONNECTION" value="sync" force="true"/>

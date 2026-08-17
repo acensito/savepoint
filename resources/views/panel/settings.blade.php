@@ -21,12 +21,45 @@
             @method('PUT')
 
             <div class="bg-slate-900 border border-slate-800 rounded-xl p-8">
+                <h2 class="text-lg font-semibold text-slate-100 mb-1">IGDB</h2>
+                <p class="text-sm text-slate-500 mb-6">
+                    Autocompleta desarrollador, fecha de lanzamiento, géneros y nota al dar de alta o abrir un
+                    juego, y permite elegir un fondo con arte oficial. Cada cuenta usa sus propias credenciales:
+                    date de alta gratis como desarrollador de Twitch en
+                    <a href="https://dev.twitch.tv/console/apps" target="_blank" rel="noopener" class="text-indigo-400 hover:underline">dev.twitch.tv/console/apps</a>
+                    ("Register Your Application", cualquier OAuth Redirect URL vale, p. ej. https://localhost) y
+                    copia aquí el Client ID y el Client Secret que te dé. Sin ellas, esta app nunca envía nada a
+                    IGDB.
+                </p>
+
+                <label class="flex items-center gap-2 text-sm text-slate-300 mb-4">
+                    <input type="checkbox" id="igdb_enabled" name="igdb_enabled" value="1" {{ old('igdb_enabled', $user->igdb_enabled) ? 'checked' : '' }}
+                        onchange="document.getElementById('igdb-credentials').classList.toggle('hidden', !this.checked)"
+                        class="rounded border-slate-600 bg-slate-800 text-indigo-600 focus:ring-indigo-500">
+                    Permitir el uso de IGDB con mis credenciales
+                </label>
+
+                <div id="igdb-credentials" class="grid grid-cols-1 sm:grid-cols-2 gap-4 {{ $user->igdb_enabled ? '' : 'hidden' }}">
+                    <div>
+                        <label for="igdb_client_id" class="{{ $label }}">Client ID</label>
+                        <input type="text" name="igdb_client_id" id="igdb_client_id" autocomplete="off"
+                            value="{{ old('igdb_client_id', $user->igdb_client_id) }}" class="{{ $input }}">
+                    </div>
+                    <div>
+                        <label for="igdb_client_secret" class="{{ $label }}">Client Secret</label>
+                        <input type="password" name="igdb_client_secret" id="igdb_client_secret" autocomplete="off"
+                            placeholder="{{ $user->igdb_client_secret ? '•••••••••••••• (sin cambios)' : '' }}" class="{{ $input }}">
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-8">
                 <h2 class="text-lg font-semibold text-slate-100 mb-1">Fondo automático desde IGDB</h2>
                 <p class="text-sm text-slate-500 mb-6">
-                    Al dar de alta un juego, se intentará identificarlo en IGDB y, si tiene arte disponible, se
-                    pondrá el primero como fondo de la ficha automáticamente. Podrás cambiarlo a mano en cualquier
-                    momento entre el resto de fondos disponibles, igual que hasta ahora. Si lo desactivas, el fondo
-                    se queda vacío hasta que lo elijas tú.
+                    Requiere IGDB activado arriba. Al dar de alta un juego, se intentará identificarlo en IGDB y, si
+                    tiene arte disponible, se pondrá el primero como fondo de la ficha automáticamente. Podrás
+                    cambiarlo a mano en cualquier momento entre el resto de fondos disponibles, igual que hasta
+                    ahora. Si lo desactivas, el fondo se queda vacío hasta que lo elijas tú.
                 </p>
 
                 <label class="flex items-center gap-2 text-sm text-slate-300">

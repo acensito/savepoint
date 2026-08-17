@@ -21,7 +21,8 @@ use Throwable;
  *
  * Requiere darse de alta como desarrollador en Twitch (gratis, ver
  * https://dev.twitch.tv/console/apps) para conseguir un Client ID y un
- * Client Secret — ver config('services.igdb') y el README. Sin esas
+ * Client Secret — por cuenta, no de instancia (users.igdb_client_id/
+ * igdb_client_secret, ver Ajustes, AppServiceProvider y el README). Sin esas
  * credenciales, search() no llega a hacer ninguna petición.
  */
 class IgdbLookupService
@@ -31,7 +32,7 @@ class IgdbLookupService
     // Los access token de Twitch duran ~60 días (5.184.000s); se cachea algo
     // por debajo de eso para no arriesgarse a un margen demasiado justo.
     private const TOKEN_CACHE_TTL_SECONDS = 5_000_000;
-    private const TOKEN_CACHE_KEY = 'igdb_access_token';
+    private const TOKEN_CACHE_KEY_PREFIX = 'igdb_access_token:';
 
     public function __construct(
         private readonly string $clientId,
@@ -203,14 +204,17 @@ class IgdbLookupService
     /**
      * Token de aplicación de Twitch (flujo Client Credentials), cacheado
      * entre peticiones: pedir uno nuevo en cada búsqueda gastaría la cuota
-     * para nada, ya que es el mismo token para toda la app (no por usuario).
-     * Si la petición falla, no se cachea nada (Cache::remember no guarda
-     * null), así que el siguiente intento vuelve a pedirlo en vez de quedar
-     * bloqueado hasta que expire la caché.
+     * para nada. La clave incluye el client_id/secret (cada cuenta tiene los
+     * suyos, ver AppServiceProvider) para no servirle a una cuenta el token
+     * de otra. Si la petición falla, no se cachea nada (Cache::remember no
+     * guarda null), así que el siguiente intento vuelve a pedirlo en vez de
+     * quedar bloqueado hasta que expire la caché.
      */
     private function accessToken(): ?string
     {
-        return Cache::remember(self::TOKEN_CACHE_KEY, self::TOKEN_CACHE_TTL_SECONDS, function () {
+        $cacheKey = self::TOKEN_CACHE_KEY_PREFIX . md5($this->clientId . ':' . $this->clientSecret);
+
+        return Cache::remember($cacheKey, self::TOKEN_CACHE_TTL_SECONDS, function () {
             try {
                 $response = Http::timeout(self::TIMEOUT_SECONDS)
                     ->asForm()

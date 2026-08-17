@@ -45,12 +45,16 @@ class PanelController extends Controller
             'default_per_page' => ['nullable', Rule::in(GameController::PER_PAGE_OPTIONS)],
             'default_region' => ['nullable', Rule::in(GameController::REGION_PRESETS)],
             'default_edition_id' => 'nullable|exists:editions,id',
+            'igdb_client_id' => 'nullable|string|max:255',
+            'igdb_client_secret' => 'nullable|string|max:255',
         ]);
+
+        $user = $request->user();
 
         // Los selects "vacíos" (Más recientes primero / Sin especificar /
         // Ninguna) llegan como '', que ConvertEmptyStringsToNull ya vuelve
         // null antes de aquí.
-        $request->user()->update([
+        $user->update([
             'default_sort' => $validated['default_sort'] ?? null,
             'default_dir' => $validated['default_dir'] ?? 'desc',
             'default_per_page' => $validated['default_per_page'] ?? 20,
@@ -59,6 +63,14 @@ class PanelController extends Controller
             // Checkboxes: si no llegan en el POST, es que estaban desmarcados.
             'auto_igdb_background' => $request->boolean('auto_igdb_background'),
             'quick_search_exclude_wishlist' => $request->boolean('quick_search_exclude_wishlist'),
+            'igdb_enabled' => $request->boolean('igdb_enabled'),
+            'igdb_client_id' => $validated['igdb_client_id'] ?? null,
+            // El campo llega siempre en blanco desde la vista (nunca se
+            // reimprime un secreto ya guardado, ver settings.blade.php): en
+            // blanco significa "no tocar", no "borrar la que ya había".
+            'igdb_client_secret' => filled($validated['igdb_client_secret'] ?? null)
+                ? $validated['igdb_client_secret']
+                : $user->igdb_client_secret,
         ]);
 
         return redirect()->route('web.panel.settings')->with('success', 'Ajustes actualizados.');
