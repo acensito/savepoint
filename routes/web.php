@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\Web\AuthController;
+use App\Http\Controllers\Web\CommissionController;
 use App\Http\Controllers\Web\EditionController;
+use App\Http\Controllers\Web\ForSaleController;
 use App\Http\Controllers\Web\GameController;
 use App\Http\Controllers\Web\GameImportController;
 use App\Http\Controllers\Web\ManufacturerController;
@@ -79,6 +81,25 @@ Route::middleware('auth')->group(function () {
     Route::get('/wishlist/create', [WishlistController::class, 'create'])->name('web.wishlist.create');
     Route::post('/wishlist', [WishlistController::class, 'store'])->name('web.wishlist.store');
     Route::get('/wishlist', [WishlistController::class, 'index'])->name('web.wishlist.index');
+
+    // Encargos: juegos que un amigo compra/envía al usuario o viceversa,
+    // fuera de la colección hasta que se marcan recibidos (ver
+    // CommissionController::resolve()). Ruta estática /commissions/create
+    // antes de la resource-like /commissions/{commission} por el mismo
+    // motivo que el resto de rutas de este fichero.
+    Route::get('/commissions/create', [CommissionController::class, 'create'])->name('web.commissions.create');
+    Route::post('/commissions', [CommissionController::class, 'store'])->name('web.commissions.store');
+    Route::get('/commissions', [CommissionController::class, 'index'])->name('web.commissions.index');
+    Route::get('/commissions/{commission}/edit', [CommissionController::class, 'edit'])->name('web.commissions.edit');
+    Route::put('/commissions/{commission}', [CommissionController::class, 'update'])->name('web.commissions.update');
+    Route::post('/commissions/{commission}/resolve', [CommissionController::class, 'resolve'])->name('web.commissions.resolve');
+    Route::delete('/commissions/{commission}', [CommissionController::class, 'destroy'])->name('web.commissions.destroy');
+
+    // En venta: juegos con for_sale=true (GameController::quickUpdate), en su
+    // propia página para su mantenimiento (ver ForSaleController). No son un
+    // "estado" de Propiedad aparte como wishlist/vendido: siguen en la
+    // colección, solo se les da una vista dedicada.
+    Route::get('/for-sale', [ForSaleController::class, 'index'])->name('web.for-sale.index');
 
     // Ventas: histórico por año de los juegos marcados como vendidos (ver
     // GameController::markAsSold), fuera de la colección principal.

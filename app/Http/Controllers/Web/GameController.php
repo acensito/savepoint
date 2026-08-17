@@ -148,7 +148,17 @@ class GameController extends Controller
             ->when($platformId !== '', fn ($q) => $q->where('platform_id', $platformId))
             ->when($playStatus !== '', fn ($q) => $q->where('play_status', $playStatus))
             ->when($status !== '', fn ($q) => $q->where('status', $status))
-            ->when($forSale === '1', fn ($q) => $q->where('for_sale', true))
+            ->when(
+                $forSale === '1',
+                fn ($q) => $q->where('for_sale', true),
+                // Sin filtrar a propósito por "en venta": si la cuenta ha
+                // activado "Ocultar de la colección" en Ajustes (ver
+                // ForSaleController, su sección dedicada), se excluyen del
+                // listado sin filtrar — pero ?for_sale=1 arriba siempre
+                // sigue funcionando, es justo la vía para verlos ahí cuando
+                // se quiere.
+                fn ($q) => $q->when(auth()->user()->hide_for_sale_from_collection, fn ($q) => $q->where('for_sale', false)),
+            )
             ->when(
                 $sortColumn !== null,
                 fn ($q) => $q->orderBy($sortColumn, $dir)->orderByDesc('id'),

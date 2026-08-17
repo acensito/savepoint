@@ -17,6 +17,7 @@ use Laravel\Sanctum\HasApiTokens;
     'theme', 'games_view', 'default_sort', 'default_dir', 'default_per_page',
     'default_region', 'default_edition_id', 'quick_search_exclude_wishlist',
     'igdb_enabled', 'igdb_client_id', 'igdb_client_secret',
+    'hide_for_sale_from_collection',
 ])]
 #[Hidden(['password', 'remember_token', 'igdb_client_secret'])]
 class User extends Authenticatable
@@ -39,6 +40,7 @@ class User extends Authenticatable
             'default_per_page' => 'integer',
             'default_edition_id' => 'integer',
             'quick_search_exclude_wishlist' => 'boolean',
+            'hide_for_sale_from_collection' => 'boolean',
             'igdb_enabled' => 'boolean',
             // Cifrado en reposo (APP_KEY): es la única credencial secreta
             // que guarda esta tabla, a diferencia de igdb_client_id.

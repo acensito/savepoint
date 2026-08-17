@@ -131,9 +131,25 @@
                         <span class="sidebar-label">Lista de deseos</span>
                     </a>
 
+                    <div class="my-2 border-t border-slate-800"></div>
+
+                    <a href="{{ route('web.commissions.index') }}" title="Encargos"
+                        class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('web.commissions.*') ? 'bg-indigo-500/10 text-indigo-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' }}">
+                        <x-gicon name="local_shipping" class="text-[20px]" />
+                        <span class="sidebar-label">Encargos</span>
+                    </a>
+
+                    <div class="my-2 border-t border-slate-800"></div>
+
+                    <a href="{{ route('web.for-sale.index') }}" title="En venta"
+                        class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('web.for-sale.*') ? 'bg-indigo-500/10 text-indigo-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' }}">
+                        <x-gicon name="sell" class="text-[20px]" />
+                        <span class="sidebar-label">En venta</span>
+                    </a>
+
                     <a href="{{ route('web.sales.index') }}" title="Ventas"
                         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('web.sales.*') ? 'bg-indigo-500/10 text-indigo-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' }}">
-                        <x-gicon name="sell" class="text-[20px]" />
+                        <x-gicon name="paid" class="text-[20px]" />
                         <span class="sidebar-label">Ventas</span>
                     </a>
 

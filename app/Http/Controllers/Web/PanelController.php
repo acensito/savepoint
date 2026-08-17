@@ -63,6 +63,7 @@ class PanelController extends Controller
             // Checkboxes: si no llegan en el POST, es que estaban desmarcados.
             'auto_igdb_background' => $request->boolean('auto_igdb_background'),
             'quick_search_exclude_wishlist' => $request->boolean('quick_search_exclude_wishlist'),
+            'hide_for_sale_from_collection' => $request->boolean('hide_for_sale_from_collection'),
             'igdb_enabled' => $request->boolean('igdb_enabled'),
             'igdb_client_id' => $validated['igdb_client_id'] ?? null,
             // El campo llega siempre en blanco desde la vista (nunca se

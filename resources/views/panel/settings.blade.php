@@ -149,6 +149,19 @@
                 </label>
             </div>
 
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-8">
+                <h2 class="text-lg font-semibold text-slate-100 mb-1">Juegos en venta</h2>
+                <p class="text-sm text-slate-500 mb-6">
+                    Los juegos marcados "en venta" tienen su propia sección (<a href="{{ route('web.for-sale.index') }}" class="text-indigo-400 hover:underline">En venta</a>, en el menú lateral) para darles mantenimiento sin mezclarlos con el resto. Siguen viéndose ahí y filtrando la colección aunque actives esto.
+                </p>
+
+                <label class="flex items-center gap-2 text-sm text-slate-300">
+                    <input type="checkbox" name="hide_for_sale_from_collection" value="1" {{ old('hide_for_sale_from_collection', $user->hide_for_sale_from_collection) ? 'checked' : '' }}
+                        class="rounded border-slate-600 bg-slate-800 text-indigo-600 focus:ring-indigo-500">
+                    Ocultar los juegos en venta del listado de mi colección
+                </label>
+            </div>
+
             <div class="flex items-center justify-end">
                 <button type="submit" class="bg-indigo-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-indigo-500 transition-colors">
                     Guardar ajustes

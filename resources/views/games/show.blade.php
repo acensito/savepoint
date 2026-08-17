@@ -456,12 +456,21 @@
             const cancelBtn = document.getElementById('mark-sold-cancel');
             if (!trigger || !panel) return;
 
-            trigger.addEventListener('click', () => {
+            const open = () => {
                 panel.classList.remove('hidden');
                 document.getElementById('sale_price')?.focus();
-            });
+            };
 
+            trigger.addEventListener('click', open);
             cancelBtn?.addEventListener('click', () => panel.classList.add('hidden'));
+
+            // Enlace directo desde la lista de "En venta" (#mark-sold-trigger):
+            // abre el panel ya desplegado en vez de dejar que el usuario
+            // tenga que localizar y pulsar el botón otra vez.
+            if (window.location.hash === '#mark-sold-trigger') {
+                open();
+                trigger.scrollIntoView({ block: 'center' });
+            }
         })();
     </script>
 @endsection
