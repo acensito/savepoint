@@ -31,7 +31,43 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Capturas
 
-_(Pendiente: añadir aquí 2-3 capturas reales — colección, ficha de detalle y estadísticas — antes de publicar el repositorio. Es lo primero que ve quien aterriza aquí, así que pesa más que cualquier bullet de esta página.)_
+<table>
+<tr>
+<td width="50%">
+<img src="docs/screenshots/01_home.png" alt="Mi Colección">
+<br><sub><b>Mi Colección</b>: listado con miniatura, plataforma, edición, región, manual, conservación, precio y fecha de compra.</sub>
+</td>
+<td width="50%">
+<img src="docs/screenshots/02_detail.png" alt="Ficha de detalle de un juego">
+<br><sub><b>Ficha de detalle</b>: géneros y fondo con arte promocional traídos de IGDB automáticamente.</sub>
+</td>
+</tr>
+<tr>
+<td width="50%">
+<img src="docs/screenshots/03_whishlist.png" alt="Lista de deseos">
+<br><sub><b>Lista de deseos</b>: los juegos que todavía no tienes, aparte de la colección y de sus totales.</sub>
+</td>
+<td width="50%">
+<img src="docs/screenshots/04_editions_view.png" alt="Gestión de ediciones">
+<br><sub><b>Ediciones</b>: Normal, Black Label, CIAB... y en qué plataformas existe cada una.</sub>
+</td>
+</tr>
+<tr>
+<td width="50%">
+<img src="docs/screenshots/05_control_panel.png" alt="Panel de control">
+<br><sub><b>Panel de control</b>: importar/exportar, papelera, perfil, ajustes y gestión de usuarios.</sub>
+</td>
+<td width="50%">
+<img src="docs/screenshots/06_light_theme.png" alt="Tema claro">
+<br><sub><b>Tema claro</b>, junto al oscuro — ajuste de cuenta, te sigue a cualquier dispositivo.</sub>
+</td>
+</tr>
+</table>
+
+<p align="center">
+<img src="docs/screenshots/07_mobile_view.png" alt="Vista móvil de la colección" width="280">
+<br><sub><b>Vista móvil</b>: la colección como tarjetas, con edición/borrado siempre desde la ficha de detalle.</sub>
+</p>
 
 ## Índice
 
