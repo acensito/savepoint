@@ -178,6 +178,23 @@ class IgdbLookupServiceTest extends TestCase
         Http::assertSentCount(3); // 1 token + 2 búsquedas
     }
 
+    public function test_search_does_not_share_the_cached_token_between_different_credentials(): void
+    {
+        // Las credenciales son ahora por cuenta (ver AppServiceProvider), no
+        // de instancia: un token cacheado para un client_id no debe colarse
+        // en una petición con otro.
+        $this->fakeToken();
+        Http::fake(array_merge(
+            ['id.twitch.tv/oauth2/token' => Http::response(['access_token' => 'test-token', 'expires_in' => 5184000], 200)],
+            ['api.igdb.com/v4/games' => Http::response([], 200)],
+        ));
+
+        $this->makeService(clientId: 'client-a', clientSecret: 'secret-a')->search('Celeste');
+        $this->makeService(clientId: 'client-b', clientSecret: 'secret-b')->search('Celeste');
+
+        Http::assertSentCount(4); // 2 tokens (uno por cliente) + 2 búsquedas
+    }
+
     public function test_search_returns_empty_array_on_connection_failure(): void
     {
         Http::fake(['id.twitch.tv/oauth2/token' => fn () => throw new ConnectionException('timed out')]);

@@ -872,6 +872,49 @@ class GameControllerTest extends TestCase
         $this->assertSame(1, $fresh->igdb_id);
     }
 
+    public function test_show_does_not_contact_igdb_when_the_user_has_not_enabled_it(): void
+    {
+        // Sin mockear IgdbLookupService: prueba el binding real de
+        // AppServiceProvider, no solo GameController. igdb_enabled=false es
+        // el valor por defecto de la factory (ver UserFactory), igual que
+        // antes lo era no tener IGDB_CLIENT_ID/SECRET en .env.
+        $user = User::factory()->create(['igdb_enabled' => false]);
+        $game = Game::factory()->for($user)->create();
+        Http::fake();
+
+        $this->actingAs($user)->get("/games/{$game->id}")->assertOk();
+
+        Http::assertNothingSent();
+    }
+
+    public function test_show_reaches_igdb_using_the_authenticated_users_own_credentials(): void
+    {
+        // Igual que el test anterior, sin mockear IgdbLookupService: prueba
+        // que el contenedor resuelve las credenciales de la cuenta logueada
+        // (users.igdb_client_id/igdb_client_secret), no una config global.
+        $user = User::factory()->create([
+            'igdb_enabled' => true,
+            'igdb_client_id' => 'user-client-id',
+            'igdb_client_secret' => 'user-client-secret',
+        ]);
+        $game = Game::factory()->for($user)->create(['title' => 'Celeste', 'developer' => null]);
+
+        Http::fake([
+            'id.twitch.tv/oauth2/token' => Http::response(['access_token' => 'user-token', 'expires_in' => 5184000], 200),
+            'api.igdb.com/v4/games' => Http::response([[
+                'id' => 305,
+                'name' => 'Celeste',
+                'involved_companies' => [['developer' => true, 'company' => ['name' => 'Maddy Makes Games']]],
+            ]], 200),
+        ]);
+
+        $this->actingAs($user)->get("/games/{$game->id}")->assertOk();
+
+        $this->assertSame('Maddy Makes Games', $game->fresh()->developer);
+        Http::assertSent(fn ($request) => $request->url() === 'https://api.igdb.com/v4/games'
+            && $request->hasHeader('Client-ID', 'user-client-id'));
+    }
+
     public function test_igdb_search_lists_candidates_from_the_query(): void
     {
         $user = User::factory()->create();

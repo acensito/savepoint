@@ -127,6 +127,94 @@ class PanelControllerTest extends TestCase
         $this->assertTrue($fresh->quick_search_exclude_wishlist);
     }
 
+    public function test_settings_shows_the_igdb_checkbox_unchecked_by_default(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get('/panel/settings');
+
+        $response->assertOk();
+        $content = preg_replace('/\s+/', ' ', $response->getContent());
+        $this->assertStringContainsString('name="igdb_enabled" value="1"', $content);
+        $this->assertStringNotContainsString('name="igdb_enabled" value="1" checked', $content);
+    }
+
+    public function test_settings_never_reprints_a_saved_igdb_client_secret(): void
+    {
+        $user = User::factory()->create([
+            'igdb_enabled' => true,
+            'igdb_client_id' => 'existing-client-id',
+            'igdb_client_secret' => 'existing-secret',
+        ]);
+
+        $response = $this->actingAs($user)->get('/panel/settings');
+
+        $response->assertOk();
+        $response->assertSee('existing-client-id', false);
+        $response->assertDontSee('existing-secret', false);
+    }
+
+    public function test_user_can_enable_igdb_and_set_credentials(): void
+    {
+        $user = User::factory()->create(['igdb_enabled' => false]);
+
+        $response = $this->actingAs($user)->put('/panel/settings', [
+            'igdb_enabled' => '1',
+            'igdb_client_id' => 'my-client-id',
+            'igdb_client_secret' => 'my-client-secret',
+        ]);
+
+        $response->assertRedirect(route('web.panel.settings'));
+
+        $fresh = $user->fresh();
+        $this->assertTrue($fresh->igdb_enabled);
+        $this->assertSame('my-client-id', $fresh->igdb_client_id);
+        $this->assertSame('my-client-secret', $fresh->igdb_client_secret);
+    }
+
+    public function test_user_can_disable_igdb_by_omitting_the_checkbox(): void
+    {
+        $user = User::factory()->create(['igdb_enabled' => true, 'igdb_client_id' => 'id', 'igdb_client_secret' => 'secret']);
+
+        $this->actingAs($user)->put('/panel/settings', []);
+
+        $this->assertFalse($user->fresh()->igdb_enabled);
+    }
+
+    public function test_leaving_the_igdb_client_secret_blank_keeps_the_previously_saved_secret(): void
+    {
+        $user = User::factory()->create([
+            'igdb_enabled' => true,
+            'igdb_client_id' => 'old-client-id',
+            'igdb_client_secret' => 'old-secret',
+        ]);
+
+        $this->actingAs($user)->put('/panel/settings', [
+            'igdb_enabled' => '1',
+            'igdb_client_id' => 'new-client-id',
+            'igdb_client_secret' => '',
+        ]);
+
+        $fresh = $user->fresh();
+        $this->assertSame('new-client-id', $fresh->igdb_client_id);
+        $this->assertSame('old-secret', $fresh->igdb_client_secret);
+    }
+
+    public function test_updating_igdb_settings_does_not_affect_other_users(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create(['igdb_enabled' => false]);
+
+        $this->actingAs($user)->put('/panel/settings', [
+            'igdb_enabled' => '1',
+            'igdb_client_id' => 'id',
+            'igdb_client_secret' => 'secret',
+        ]);
+
+        $this->assertFalse($otherUser->fresh()->igdb_enabled);
+        $this->assertNull($otherUser->fresh()->igdb_client_id);
+    }
+
     public function test_updating_settings_with_blank_selects_clears_the_defaults(): void
     {
         $edition = Edition::factory()->create();
