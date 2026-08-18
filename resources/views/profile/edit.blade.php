@@ -58,16 +58,19 @@
 
                         {{-- Acciones del Avatar --}}
                         <div class="flex-1 space-y-2">
-                            {{-- Input de archivo accesible por teclado (sr-only) --}}
-                            <input type="file"
-                                   name="avatar"
-                                   id="avatar-input"
-                                   accept="image/jpeg,image/png,image/gif,image/webp"
-                                   class="sr-only peer">
-
                             <div class="flex flex-wrap items-center gap-3">
+                                {{-- Input de archivo accesible por teclado como hermano directo del label --}}
+                                <input type="file"
+                                       name="avatar"
+                                       id="avatar-input"
+                                       accept="image/jpeg,image/png,image/gif,image/webp"
+                                       class="sr-only peer">
+
                                 <label for="avatar-input"
-                                       class="cursor-pointer inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-indigo-400 peer-focus-visible:ring-offset-slate-900">
+                                       tabindex="0"
+                                       role="button"
+                                       aria-label="Cambiar imagen de avatar"
+                                       class="cursor-pointer inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-300">
                                     <x-gicon name="upload" class="text-[18px]" />
                                     <span>Cambiar avatar</span>
                                 </label>
@@ -75,7 +78,7 @@
                                 @if($user->avatarUrl())
                                     <button type="button"
                                             id="remove-avatar-btn"
-                                            class="inline-flex items-center gap-1.5 text-sm font-medium text-red-400 hover:text-red-300 px-3 py-2 rounded-lg hover:bg-red-500/10 transition-colors">
+                                            class="inline-flex items-center gap-1.5 text-sm font-medium text-red-400 hover:text-red-300 px-3 py-2 rounded-lg hover:bg-red-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-red-400">
                                         <x-gicon name="delete" class="text-[18px]" />
                                         <span>Eliminar avatar</span>
                                     </button>
@@ -234,6 +237,17 @@
 
                     this.style.display = 'none';
                     if (input) input.value = '';
+                });
+            }
+
+            // Accesibilidad de teclado: abrir el selector con Enter o Espacio al hacer foco en el botón
+            const avatarLabel = document.querySelector('label[for="avatar-input"]');
+            if (avatarLabel && input) {
+                avatarLabel.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        input.click();
+                    }
                 });
             }
         })();
