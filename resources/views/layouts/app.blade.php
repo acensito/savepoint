@@ -78,7 +78,15 @@
 
                 <form action="{{ route('web.logout') }}" method="POST" class="flex items-center gap-4">
                     <a href="{{ route('web.profile.edit') }}" class="flex items-center gap-1.5 text-sm text-indigo-100 hover:text-white transition-colors {{ request()->routeIs('web.profile.*') ? 'text-white font-medium' : '' }}">
-                        <x-gicon name="account_circle" class="text-[18px]" />
+                        @if(auth()->user()->avatarUrl())
+                            <img src="{{ auth()->user()->avatarUrl() }}"
+                                 alt="Avatar"
+                                 class="w-6 h-6 rounded-full object-cover flex-shrink-0">
+                        @else
+                            <div class="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                <x-gicon name="person" :filled="true" class="text-[16px] text-white" />
+                            </div>
+                        @endif
                         <span class="hidden sm:inline">{{ auth()->user()->email }}</span>
                     </a>
                     @csrf
