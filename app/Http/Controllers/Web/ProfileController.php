@@ -31,17 +31,14 @@ class ProfileController extends Controller
         ]);
 
         $avatarPath = $user->avatar_path;
+        $previousAvatar = $user->avatar_path;
 
         if ($request->hasFile('avatar')) {
-            // Eliminar el avatar anterior si existe antes de guardar el nuevo.
-            if ($avatarPath) {
-                Storage::disk('public')->delete($avatarPath);
+            $avatarPath = $request->file('avatar')->store("avatars/$user->id", 'public');
+            if ($avatarPath === false) {
+                return redirect()->route('web.profile.edit')->with('error', 'No se pudo guardar la imagen de avatar.');
             }
-            $avatarPath = $request->file('avatar')->store("avatars/{$user->id}", 'public');
         } elseif ($request->boolean('remove_avatar')) {
-            if ($avatarPath) {
-                Storage::disk('public')->delete($avatarPath);
-            }
             $avatarPath = null;
         }
 
@@ -50,6 +47,11 @@ class ProfileController extends Controller
             'email' => $validated['email'],
             'avatar_path' => $avatarPath,
         ]);
+
+        // Si el avatar cambió o se eliminó y existía uno anterior, limpiar el archivo previo.
+        if ($previousAvatar && $previousAvatar !== $avatarPath) {
+            Storage::disk('public')->delete($previousAvatar);
+        }
 
         return redirect()->route('web.profile.edit')->with('success', 'Datos actualizados correctamente.');
     }

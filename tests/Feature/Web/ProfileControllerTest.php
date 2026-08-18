@@ -4,7 +4,9 @@ namespace Tests\Feature\Web;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class ProfileControllerTest extends TestCase
@@ -89,5 +91,71 @@ class ProfileControllerTest extends TestCase
             'password' => 'new-password',
             'password_confirmation' => 'does-not-match',
         ])->assertSessionHasErrors('password');
+    }
+
+    public function test_user_can_upload_an_avatar(): void
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->create(['avatar_path' => null]);
+        $file = UploadedFile::fake()->image('avatar.jpg', 100, 100);
+
+        $response = $this->actingAs($user)->put('/profile', [
+            'name' => $user->name,
+            'email' => $user->email,
+            'avatar' => $file,
+        ]);
+
+        $response->assertRedirect(route('web.profile.edit'));
+        $user->refresh();
+
+        $this->assertNotNull($user->avatar_path);
+        Storage::disk('public')->assertExists($user->avatar_path);
+    }
+
+    public function test_user_can_replace_an_existing_avatar(): void
+    {
+        Storage::fake('public');
+
+        $oldPath = 'avatars/1/old.jpg';
+        Storage::disk('public')->put($oldPath, 'dummy');
+
+        $user = User::factory()->create(['avatar_path' => $oldPath]);
+        $newFile = UploadedFile::fake()->image('new.png', 100, 100);
+
+        $response = $this->actingAs($user)->put('/profile', [
+            'name' => $user->name,
+            'email' => $user->email,
+            'avatar' => $newFile,
+        ]);
+
+        $response->assertRedirect(route('web.profile.edit'));
+        $user->refresh();
+
+        $this->assertNotEquals($oldPath, $user->avatar_path);
+        Storage::disk('public')->assertMissing($oldPath);
+        Storage::disk('public')->assertExists($user->avatar_path);
+    }
+
+    public function test_user_can_remove_their_avatar(): void
+    {
+        Storage::fake('public');
+
+        $path = 'avatars/1/photo.jpg';
+        Storage::disk('public')->put($path, 'dummy');
+
+        $user = User::factory()->create(['avatar_path' => $path]);
+
+        $response = $this->actingAs($user)->put('/profile', [
+            'name' => $user->name,
+            'email' => $user->email,
+            'remove_avatar' => '1',
+        ]);
+
+        $response->assertRedirect(route('web.profile.edit'));
+        $user->refresh();
+
+        $this->assertNull($user->avatar_path);
+        Storage::disk('public')->assertMissing($path);
     }
 }

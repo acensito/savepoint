@@ -58,16 +58,16 @@
 
                         {{-- Acciones del Avatar --}}
                         <div class="flex-1 space-y-2">
-                            {{-- Input de archivo 100% oculto --}}
+                            {{-- Input de archivo accesible por teclado (sr-only) --}}
                             <input type="file"
                                    name="avatar"
                                    id="avatar-input"
                                    accept="image/jpeg,image/png,image/gif,image/webp"
-                                   style="display: none;">
+                                   class="sr-only peer">
 
                             <div class="flex flex-wrap items-center gap-3">
                                 <label for="avatar-input"
-                                       class="cursor-pointer inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm">
+                                       class="cursor-pointer inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-indigo-400 peer-focus-visible:ring-offset-slate-900">
                                     <x-gicon name="upload" class="text-[18px]" />
                                     <span>Cambiar avatar</span>
                                 </label>
