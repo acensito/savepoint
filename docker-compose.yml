@@ -96,6 +96,8 @@ services:
     volumes:
       - .:/app
     depends_on:
+      app:
+        condition: service_healthy
       redis:
         condition: service_healthy
       postgres:
@@ -121,7 +123,8 @@ services:
       - .:/app
       - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf
     depends_on:
-      - app
+      app:
+        condition: service_healthy
     networks:
       - savepoint_net
 

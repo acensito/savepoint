@@ -42,11 +42,12 @@ COPY --from=node:22-alpine /usr/local/lib/node_modules /usr/local/lib/node_modul
 RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
     && ln -s /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
 
-# Esta imagen solo prepara el entorno (PHP + extensiones, Composer, Node/npm).
-# No instala ni configura la app (composer install, .env, migraciones...):
-# eso se hace a mano tras levantar los contenedores, ver README.
-
 WORKDIR /app
 
+# 7. Copiar y configurar entrypoint de inicialización automática
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 EXPOSE 9000
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["php-fpm"]
