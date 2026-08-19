@@ -484,6 +484,16 @@ proceso de contribución formal ni CI configurado. Aun así, si se bifurca o alg
   entrada nueva en [`CHANGELOG.md`](CHANGELOG.md) con la fecha del día, y si añaden o cambian una característica ya
   descrita, la sección correspondiente de "Características" en este README se actualiza a la vez para no dejarla
   desincronizada.
+- **Hook de pre-commit (opcional)**: [`.githooks/pre-commit`](.githooks/pre-commit) corre `laravel/pint` (ya viene como
+  dependencia de desarrollo) sobre los `.php` en stage antes de cada commit, y los vuelve a añadir ya formateados —
+  para no tener que acordarse de correr Pint a mano. No se activa solo: git no lee hooks de ahí por defecto, hay que
+  apuntarlo una vez por clon del repo con
+  ```bash
+  git config core.hooksPath .githooks
+  ```
+  A partir de ahí cualquier actualización del hook en este fichero se aplica sola, sin volver a copiar nada. Requiere
+  el contenedor `app` levantado (`docker compose up -d`); si Pint falla o el contenedor no está arriba, el hook aborta
+  el commit con un mensaje en vez de dejarlo pasar sin formatear.
 
 ## Licencia
 
