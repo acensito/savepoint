@@ -18,6 +18,5 @@ final class IgdbGameMatch
         public readonly ?string $releaseDate,
         public readonly ?array $genres,
         public readonly ?float $rating,
-    ) {
-    }
+    ) {}
 }

@@ -27,8 +27,7 @@ class GameController extends Controller
         private readonly GameLookupInterface $gameLookup,
         private readonly IgdbLookupService $igdbLookup,
         private readonly IgdbGameMatcher $igdbMatcher,
-    ) {
-    }
+    ) {}
 
     /**
      * Columnas por las que se puede ordenar el listado desde ?sort=, mapeadas
@@ -234,7 +233,9 @@ class GameController extends Controller
     private const EXPORT_HEADERS = ['Título', 'EAN', 'Desarrollador', 'Plataforma', 'Edición', 'Fecha lanzamiento', 'Géneros', 'Propiedad', 'Estado de juego', 'Conservación', 'Precio pagado', 'Lugar de compra', 'Fecha de compra', 'Manual', 'Región', 'Clasificación por edad', 'Notas'];
 
     private const EXPORT_STATUS_LABELS = ['owned' => 'En colección', 'sold' => 'Vendido'];
+
     private const EXPORT_PLAY_STATUS_LABELS = ['pending' => 'Pendiente', 'playing' => 'Jugando', 'finished' => 'Terminado'];
+
     private const EXPORT_MANUAL_LABELS = ['included' => 'Con Manual', 'missing' => 'Sin Manual', 'booklet' => 'Folleto'];
 
     /**
@@ -271,21 +272,21 @@ class GameController extends Controller
             $game->notes,
         ]);
 
-        $csv = "\xEF\xBB\xBF" . implode("\r\n", array_map(
+        $csv = "\xEF\xBB\xBF".implode("\r\n", array_map(
             fn (array $row) => implode(',', array_map($this->csvEscape(...), array_map('strval', $row))),
             [self::EXPORT_HEADERS, ...$rows->all()],
-        )) . "\r\n";
+        ))."\r\n";
 
         return response($csv, 200, [
             'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="savepoint-coleccion-' . now()->format('Y-m-d') . '.csv"',
+            'Content-Disposition' => 'attachment; filename="savepoint-coleccion-'.now()->format('Y-m-d').'.csv"',
         ]);
     }
 
     private function csvEscape(string $value): string
     {
         if (str_contains($value, ',') || str_contains($value, '"') || str_contains($value, "\n")) {
-            return '"' . str_replace('"', '""', $value) . '"';
+            return '"'.str_replace('"', '""', $value).'"';
         }
 
         return $value;
@@ -328,7 +329,7 @@ class GameController extends Controller
 
         if ($request->hasFile('cover')) {
             $validated['cover'] = $request->file('cover')->store('covers', 'public');
-        } elseif (!$request->boolean('remove_cover') && $request->filled('cover_url')) {
+        } elseif (! $request->boolean('remove_cover') && $request->filled('cover_url')) {
             // Carátula sugerida desde la ficha de comprobación de una
             // búsqueda externa (CEX): se descarga aquí, no antes, para no
             // dejar ficheros huérfanos si el usuario nunca llega a guardar.
@@ -412,7 +413,7 @@ class GameController extends Controller
         Gate::authorize('update', $game);
 
         $validated = $request->validate([
-            'rating' => ['sometimes', 'nullable', 'integer', 'min:' . Game::RATING_MIN, 'max:' . Game::RATING_MAX],
+            'rating' => ['sometimes', 'nullable', 'integer', 'min:'.Game::RATING_MIN, 'max:'.Game::RATING_MAX],
             'play_status' => ['sometimes', 'required', 'string', Rule::in(Game::PLAY_STATUSES)],
             'for_sale' => 'sometimes|boolean',
         ]);
@@ -626,7 +627,7 @@ class GameController extends Controller
 
         return redirect()->route('web.games.index')->with(
             'success',
-            count($ids) . ' ' . Str::plural('juego', count($ids)) . ' ' . (count($ids) === 1 ? 'enviado' : 'enviados') . ' a la papelera.'
+            count($ids).' '.Str::plural('juego', count($ids)).' '.(count($ids) === 1 ? 'enviado' : 'enviados').' a la papelera.'
         );
     }
 
@@ -650,7 +651,7 @@ class GameController extends Controller
 
         return redirect()->route('web.games.index')->with(
             'success',
-            'Estado actualizado en ' . count($ids) . ' ' . Str::plural('juego', count($ids)) . '.'
+            'Estado actualizado en '.count($ids).' '.Str::plural('juego', count($ids)).'.'
         );
     }
 
@@ -695,7 +696,7 @@ class GameController extends Controller
             ])
             ->when($query !== '', function ($q) use ($query) {
                 $q->where(function ($sub) use ($query) {
-                    $sub->whereLike('title', '%' . $query . '%', caseSensitive: false)
+                    $sub->whereLike('title', '%'.$query.'%', caseSensitive: false)
                         ->orWhere('ean', $query);
                 });
             })
@@ -749,30 +750,30 @@ class GameController extends Controller
     private function validated(Request $request): array
     {
         $validated = $request->validate([
-            'title'          => 'required|string|max:255',
-            'ean'            => 'nullable|string|max:50',
-            'developer'      => 'nullable|string|max:255',
-            'platform_id'    => 'nullable|exists:platforms,id',
-            'edition_id'     => 'nullable|exists:editions,id',
-            'release_date'   => 'nullable|date',
-            'genres'         => 'nullable|string|max:500',
+            'title' => 'required|string|max:255',
+            'ean' => 'nullable|string|max:50',
+            'developer' => 'nullable|string|max:255',
+            'platform_id' => 'nullable|exists:platforms,id',
+            'edition_id' => 'nullable|exists:editions,id',
+            'release_date' => 'nullable|date',
+            'genres' => 'nullable|string|max:500',
             // 'sold' no es un valor asignable aquí: requiere precio/fecha de
             // venta, se marca desde GameController::markAsSold().
-            'status'         => ['nullable', 'string', Rule::in(Game::STATUSES)],
+            'status' => ['nullable', 'string', Rule::in(Game::STATUSES)],
             'wishlist_priority' => 'nullable|integer|min:1|max:3',
             'wishlist_estimated_price' => 'nullable|numeric|min:0',
             'wishlist_store' => 'nullable|string|max:255',
-            'play_status'    => ['required', 'string', Rule::in(Game::PLAY_STATUSES)],
-            'rating'         => ['nullable', 'integer', 'min:' . Game::RATING_MIN, 'max:' . Game::RATING_MAX],
-            'price_paid'     => 'nullable|numeric|min:0',
+            'play_status' => ['required', 'string', Rule::in(Game::PLAY_STATUSES)],
+            'rating' => ['nullable', 'integer', 'min:'.Game::RATING_MIN, 'max:'.Game::RATING_MAX],
+            'price_paid' => 'nullable|numeric|min:0',
             'purchase_place' => 'nullable|string|max:255',
-            'purchase_date'  => 'nullable|date',
-            'manual_status'  => ['nullable', 'string', Rule::in(Game::MANUAL_STATUSES)],
-            'region_select'  => 'nullable|string|max:20',
-            'region_other'   => 'required_if:region_select,other|nullable|string|max:50',
-            'age_rating'     => 'nullable|string|max:20',
-            'notes'          => 'nullable|string|max:2000',
-            'cover'          => 'nullable|image|max:1024',
+            'purchase_date' => 'nullable|date',
+            'manual_status' => ['nullable', 'string', Rule::in(Game::MANUAL_STATUSES)],
+            'region_select' => 'nullable|string|max:20',
+            'region_other' => 'required_if:region_select,other|nullable|string|max:50',
+            'age_rating' => 'nullable|string|max:20',
+            'notes' => 'nullable|string|max:2000',
+            'cover' => 'nullable|image|max:1024',
         ]);
 
         $validated['genres'] = $this->parseGenres($request->input('genres'));
@@ -804,7 +805,7 @@ class GameController extends Controller
         $scheme = parse_url($url, PHP_URL_SCHEME);
         $allowedHosts = config('services.cex.image_hosts', []);
 
-        if ($scheme !== 'https' || $host === null || !in_array($host, $allowedHosts, true)) {
+        if ($scheme !== 'https' || $host === null || ! in_array($host, $allowedHosts, true)) {
             return null;
         }
 
@@ -814,7 +815,7 @@ class GameController extends Controller
             return null;
         }
 
-        if (!$response->ok() || strlen($response->body()) > 3 * 1024 * 1024) {
+        if (! $response->ok() || strlen($response->body()) > 3 * 1024 * 1024) {
             return null;
         }
 
@@ -829,7 +830,7 @@ class GameController extends Controller
             return null;
         }
 
-        $path = 'covers/' . Str::random(40) . '.' . $extension;
+        $path = 'covers/'.Str::random(40).'.'.$extension;
         Storage::disk('public')->put($path, $response->body());
 
         return $path;

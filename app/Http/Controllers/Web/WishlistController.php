@@ -46,7 +46,7 @@ class WishlistController extends Controller
             ])
             ->when($query !== '', function ($q) use ($query) {
                 $q->where(function ($sub) use ($query) {
-                    $sub->whereLike('title', '%' . $query . '%', caseSensitive: false)
+                    $sub->whereLike('title', '%'.$query.'%', caseSensitive: false)
                         ->orWhere('ean', $query);
                 });
             })

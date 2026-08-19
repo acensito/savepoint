@@ -18,8 +18,7 @@ class GameImportController extends Controller
 {
     public function __construct(
         private readonly GameCsvImporter $importer,
-    ) {
-    }
+    ) {}
 
     /**
      * Formulario de importación.
@@ -42,7 +41,7 @@ class GameImportController extends Controller
         $csv = implode("\r\n", array_map(
             fn (array $row) => implode(',', array_map($this->csvEscape(...), $row)),
             $rows
-        )) . "\r\n";
+        ))."\r\n";
 
         return response($csv, 200, [
             'Content-Type' => 'text/csv; charset=UTF-8',
@@ -185,7 +184,7 @@ class GameImportController extends Controller
     private function csvEscape(string $value): string
     {
         if (str_contains($value, ',') || str_contains($value, '"') || str_contains($value, "\n")) {
-            return '"' . str_replace('"', '""', $value) . '"';
+            return '"'.str_replace('"', '""', $value).'"';
         }
 
         return $value;

@@ -3,11 +3,12 @@
 namespace Database\Factories;
 
 use App\Models\Manufacturer;
+use App\Models\Platform;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
 /**
- * @extends Factory<\App\Models\Platform>
+ * @extends Factory<Platform>
  */
 class PlatformFactory extends Factory
 {
@@ -17,7 +18,7 @@ class PlatformFactory extends Factory
 
         return [
             'name' => $name,
-            'slug' => Str::slug($name) . '-' . fake()->unique()->randomNumber(5),
+            'slug' => Str::slug($name).'-'.fake()->unique()->randomNumber(5),
             'label' => null,
             'manufacturer_id' => Manufacturer::factory(),
             'bg_color' => null,

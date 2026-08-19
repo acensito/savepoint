@@ -134,6 +134,7 @@ class GameCsvImporter
 
             if (blank($title)) {
                 $errors[] = "Fila {$rowNumber}: sin título, se ha omitido.";
+
                 continue;
             }
 
@@ -225,7 +226,7 @@ class GameCsvImporter
         $i = 1;
 
         while ($modelClass::where('slug', $slug)->exists()) {
-            $slug = $base . '-' . $i++;
+            $slug = $base.'-'.$i++;
         }
 
         return $slug;

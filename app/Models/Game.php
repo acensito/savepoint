@@ -5,8 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Game extends Model
 {
@@ -95,6 +95,7 @@ class Game extends Model
     public const MANUAL_STATUSES = ['included', 'missing', 'booklet'];
 
     public const RATING_MIN = 1;
+
     public const RATING_MAX = 5;
 
     // ==========================================
@@ -109,7 +110,7 @@ class Game extends Model
     public function scopeSearch(Builder $query, string $term): Builder
     {
         return $query->where(function (Builder $q) use ($term) {
-            $q->whereLike('title', '%' . $term . '%', caseSensitive: false)
+            $q->whereLike('title', '%'.$term.'%', caseSensitive: false)
                 ->orWhere('ean', $term);
         });
     }
@@ -155,7 +156,7 @@ class Game extends Model
      */
     public function coverUrl(): ?string
     {
-        return $this->cover ? url('storage/' . $this->cover) : null;
+        return $this->cover ? url('storage/'.$this->cover) : null;
     }
 
     /**

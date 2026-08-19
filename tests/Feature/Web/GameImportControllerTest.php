@@ -4,7 +4,6 @@ namespace Tests\Feature\Web;
 
 use App\Http\Controllers\Web\GameImportController;
 use App\Models\Edition;
-use App\Models\Game;
 use App\Models\Platform;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -79,7 +78,7 @@ class GameImportControllerTest extends TestCase
         $user = User::factory()->create();
 
         $csv = "Título,Plataforma,Edición,Propiedad,Estado de juego,Conservación\r\n"
-             . "Celeste,Nintendo Switch,Coleccionista,En colección,Terminado,5\r\n";
+             ."Celeste,Nintendo Switch,Coleccionista,En colección,Terminado,5\r\n";
 
         $response = $this->actingAs($user)->post('/games/import', [
             'file' => $this->csvFile($csv),

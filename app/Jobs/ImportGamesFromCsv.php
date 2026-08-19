@@ -30,8 +30,7 @@ class ImportGamesFromCsv implements ShouldQueue
         public readonly int $userId,
         public readonly string $path,
         public readonly string $importId,
-    ) {
-    }
+    ) {}
 
     public function handle(GameCsvImporter $importer): void
     {

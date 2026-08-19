@@ -24,7 +24,7 @@ class UpdateGameRequest extends FormRequest
             'play_status' => ['nullable', 'string', Rule::in(Game::PLAY_STATUSES)],
             'release_date' => ['nullable', 'date'],
             'genres' => ['nullable', 'array'],
-            'rating' => ['nullable', 'integer', 'min:' . Game::RATING_MIN, 'max:' . Game::RATING_MAX],
+            'rating' => ['nullable', 'integer', 'min:'.Game::RATING_MIN, 'max:'.Game::RATING_MAX],
             'price_paid' => ['nullable', 'numeric', 'min:0'],
         ];
     }

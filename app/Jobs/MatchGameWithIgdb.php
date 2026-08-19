@@ -26,8 +26,7 @@ class MatchGameWithIgdb implements ShouldQueue
 
     public function __construct(
         public readonly int $gameId,
-    ) {
-    }
+    ) {}
 
     public function handle(): void
     {

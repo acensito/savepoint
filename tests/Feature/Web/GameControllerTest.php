@@ -117,7 +117,7 @@ class GameControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('value="owned" selected', false);
-        $response->assertSee('value="' . now()->format('Y-m-d') . '"', false);
+        $response->assertSee('value="'.now()->format('Y-m-d').'"', false);
     }
 
     public function test_editing_normally_keeps_the_games_current_status(): void
@@ -140,7 +140,7 @@ class GameControllerTest extends TestCase
 
         $response->assertOk();
         $content = preg_replace('/\s+/', ' ', $response->getContent());
-        $this->assertStringContainsString('value="' . $edition->id . '" data-platforms="" selected', $content);
+        $this->assertStringContainsString('value="'.$edition->id.'" data-platforms="" selected', $content);
     }
 
     public function test_creating_a_game_does_not_preselect_an_edition_without_a_default_configured(): void
@@ -155,7 +155,7 @@ class GameControllerTest extends TestCase
 
         $response->assertOk();
         $content = preg_replace('/\s+/', ' ', $response->getContent());
-        $this->assertStringNotContainsString('value="' . $normal->id . '" data-platforms="" selected', $content);
+        $this->assertStringNotContainsString('value="'.$normal->id.'" data-platforms="" selected', $content);
     }
 
     public function test_creating_a_game_preselects_the_users_default_region(): void
@@ -179,7 +179,7 @@ class GameControllerTest extends TestCase
 
         $response->assertOk();
         $content = preg_replace('/\s+/', ' ', $response->getContent());
-        $this->assertStringContainsString('value="' . $edition->id . '" data-platforms="" selected', $content);
+        $this->assertStringContainsString('value="'.$edition->id.'" data-platforms="" selected', $content);
     }
 
     public function test_editing_a_game_without_an_edition_does_not_default_to_normal(): void
@@ -192,7 +192,7 @@ class GameControllerTest extends TestCase
         $response->assertOk();
         $normal = Edition::where('name', 'Normal')->firstOrFail();
         $content = preg_replace('/\s+/', ' ', $response->getContent());
-        $this->assertStringNotContainsString('value="' . $normal->id . '" data-platforms="" selected', $content);
+        $this->assertStringNotContainsString('value="'.$normal->id.'" data-platforms="" selected', $content);
     }
 
     public function test_index_sorts_by_title_ascending(): void

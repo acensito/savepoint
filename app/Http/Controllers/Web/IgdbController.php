@@ -23,8 +23,7 @@ class IgdbController extends Controller
 {
     public function __construct(
         private readonly IgdbLookupService $igdbLookup,
-    ) {
-    }
+    ) {}
 
     /**
      * Búsqueda manual en IGDB desde la ficha de un juego, para corregir el

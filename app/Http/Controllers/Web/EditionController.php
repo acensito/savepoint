@@ -75,9 +75,9 @@ class EditionController extends Controller
     private function validated(Request $request): array
     {
         return $request->validate([
-            'name'           => 'required|string|max:255',
-            'format'         => 'nullable|string|in:' . implode(',', array_keys(Edition::FORMATS)),
-            'platform_ids'   => 'nullable|array',
+            'name' => 'required|string|max:255',
+            'format' => 'nullable|string|in:'.implode(',', array_keys(Edition::FORMATS)),
+            'platform_ids' => 'nullable|array',
             'platform_ids.*' => 'exists:platforms,id',
         ]);
     }

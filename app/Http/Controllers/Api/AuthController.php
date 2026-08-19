@@ -4,9 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Concerns\ThrottlesLogins;
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\User;
 
 class AuthController extends Controller
 {
@@ -26,11 +26,11 @@ class AuthController extends Controller
         $this->ensureLoginIsNotThrottled($request);
 
         // 2. Comprobar las credenciales
-        if (!Auth::attempt($request->only('email', 'password'))) {
+        if (! Auth::attempt($request->only('email', 'password'))) {
             $this->incrementLoginAttempts($request);
 
             return response()->json([
-                'message' => 'Credenciales incorrectas'
+                'message' => 'Credenciales incorrectas',
             ], 401);
         }
 
@@ -38,7 +38,7 @@ class AuthController extends Controller
 
         // 3. Buscar al usuario y generar su llave
         $user = User::where('email', $request->email)->firstOrFail();
-        
+
         // Creamos un token llamado 'MobileApp' (puedes llamarlo como quieras)
         $token = $user->createToken('MobileApp')->plainTextToken;
 
@@ -59,7 +59,7 @@ class AuthController extends Controller
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([
-            'message' => 'Sesión cerrada correctamente'
+            'message' => 'Sesión cerrada correctamente',
         ]);
     }
 }

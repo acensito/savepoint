@@ -7,7 +7,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class PasswordResetController extends Controller
@@ -51,8 +50,8 @@ class PasswordResetController extends Controller
     public function reset(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'token'    => ['required', 'string'],
-            'email'    => ['required', 'email'],
+            'token' => ['required', 'string'],
+            'email' => ['required', 'email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 

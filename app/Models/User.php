@@ -7,9 +7,9 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Laravel\Sanctum\HasApiTokens;
 
 #[Fillable([
@@ -71,7 +71,7 @@ class User extends Authenticatable
     public function avatarUrl(): ?string
     {
         return $this->avatar_path
-            ? asset('storage/' . $this->avatar_path)
+            ? asset('storage/'.$this->avatar_path)
             : null;
     }
 }

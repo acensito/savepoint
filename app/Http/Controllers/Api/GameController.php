@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Game;
-use App\Http\Resources\Api\GameResource;
-use Illuminate\Http\Request;
 use App\Http\Requests\Api\StoreGameRequest;
 use App\Http\Requests\Api\UpdateGameRequest;
+use App\Http\Resources\Api\GameResource;
+use App\Models\Game;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 class GameController extends Controller
@@ -33,7 +33,7 @@ class GameController extends Controller
             ->with('platform')
             ->when($query !== '', function ($q) use ($query) {
                 $q->where(function ($sub) use ($query) {
-                    $sub->whereLike('title', '%' . $query . '%', caseSensitive: false)
+                    $sub->whereLike('title', '%'.$query.'%', caseSensitive: false)
                         ->orWhere('ean', $query);
                 });
             })
@@ -103,7 +103,7 @@ class GameController extends Controller
         $game->delete();
 
         return response()->json([
-            'message' => 'Juego eliminado correctamente'
+            'message' => 'Juego eliminado correctamente',
         ]);
     }
 }

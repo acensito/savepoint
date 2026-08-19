@@ -16,8 +16,7 @@ class IgdbGameMatcher
 {
     public function __construct(
         private readonly IgdbLookupService $igdbLookup,
-    ) {
-    }
+    ) {}
 
     /**
      * developer/release_date solo se rellenan si estaban vacíos (nunca pisan

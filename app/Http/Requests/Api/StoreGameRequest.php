@@ -13,9 +13,9 @@ class StoreGameRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        // De momento lo dejamos en true. Más adelante, cuando implementemos Sanctum, 
+        // De momento lo dejamos en true. Más adelante, cuando implementemos Sanctum,
         // aquí podríamos comprobar si el usuario tiene permisos específicos.
-        return true; 
+        return true;
     }
 
     /**
@@ -35,7 +35,7 @@ class StoreGameRequest extends FormRequest
             'play_status' => ['nullable', 'string', Rule::in(Game::PLAY_STATUSES)],
             'release_date' => ['nullable', 'date'],
             'genres' => ['nullable', 'array'], // Validamos que llegue como un array
-            'rating' => ['nullable', 'integer', 'min:' . Game::RATING_MIN, 'max:' . Game::RATING_MAX],
+            'rating' => ['nullable', 'integer', 'min:'.Game::RATING_MIN, 'max:'.Game::RATING_MAX],
             'price_paid' => ['nullable', 'numeric', 'min:0'],
         ];
     }

@@ -65,8 +65,8 @@ class ManufacturerController extends Controller
                 'required', 'string', 'max:255',
                 Rule::unique('manufacturers', 'name')->ignore($request->route('manufacturer')),
             ],
-            'bg_color'     => 'required|regex:/^#[0-9A-Fa-f]{6}$/',
-            'text_color'   => 'required|regex:/^#[0-9A-Fa-f]{6}$/',
+            'bg_color' => 'required|regex:/^#[0-9A-Fa-f]{6}$/',
+            'text_color' => 'required|regex:/^#[0-9A-Fa-f]{6}$/',
             'border_color' => 'required|regex:/^#[0-9A-Fa-f]{6}$/',
         ]);
     }
@@ -82,7 +82,7 @@ class ManufacturerController extends Controller
                 ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
                 ->exists()
         ) {
-            $slug = $base . '-' . $i++;
+            $slug = $base.'-'.$i++;
         }
 
         return $slug;

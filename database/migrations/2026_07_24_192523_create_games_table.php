@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('games', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            
+
             // Datos básicos
             $table->string('ean')->nullable();
             $table->string('title');
@@ -21,30 +21,30 @@ return new class extends Migration
             $table->date('release_date')->nullable();
             $table->string('developer')->nullable();
             $table->json('genres')->nullable(); // En Postgres, Laravel lo traduce a JSONB (muy rápido)
-            
+
             // Estados y condiciones (Cambiados a string para usar PHP Enums)
             $table->string('status')->nullable();
             $table->string('play_status')->nullable();
             $table->string('condition')->nullable();
             $table->foreignId('edition_id')->nullable()->constrained('editions')->onDelete('set null');
-            
+
             // Notas y valoración
             $table->longText('notes')->nullable();
             $table->unsignedTinyInteger('rating')->nullable();
-            
+
             // Datos de compra
             $table->decimal('price_paid', 10, 2)->nullable();
             $table->string('purchase_place')->nullable();
             $table->date('purchase_date')->nullable();
-            
+
             // Datos físicos
             $table->string('manual_status')->nullable();
             $table->string('region')->nullable();
             $table->string('age_rating')->nullable();
-            
+
             $table->timestamps();
             $table->softDeletes(); // Papelera de reciclaje
-            
+
             // Índices optimizados para las consultas más frecuentes
             $table->index(['user_id', 'title']);
             $table->index(['user_id', 'ean']);

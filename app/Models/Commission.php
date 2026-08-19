@@ -18,6 +18,7 @@ class Commission extends Model
     use HasFactory;
 
     public const DIRECTION_OWED_TO_ME = 'owed_to_me';
+
     public const DIRECTION_OWED_BY_ME = 'owed_by_me';
 
     public const DIRECTIONS = [self::DIRECTION_OWED_TO_ME, self::DIRECTION_OWED_BY_ME];

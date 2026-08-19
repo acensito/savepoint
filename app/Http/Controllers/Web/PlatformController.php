@@ -65,13 +65,13 @@ class PlatformController extends Controller
     private function validated(Request $request): array
     {
         $validated = $request->validate([
-            'name'            => 'required|string|max:255',
-            'label'           => 'nullable|string|max:20',
+            'name' => 'required|string|max:255',
+            'label' => 'nullable|string|max:20',
             'manufacturer_id' => 'nullable|exists:manufacturers,id',
             'override_colors' => 'nullable|boolean',
-            'bg_color'        => 'required_if:override_colors,1|nullable|regex:/^#[0-9A-Fa-f]{6}$/',
-            'text_color'      => 'required_if:override_colors,1|nullable|regex:/^#[0-9A-Fa-f]{6}$/',
-            'border_color'    => 'required_if:override_colors,1|nullable|regex:/^#[0-9A-Fa-f]{6}$/',
+            'bg_color' => 'required_if:override_colors,1|nullable|regex:/^#[0-9A-Fa-f]{6}$/',
+            'text_color' => 'required_if:override_colors,1|nullable|regex:/^#[0-9A-Fa-f]{6}$/',
+            'border_color' => 'required_if:override_colors,1|nullable|regex:/^#[0-9A-Fa-f]{6}$/',
         ]);
 
         // Sin override: la plataforma hereda los colores del fabricante (columnas a null).
@@ -97,7 +97,7 @@ class PlatformController extends Controller
                 ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
                 ->exists()
         ) {
-            $slug = $base . '-' . $i++;
+            $slug = $base.'-'.$i++;
         }
 
         return $slug;

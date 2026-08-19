@@ -17,6 +17,5 @@ final class GameLookupResult
         public readonly ?string $ean = null,
         public readonly ?string $coverUrl = null,
         public readonly ?string $platform = null,
-    ) {
-    }
+    ) {}
 }

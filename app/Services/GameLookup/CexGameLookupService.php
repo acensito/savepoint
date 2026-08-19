@@ -18,6 +18,7 @@ use Throwable;
 class CexGameLookupService implements GameLookupInterface
 {
     private const TIMEOUT_SECONDS = 4;
+
     private const MAX_RESULTS = 8;
 
     public function __construct(
@@ -25,8 +26,7 @@ class CexGameLookupService implements GameLookupInterface
         private readonly string $appId,
         private readonly string $apiKey,
         private readonly string $index,
-    ) {
-    }
+    ) {}
 
     public function search(string $query): array
     {

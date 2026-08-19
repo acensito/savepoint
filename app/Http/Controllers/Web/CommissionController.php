@@ -122,7 +122,7 @@ class CommissionController extends Controller
             'title' => 'required|string|max:255',
             'platform_id' => 'nullable|exists:platforms,id',
             'counterparty_name' => 'required|string|max:255',
-            'direction' => 'required|string|in:' . implode(',', Commission::DIRECTIONS),
+            'direction' => 'required|string|in:'.implode(',', Commission::DIRECTIONS),
             'price' => 'nullable|numeric|min:0',
             'purchased_at' => 'nullable|date',
             'notes' => 'nullable|string',

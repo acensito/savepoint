@@ -14,7 +14,9 @@ class Edition extends Model
     protected $fillable = ['name', 'format'];
 
     public const FORMAT_PHYSICAL = 'physical';
+
     public const FORMAT_DIGITAL = 'digital';
+
     public const FORMAT_CIAB = 'ciab';
 
     public const FORMATS = [

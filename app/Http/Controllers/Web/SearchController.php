@@ -24,9 +24,7 @@ class SearchController extends Controller
      */
     private const MIN_EXTERNAL_QUERY_LENGTH = 3;
 
-    public function __construct(private readonly GameLookupInterface $gameLookup)
-    {
-    }
+    public function __construct(private readonly GameLookupInterface $gameLookup) {}
 
     /**
      * Resultados en vivo para la búsqueda rápida (Ctrl+K): mismo criterio de
@@ -48,7 +46,7 @@ class SearchController extends Controller
         $status = (string) $request->input('status', '');
         $hasFilters = $platformId !== '' || $playStatus !== '' || $status !== '';
 
-        $games = ($query === '' && !$hasFilters)
+        $games = ($query === '' && ! $hasFilters)
             ? collect()
             : Game::where('user_id', auth()->id())
                 ->select(['id', 'title', 'cover', 'platform_id', 'rating', 'price_paid'])

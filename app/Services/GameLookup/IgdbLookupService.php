@@ -33,13 +33,13 @@ class IgdbLookupService
     // Los access token de Twitch duran ~60 días (5.184.000s); se cachea algo
     // por debajo de eso para no arriesgarse a un margen demasiado justo.
     private const TOKEN_CACHE_TTL_SECONDS = 5_000_000;
+
     private const TOKEN_CACHE_KEY_PREFIX = 'igdb_access_token:';
 
     public function __construct(
         private readonly string $clientId,
         private readonly string $clientSecret,
-    ) {
-    }
+    ) {}
 
     /**
      * Credenciales de una cuenta concreta (users.igdb_enabled/igdb_client_id/
@@ -78,7 +78,7 @@ class IgdbLookupService
     public function search(string $query, ?string $platformName = null, int $limit = 5): array
     {
         $query = trim($query);
-        if ($query === '' || !$this->isConfigured()) {
+        if ($query === '' || ! $this->isConfigured()) {
             return [];
         }
 
@@ -95,8 +95,8 @@ class IgdbLookupService
                 ])
                 ->withBody(
                     'fields name,first_release_date,involved_companies.company.name,involved_companies.developer,'
-                        . 'genres.name,rating,aggregated_rating,platforms.name; '
-                        . 'search "' . addslashes($query) . '"; limit ' . max(1, min($limit, 20)) . ';',
+                        .'genres.name,rating,aggregated_rating,platforms.name; '
+                        .'search "'.addslashes($query).'"; limit '.max(1, min($limit, 20)).';',
                     'text/plain',
                 )
                 ->post('https://api.igdb.com/v4/games');
@@ -140,7 +140,7 @@ class IgdbLookupService
      */
     public function artworks(int $igdbId, int $limit = 8): array
     {
-        if (!$this->isConfigured()) {
+        if (! $this->isConfigured()) {
             return [];
         }
 
@@ -156,7 +156,7 @@ class IgdbLookupService
                     'Authorization' => "Bearer {$token}",
                 ])
                 ->withBody(
-                    "fields image_id; where game = {$igdbId}; limit " . max(1, min($limit, 20)) . ';',
+                    "fields image_id; where game = {$igdbId}; limit ".max(1, min($limit, 20)).';',
                     'text/plain',
                 )
                 ->post('https://api.igdb.com/v4/artworks');
@@ -231,7 +231,7 @@ class IgdbLookupService
      */
     private function accessToken(): ?string
     {
-        $cacheKey = self::TOKEN_CACHE_KEY_PREFIX . md5($this->clientId . ':' . $this->clientSecret);
+        $cacheKey = self::TOKEN_CACHE_KEY_PREFIX.md5($this->clientId.':'.$this->clientSecret);
 
         return Cache::remember($cacheKey, self::TOKEN_CACHE_TTL_SECONDS, function () {
             try {

@@ -35,7 +35,7 @@ class IgdbControllerTest extends TestCase
                 )]);
         });
 
-        $response = $this->actingAs($user)->getJson("/games/{$game->id}/igdb-search?q=" . urlencode('otro título'));
+        $response = $this->actingAs($user)->getJson("/games/{$game->id}/igdb-search?q=".urlencode('otro título'));
 
         $response->assertOk();
         $response->assertJson(['results' => [[

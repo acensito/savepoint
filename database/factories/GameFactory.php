@@ -2,12 +2,13 @@
 
 namespace Database\Factories;
 
+use App\Models\Game;
 use App\Models\Platform;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<\App\Models\Game>
+ * @extends Factory<Game>
  */
 class GameFactory extends Factory
 {

@@ -31,8 +31,8 @@ class DatabaseSeeder extends Seeder
         User::updateOrCreate(
             ['email' => 'admin@savepoint.test'],
             [
-                'name'              => 'Admin',
-                'password'          => Hash::make('password'),
+                'name' => 'Admin',
+                'password' => Hash::make('password'),
                 'email_verified_at' => now(),
             ]
         );
@@ -70,7 +70,7 @@ class DatabaseSeeder extends Seeder
                 Platform::updateOrCreate(
                     ['slug' => Str::slug($platformName)],
                     [
-                        'name'            => $platformName,
+                        'name' => $platformName,
                         'manufacturer_id' => $manufacturer->id,
                     ]
                 );
@@ -89,35 +89,35 @@ class DatabaseSeeder extends Seeder
      */
     private function seedGames(): void
     {
-        $user   = User::where('email', 'admin@savepoint.test')->firstOrFail();
+        $user = User::where('email', 'admin@savepoint.test')->firstOrFail();
         $switch = Platform::where('slug', 'nintendo-switch')->firstOrFail();
 
         $games = [
             [
-                'title'        => 'The Legend of Zelda: Breath of the Wild',
-                'status'       => 'owned',
-                'play_status'  => 'finished',
-                'condition'    => 'mint',
+                'title' => 'The Legend of Zelda: Breath of the Wild',
+                'status' => 'owned',
+                'play_status' => 'finished',
+                'condition' => 'mint',
                 'release_date' => '2017-03-03',
-                'genres'       => ['Acción', 'Aventura', 'RPG'],
-                'rating'       => 5,
+                'genres' => ['Acción', 'Aventura', 'RPG'],
+                'rating' => 5,
             ],
             [
-                'title'        => 'Super Mario Odyssey',
-                'status'       => 'owned',
-                'play_status'  => 'playing',
-                'condition'    => 'good',
+                'title' => 'Super Mario Odyssey',
+                'status' => 'owned',
+                'play_status' => 'playing',
+                'condition' => 'good',
                 'release_date' => '2017-10-27',
-                'genres'       => ['Plataformas', 'Aventura'],
-                'rating'       => 5,
+                'genres' => ['Plataformas', 'Aventura'],
+                'rating' => 5,
             ],
         ];
 
         foreach ($games as $game) {
             Game::updateOrCreate(
                 [
-                    'user_id'     => $user->id,
-                    'title'       => $game['title'],
+                    'user_id' => $user->id,
+                    'title' => $game['title'],
                     'platform_id' => $switch->id,
                 ],
                 $game
