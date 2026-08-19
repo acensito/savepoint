@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -17,18 +18,40 @@ class ProfileController extends Controller
     }
 
     /**
-     * Actualiza nombre y email de la cuenta.
+     * Actualiza nombre, email y avatar de la cuenta.
      */
     public function updateInfo(Request $request): RedirectResponse
     {
         $user = $request->user();
 
         $validated = $request->validate([
-            'name'  => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+            'avatar' => ['nullable', 'image', 'mimes:jpeg,png,gif,webp', 'max:2048'],
         ]);
 
-        $user->update($validated);
+        $avatarPath = $user->avatar_path;
+        $previousAvatar = $user->avatar_path;
+
+        if ($request->hasFile('avatar')) {
+            $avatarPath = $request->file('avatar')->store("avatars/$user->id", 'public');
+            if ($avatarPath === false) {
+                return redirect()->route('web.profile.edit')->with('error', 'No se pudo guardar la imagen de avatar.');
+            }
+        } elseif ($request->boolean('remove_avatar')) {
+            $avatarPath = null;
+        }
+
+        $user->update([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'avatar_path' => $avatarPath,
+        ]);
+
+        // Si el avatar cambió o se eliminó y existía uno anterior, limpiar el archivo previo.
+        if ($previousAvatar && $previousAvatar !== $avatarPath) {
+            Storage::disk('public')->delete($previousAvatar);
+        }
 
         return redirect()->route('web.profile.edit')->with('success', 'Datos actualizados correctamente.');
     }
@@ -40,7 +63,7 @@ class ProfileController extends Controller
     {
         $validated = $request->validate([
             'current_password' => ['required', 'current_password'],
-            'password'         => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
         $request->user()->update([

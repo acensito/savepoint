@@ -17,7 +17,7 @@ use Laravel\Sanctum\HasApiTokens;
     'theme', 'games_view', 'default_sort', 'default_dir', 'default_per_page',
     'default_region', 'default_edition_id', 'quick_search_exclude_wishlist',
     'igdb_enabled', 'igdb_client_id', 'igdb_client_secret',
-    'hide_for_sale_from_collection',
+    'hide_for_sale_from_collection', 'avatar_path',
 ])]
 #[Hidden(['password', 'remember_token', 'igdb_client_secret'])]
 class User extends Authenticatable
@@ -58,5 +58,20 @@ class User extends Authenticatable
     public function games(): HasMany
     {
         return $this->hasMany(Game::class);
+    }
+
+    // ==========================================
+    // ACCESSORS
+    // ==========================================
+
+    /**
+     * Devuelve la URL pública del avatar o null si el usuario no tiene ninguno.
+     * Centraliza la resolución para no repetir asset() en las vistas.
+     */
+    public function avatarUrl(): ?string
+    {
+        return $this->avatar_path
+            ? asset('storage/' . $this->avatar_path)
+            : null;
     }
 }
