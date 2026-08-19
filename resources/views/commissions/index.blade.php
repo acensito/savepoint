@@ -107,7 +107,7 @@
         </div>
     @endif
 
-    <script>
+    <script nonce="{{ $cspNonce }}">
         // Delegado en la tabla: cada fila pendiente tiene su propio panel de
         // fecha (data-target), evita un listener repetido por fila.
         document.querySelectorAll('.js-resolve-trigger').forEach((trigger) => {

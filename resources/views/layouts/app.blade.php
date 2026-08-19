@@ -30,7 +30,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
-    <script>
+    <script nonce="{{ $cspNonce }}">
         // Bloqueante a propósito: aplica el estado guardado del sidebar antes del
         // primer pintado para que no haya parpadeo (expandido/plegado) al cargar o
         // al navegar entre páginas. Tema y vista de la colección ya no viven aquí:
@@ -320,13 +320,13 @@
     </dialog>
 
     @if(session('success'))
-        <script>
+        <script nonce="{{ $cspNonce }}">
             document.addEventListener('DOMContentLoaded', () => window.showToast?.(@json(session('success')), 'success', @json(session('undoUrl'))));
         </script>
     @endif
 
     @if(session('error'))
-        <script>
+        <script nonce="{{ $cspNonce }}">
             document.addEventListener('DOMContentLoaded', () => window.showToast?.(@json(session('error')), 'error'));
         </script>
     @endif

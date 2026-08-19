@@ -330,7 +330,7 @@
         </div>
         <div>
             <label for="region_select" class="{{ $label }}">Región</label>
-            <select name="region_select" id="region_select" class="{{ $input }}" onchange="toggleCustomRegion()">
+            <select name="region_select" id="region_select" class="{{ $input }}">
                 <option value="" {{ $regionSelectValue === '' ? 'selected' : '' }}>Sin especificar</option>
                 @foreach($regionPresets as $preset)
                     <option value="{{ $preset }}" {{ $regionSelectValue === $preset ? 'selected' : '' }}>{{ $preset }}</option>
@@ -359,7 +359,7 @@
     @error('notes') <span class="{{ $error }}">{{ $message }}</span> @enderror
 </div>
 
-<script>
+<script nonce="{{ $cspNonce }}">
     document.getElementById('cover')?.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -378,6 +378,8 @@
         const isOther = document.getElementById('region_select').value === 'other';
         document.getElementById('region_other').classList.toggle('hidden', !isOther);
     }
+
+    document.getElementById('region_select')?.addEventListener('change', toggleCustomRegion);
 
     function filterEditions() {
         const platformId = document.getElementById('platform_id').value;

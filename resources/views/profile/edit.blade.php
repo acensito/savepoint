@@ -174,7 +174,7 @@
         </div>
     </div>
 
-    <script>
+    <script nonce="{{ $cspNonce }}">
         (function () {
             const input         = document.getElementById('avatar-input');
             const previewImg    = document.getElementById('avatar-preview-img');

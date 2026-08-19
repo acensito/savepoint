@@ -15,19 +15,19 @@
     <div>
         <label for="bg_color" class="block font-medium text-sm text-slate-300 mb-1">Fondo</label>
         <input type="color" name="bg_color" id="bg_color" value="{{ $bg }}"
-            class="w-full h-10 rounded-lg border border-slate-700 bg-slate-800 cursor-pointer" oninput="updateChipPreview()">
+            class="w-full h-10 rounded-lg border border-slate-700 bg-slate-800 cursor-pointer">
         @error('bg_color') <span class="text-red-400 text-sm mt-1 block">{{ $message }}</span> @enderror
     </div>
     <div>
         <label for="text_color" class="block font-medium text-sm text-slate-300 mb-1">Letras</label>
         <input type="color" name="text_color" id="text_color" value="{{ $text }}"
-            class="w-full h-10 rounded-lg border border-slate-700 bg-slate-800 cursor-pointer" oninput="updateChipPreview()">
+            class="w-full h-10 rounded-lg border border-slate-700 bg-slate-800 cursor-pointer">
         @error('text_color') <span class="text-red-400 text-sm mt-1 block">{{ $message }}</span> @enderror
     </div>
     <div>
         <label for="border_color" class="block font-medium text-sm text-slate-300 mb-1">Borde</label>
         <input type="color" name="border_color" id="border_color" value="{{ $border }}"
-            class="w-full h-10 rounded-lg border border-slate-700 bg-slate-800 cursor-pointer" oninput="updateChipPreview()">
+            class="w-full h-10 rounded-lg border border-slate-700 bg-slate-800 cursor-pointer">
         @error('border_color') <span class="text-red-400 text-sm mt-1 block">{{ $message }}</span> @enderror
     </div>
 </div>
@@ -40,13 +40,16 @@
     </span>
 </div>
 
-<script>
+<script nonce="{{ $cspNonce }}">
     function updateChipPreview() {
         const preview = document.getElementById('chip-preview');
         preview.style.backgroundColor = document.getElementById('bg_color').value;
         preview.style.color = document.getElementById('text_color').value;
         preview.style.borderColor = document.getElementById('border_color').value;
     }
+    ['bg_color', 'text_color', 'border_color'].forEach((id) => {
+        document.getElementById(id)?.addEventListener('input', updateChipPreview);
+    });
     document.getElementById('name')?.addEventListener('input', (e) => {
         document.getElementById('chip-preview').textContent = e.target.value || 'Nombre del fabricante';
     });

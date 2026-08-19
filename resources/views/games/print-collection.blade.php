@@ -72,7 +72,7 @@
 <body>
     <div class="toolbar no-print">
         <a href="{{ route('web.games.index') }}">← Volver a mi colección</a>
-        <button type="button" onclick="window.print()">Imprimir / Guardar como PDF</button>
+        <button type="button" id="print-button">Imprimir / Guardar como PDF</button>
     </div>
 
     <div class="sheet">
@@ -128,5 +128,9 @@
             </table>
         @endif
     </div>
+
+    <script nonce="{{ $cspNonce }}">
+        document.getElementById('print-button')?.addEventListener('click', () => window.print());
+    </script>
 </body>
 </html>

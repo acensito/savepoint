@@ -66,7 +66,7 @@
         </div>
     </div>
 
-    <script>
+    <script nonce="{{ $cspNonce }}">
         (function () {
             const platformSelect = document.getElementById('platform_id');
             const editionSelect = document.getElementById('edition_id');

@@ -34,7 +34,6 @@
 
                 <label class="flex items-center gap-2 text-sm text-slate-300 mb-4">
                     <input type="checkbox" id="igdb_enabled" name="igdb_enabled" value="1" {{ old('igdb_enabled', $user->igdb_enabled) ? 'checked' : '' }}
-                        onchange="document.getElementById('igdb-credentials').classList.toggle('hidden', !this.checked)"
                         class="rounded border-slate-600 bg-slate-800 text-indigo-600 focus:ring-indigo-500">
                     Permitir el uso de IGDB con mis credenciales
                 </label>
@@ -169,4 +168,10 @@
             </div>
         </form>
     </div>
+
+    <script nonce="{{ $cspNonce }}">
+        document.getElementById('igdb_enabled')?.addEventListener('change', function () {
+            document.getElementById('igdb-credentials').classList.toggle('hidden', !this.checked);
+        });
+    </script>
 @endsection

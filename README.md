@@ -465,9 +465,6 @@ Cobertura actual:
 Sin implementar todavía, por orden aproximado de impacto:
 
 - Sin PHPStan/Larastan configurado.
-- CSP (`docker/nginx.conf`) con `'unsafe-inline' 'unsafe-eval'` en `script-src`: tantearía un nonce por petición para
-  los `<script>` inline del layout, y probar si el escáner de códigos de barras (`@zxing/library`) realmente necesita
-  `unsafe-eval` o le basta con `wasm-unsafe-eval`.
 - Redis sin AOF (solo snapshots RDB): en un crash no limpio se podrían perder los últimos segundos de sesiones/caché.
   Bajo riesgo, ahí no vive ningún dato que no esté también en Postgres.
 

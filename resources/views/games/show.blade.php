@@ -303,7 +303,7 @@
         </div>
     </div>
 
-    <script>
+    <script nonce="{{ $cspNonce }}">
         (function () {
             const trigger = document.getElementById('igdb-search-trigger');
             if (!trigger) return;

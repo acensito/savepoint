@@ -40,7 +40,7 @@
 <div class="pt-2 border-t border-slate-800">
     <label class="flex items-center gap-2 text-sm font-medium text-slate-300 mt-4">
         <input type="checkbox" name="override_colors" id="override_colors" value="1" {{ $hasOverride ? 'checked' : '' }}
-            class="rounded border-slate-600 bg-slate-800 text-indigo-600 focus:ring-indigo-500" onchange="toggleColorOverride()">
+            class="rounded border-slate-600 bg-slate-800 text-indigo-600 focus:ring-indigo-500">
         Personalizar colores para esta plataforma
     </label>
 
@@ -48,19 +48,19 @@
         <div>
             <label for="bg_color" class="block font-medium text-sm text-slate-300 mb-1">Fondo</label>
             <input type="color" name="bg_color" id="bg_color" value="{{ $bg }}"
-                class="w-full h-10 rounded-lg border border-slate-700 bg-slate-800 cursor-pointer" oninput="updateChipPreview()">
+                class="w-full h-10 rounded-lg border border-slate-700 bg-slate-800 cursor-pointer">
             @error('bg_color') <span class="text-red-400 text-sm mt-1 block">{{ $message }}</span> @enderror
         </div>
         <div>
             <label for="text_color" class="block font-medium text-sm text-slate-300 mb-1">Letras</label>
             <input type="color" name="text_color" id="text_color" value="{{ $text }}"
-                class="w-full h-10 rounded-lg border border-slate-700 bg-slate-800 cursor-pointer" oninput="updateChipPreview()">
+                class="w-full h-10 rounded-lg border border-slate-700 bg-slate-800 cursor-pointer">
             @error('text_color') <span class="text-red-400 text-sm mt-1 block">{{ $message }}</span> @enderror
         </div>
         <div>
             <label for="border_color" class="block font-medium text-sm text-slate-300 mb-1">Borde</label>
             <input type="color" name="border_color" id="border_color" value="{{ $border }}"
-                class="w-full h-10 rounded-lg border border-slate-700 bg-slate-800 cursor-pointer" oninput="updateChipPreview()">
+                class="w-full h-10 rounded-lg border border-slate-700 bg-slate-800 cursor-pointer">
             @error('border_color') <span class="text-red-400 text-sm mt-1 block">{{ $message }}</span> @enderror
         </div>
     </div>
@@ -74,7 +74,7 @@
     </span>
 </div>
 
-<script>
+<script nonce="{{ $cspNonce }}">
     function toggleColorOverride() {
         const enabled = document.getElementById('override_colors').checked;
         document.getElementById('color-fields').classList.toggle('hidden', !enabled);
@@ -105,6 +105,10 @@
         @endforeach
     };
 
+    document.getElementById('override_colors')?.addEventListener('change', toggleColorOverride);
+    ['bg_color', 'text_color', 'border_color'].forEach((id) => {
+        document.getElementById(id)?.addEventListener('input', updateChipPreview);
+    });
     document.getElementById('manufacturer_id')?.addEventListener('change', updateChipPreview);
     document.getElementById('label')?.addEventListener('input', (e) => {
         document.getElementById('chip-preview').textContent = e.target.value || document.getElementById('name').value || 'Nombre';

@@ -47,7 +47,7 @@
     @error('platform_ids') <span class="text-red-400 text-sm mt-1 block">{{ $message }}</span> @enderror
 </div>
 
-<script>
+<script nonce="{{ $cspNonce }}">
     document.getElementById('select-all-platforms')?.addEventListener('click', () => {
         document.querySelectorAll('.platform-checkbox').forEach((checkbox) => { checkbox.checked = true; });
     });

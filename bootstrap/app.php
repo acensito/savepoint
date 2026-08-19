@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\AddContentSecurityPolicyHeader;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -21,6 +22,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // aunque el navegador esté en https://, lo que la CSP bloquea por
         // desajuste de origen (ver CHANGELOG).
         $middleware->trustProxies(at: '*');
+
+        // Solo en 'web': una respuesta JSON de la API nunca se renderiza
+        // como HTML, así que un nonce de CSP ahí no protege nada.
+        $middleware->web(append: [AddContentSecurityPolicyHeader::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
