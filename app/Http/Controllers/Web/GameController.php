@@ -94,7 +94,7 @@ class GameController extends Controller
             ->with([
                 'platform:id,name,label,bg_color,text_color,border_color,manufacturer_id',
                 'platform.manufacturer:id,bg_color,text_color,border_color',
-                'edition:id,name',
+                'edition:id,name,format',
             ])
             ->paginate($perPage)
             ->withQueryString();

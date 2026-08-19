@@ -231,6 +231,20 @@ class GameControllerTest extends TestCase
         $response->assertSee('games-results-meta', false);
     }
 
+    public function test_index_shows_the_real_format_icon_of_the_games_edition(): void
+    {
+        $user = User::factory()->create();
+        $digital = Edition::factory()->create(['name' => 'Edición digital', 'format' => Edition::FORMAT_DIGITAL]);
+        Game::factory()->for($user)->create(['title' => 'Juego digital', 'edition_id' => $digital->id]);
+
+        $response = $this->actingAs($user)->get('/');
+
+        // Regresión: index() cargaba la relación edition sin la columna
+        // format, así que Edition::formatIcon() caía siempre al icono de
+        // físico (album) sin importar el formato real de la edición.
+        $response->assertSee(Edition::FORMATS[Edition::FORMAT_DIGITAL]['icon']);
+    }
+
     public function test_index_ignores_an_unknown_sort_column(): void
     {
         $user = User::factory()->create();

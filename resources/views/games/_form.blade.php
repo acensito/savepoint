@@ -621,4 +621,28 @@
     })();
 
     filterEditions();
+
+    /**
+     * Evita el reenvío duplicado del formulario en móvil: al volver atrás con
+     * el gesto justo después de guardar, el navegador puede restaurar esta
+     * página desde el bfcache (caché de navegación atrás/adelante) con el
+     * botón de enviar todavía habilitado y los datos rellenos, y un segundo
+     * toque lo reenvía sin querer. Deshabilitarlo al enviar no interrumpe el
+     * envío en curso (ya lanzado por el propio submit), y el listener de
+     * pageshow cubre el caso de que el bfcache no conserve ese estado
+     * deshabilitado entre navegadores.
+     */
+    (function () {
+        const form = document.currentScript.closest('form');
+        const submitBtn = form?.querySelector('button[type="submit"]');
+        if (!form || !submitBtn) return;
+
+        form.addEventListener('submit', () => {
+            submitBtn.disabled = true;
+        });
+
+        window.addEventListener('pageshow', (e) => {
+            if (e.persisted) submitBtn.disabled = true;
+        });
+    })();
 </script>
