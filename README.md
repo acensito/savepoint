@@ -464,8 +464,6 @@ Cobertura actual:
 
 Sin implementar todavía, por orden aproximado de impacto:
 
-- **`GameController` con 999 líneas y 23 métodos**: CRUD, IGDB, CEX, papelera y acciones en bloque mezclados. Separar al
-  menos lo de IGDB a su propio controlador/servicio.
 - **Validación divergente entre API y web**: `StoreGameRequest` (API) acepta `rating` 1-10 y `status`/`play_status` como
   string libre; el formulario web los restringe a 1-5 y a enums cerrados. Un alta por API fuera de esos rangos rendería
   raro en la web.

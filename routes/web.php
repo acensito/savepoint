@@ -6,6 +6,7 @@ use App\Http\Controllers\Web\EditionController;
 use App\Http\Controllers\Web\ForSaleController;
 use App\Http\Controllers\Web\GameController;
 use App\Http\Controllers\Web\GameImportController;
+use App\Http\Controllers\Web\IgdbController;
 use App\Http\Controllers\Web\ManufacturerController;
 use App\Http\Controllers\Web\PanelController;
 use App\Http\Controllers\Web\PasswordResetController;
@@ -152,11 +153,12 @@ Route::middleware('auth')->group(function () {
     // Enriquecimiento con IGDB (desarrollador, fecha de lanzamiento, géneros
     // en inglés, nota agregada) desde la ficha de detalle: igdb-search solo
     // lista candidatos (AJAX), igdb-apply guarda el elegido y redirige de
-    // vuelta a la ficha.
-    Route::get('/games/{game}/igdb-search', [GameController::class, 'igdbSearch'])->name('web.games.igdb-search');
-    Route::post('/games/{game}/igdb-apply', [GameController::class, 'igdbApply'])->name('web.games.igdb-apply');
-    Route::get('/games/{game}/igdb-artworks', [GameController::class, 'igdbArtworks'])->name('web.games.igdb-artworks');
-    Route::post('/games/{game}/igdb-background', [GameController::class, 'igdbSetBackground'])->name('web.games.igdb-background');
+    // vuelta a la ficha. Controlador propio (IgdbController), separado de
+    // GameController (ver README, "Mejoras técnicas").
+    Route::get('/games/{game}/igdb-search', [IgdbController::class, 'search'])->name('web.games.igdb-search');
+    Route::post('/games/{game}/igdb-apply', [IgdbController::class, 'apply'])->name('web.games.igdb-apply');
+    Route::get('/games/{game}/igdb-artworks', [IgdbController::class, 'artworks'])->name('web.games.igdb-artworks');
+    Route::post('/games/{game}/igdb-background', [IgdbController::class, 'setBackground'])->name('web.games.igdb-background');
     Route::put('/games/{game}', [GameController::class, 'update'])->name('web.games.update');
     Route::post('/games/{game}/mark-sold', [GameController::class, 'markAsSold'])->name('web.games.mark-sold');
     Route::delete('/games/{game}', [GameController::class, 'destroy'])->name('web.games.destroy');

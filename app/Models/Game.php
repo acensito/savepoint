@@ -152,7 +152,7 @@ class Game extends Model
 
     /**
      * URL del fondo elegido a mano entre las opciones de IGDB (ver
-     * GameController::igdbArtworks()/igdbSetBackground()), o null si no se
+     * IgdbController::artworks()/setBackground()), o null si no se
      * ha elegido ninguno. Se guarda solo el image_id de IGDB, no la URL
      * completa, para poder pedir aquí el tamaño que convenga en cada sitio.
      */
