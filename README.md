@@ -462,8 +462,6 @@ Cobertura actual:
 
 Sin implementar todavía, por orden aproximado de impacto:
 
-- **Estadísticas sin caché**: `/stats` recalcula ~9 queries de agregación en cada carga; un `Cache::remember` de unos
-  minutos (invalidado al mutar un juego) lo evitaría — Redis ya está puesto como `CACHE_STORE` y no se usa para esto.
 - **El worker de cola está desplegado pero ocioso**: no hay ni un solo `Job`/`dispatch()` en toda la app. Encajaría bien
   con mover a segundo plano el match automático de IGDB en `GameController::show()` (hoy bloquea la carga de la ficha
   con una llamada HTTP externa síncrona) y/o la importación CSV.

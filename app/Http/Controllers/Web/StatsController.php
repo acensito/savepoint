@@ -6,13 +6,53 @@ use App\Http\Controllers\Controller;
 use App\Models\Game;
 use App\Models\Platform;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
 
 class StatsController extends Controller
 {
+    /**
+     * Cuánto se conserva la caché como red de seguridad si algo mutara un
+     * juego sin pasar por GameObserver (ver cacheKey()) — en el uso normal
+     * se invalida antes de esto, así que el valor solo importa si ese caso
+     * llegara a darse.
+     */
+    private const CACHE_TTL_MINUTES = 15;
+
     public function index(): View
     {
-        $base = Game::where('user_id', auth()->id());
+        $userId = auth()->id();
+
+        $stats = Cache::remember(
+            self::cacheKey($userId),
+            now()->addMinutes(self::CACHE_TTL_MINUTES),
+            fn () => $this->buildStats($userId),
+        );
+
+        return view('stats.index', $stats);
+    }
+
+    /**
+     * Clave de caché de las estadísticas de un usuario — compartida con
+     * GameObserver (invalidación al guardar/borrar/restaurar un juego) y con
+     * las acciones en bloque de GameController que mutan varios juegos de
+     * golpe con una query directa (Game::whereIn(...)->update()/delete()),
+     * que no disparan eventos de Eloquent y por tanto no pasan por el
+     * observer.
+     */
+    public static function cacheKey(int $userId): string
+    {
+        return "stats:{$userId}";
+    }
+
+    /**
+     * ~9 queries de agregación sobre toda la colección: se cachean en
+     * conjunto (ver index()) porque todas dependen de los mismos datos y se
+     * invalidan a la vez.
+     */
+    private function buildStats(int $userId): array
+    {
+        $base = Game::where('user_id', $userId);
 
         $totalGames = (clone $base)->count();
         $totalSpent = (float) (clone $base)->sum('price_paid');
@@ -26,12 +66,12 @@ class StatsController extends Controller
         $byDecade = $this->byDecade(clone $base);
         $mostExpensive = (clone $base)->whereNotNull('price_paid')->with('platform')->orderByDesc('price_paid')->first();
         $topRated = (clone $base)->whereNotNull('rating')->with('platform')->orderByDesc('rating')->orderByDesc('id')->first();
-        $salesByYear = $this->salesByYear();
+        $salesByYear = $this->salesByYear($userId);
 
-        return view('stats.index', compact(
+        return compact(
             'totalGames', 'totalSpent', 'averageRating', 'byPlatform', 'byPlayStatus', 'byStatus',
             'spendingByMonth', 'topGenres', 'byDecade', 'mostExpensive', 'topRated', 'salesByYear',
-        ));
+        );
     }
 
     /**
@@ -181,10 +221,10 @@ class StatsController extends Controller
      * spendingByMonth()/byDecade(): funciona igual en Postgres (producción) y
      * SQLite (tests) sin depender de funciones de fecha propias de cada motor.
      */
-    private function salesByYear()
+    private function salesByYear(int $userId)
     {
         $sales = Game::onlyTrashed()
-            ->where('user_id', auth()->id())
+            ->where('user_id', $userId)
             ->where('status', 'sold')
             ->whereNotNull('sold_at')
             ->get(['sold_at', 'price_paid', 'sale_price']);

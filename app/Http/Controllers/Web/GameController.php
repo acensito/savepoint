@@ -13,6 +13,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -753,6 +754,11 @@ class GameController extends Controller
 
         Game::whereIn('id', $ids)->delete();
 
+        // Mass delete por query builder: no dispara el evento 'deleted' de
+        // Eloquent, así que GameObserver no la ve. Los IDs ya están acotados
+        // al usuario autenticado (ver ownedSelectedIds()).
+        Cache::forget(StatsController::cacheKey(auth()->id()));
+
         return redirect()->route('web.games.index')->with(
             'success',
             count($ids) . ' ' . Str::plural('juego', count($ids)) . ' ' . (count($ids) === 1 ? 'enviado' : 'enviados') . ' a la papelera.'
@@ -772,6 +778,10 @@ class GameController extends Controller
         $ids = $this->ownedSelectedIds($request);
 
         Game::whereIn('id', $ids)->update(['play_status' => $validated['play_status']]);
+
+        // Mismo motivo que en bulkDestroy(): mass update por query builder,
+        // sin evento 'saved' que GameObserver pueda escuchar.
+        Cache::forget(StatsController::cacheKey(auth()->id()));
 
         return redirect()->route('web.games.index')->with(
             'success',

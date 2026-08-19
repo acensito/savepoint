@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Models\Game;
 use App\Models\Platform;
+use App\Observers\GameObserver;
 use App\Services\GameLookup\CexGameLookupService;
 use App\Services\GameLookup\GameLookupInterface;
 use App\Services\GameLookup\IgdbLookupService;
@@ -64,5 +66,7 @@ class AppServiceProvider extends ServiceProvider
         View::composer('layouts.app', function ($view) {
             $view->with('quickSearchPlatforms', Platform::orderBy('name')->get(['id', 'name']));
         });
+
+        Game::observe(GameObserver::class);
     }
 }

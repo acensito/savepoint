@@ -145,6 +145,57 @@ class StatsControllerTest extends TestCase
         $this->assertSame(2, $byDecade->firstWhere('decade', 'Años 2010')['total']);
     }
 
+    public function test_stats_reflect_a_game_created_after_the_stats_were_first_cached(): void
+    {
+        $user = User::factory()->create();
+        Game::factory()->for($user)->create();
+
+        $this->actingAs($user)->get('/stats')->assertViewHas('totalGames', 1);
+
+        Game::factory()->for($user)->create();
+
+        // Regresión: /stats se cachea por usuario (ver
+        // StatsController::cacheKey()); sin invalidarla al crear un juego
+        // (GameObserver::saved()), esta segunda carga seguiría devolviendo
+        // el total de antes.
+        $this->actingAs($user)->get('/stats')->assertViewHas('totalGames', 2);
+    }
+
+    public function test_stats_reflect_a_bulk_play_status_update(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['play_status' => 'pending']);
+
+        $this->actingAs($user)->get('/stats');
+
+        $this->actingAs($user)->post('/games/bulk-play-status', [
+            'game_ids' => [$game->id],
+            'play_status' => 'finished',
+        ]);
+
+        // Regresión: bulkUpdatePlayStatus() muta con Game::whereIn(...)->update(),
+        // una query directa que no dispara el evento 'saved' de Eloquent, así
+        // que GameObserver no la ve — GameController debe invalidar la caché
+        // de estadísticas a mano ahí.
+        $byPlayStatus = collect($this->actingAs($user)->get('/stats')->viewData('byPlayStatus'))->keyBy('label');
+        $this->assertSame(1, $byPlayStatus['Terminado']['total']);
+        $this->assertSame(0, $byPlayStatus['Pendiente']['total']);
+    }
+
+    public function test_stats_reflect_a_bulk_delete(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create();
+
+        $this->actingAs($user)->get('/stats')->assertViewHas('totalGames', 1);
+
+        $this->actingAs($user)->post('/games/bulk-delete', ['game_ids' => [$game->id]]);
+
+        // Regresión: bulkDestroy() muta con Game::whereIn(...)->delete(), que
+        // tampoco dispara eventos de Eloquent.
+        $this->actingAs($user)->get('/stats')->assertViewHas('totalGames', 0);
+    }
+
     public function test_stats_highlights_the_most_expensive_and_top_rated_games(): void
     {
         $user = User::factory()->create();
