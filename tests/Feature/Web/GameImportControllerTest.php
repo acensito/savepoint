@@ -2,21 +2,53 @@
 
 namespace Tests\Feature\Web;
 
+use App\Http\Controllers\Web\GameImportController;
 use App\Models\Edition;
 use App\Models\Game;
 use App\Models\Platform;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 class GameImportControllerTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * store() persiste el CSV en el disco 'local' (ver
+     * GameImportController::store()/Jobs\ImportGamesFromCsv) antes de
+     * despacharlo: sin fingir el disco, cada corrida de los tests escribiría
+     * en el storage real de desarrollo, igual que Storage::fake('public') ya
+     * evita eso para las carátulas en otros tests de este controlador.
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Storage::fake('local');
+    }
+
     private function csvFile(string $content, string $name = 'games.csv'): UploadedFile
     {
         return UploadedFile::fake()->createWithContent($name, $content);
+    }
+
+    /**
+     * store() ya no deja el resultado listo en la propia redirección (ver
+     * Jobs\ImportGamesFromCsv): dispara la importación y hay que consultar
+     * /games/import/status/{id} para verlo. QUEUE_CONNECTION=sync en
+     * phpunit.xml hace que el job ya haya terminado para cuando llega aquí.
+     */
+    private function importStatus(TestResponse $storeResponse): TestResponse
+    {
+        $importId = $storeResponse->getSession()->get('importId');
+
+        return $this->getJson("/games/import/status/{$importId}");
     }
 
     public function test_guest_cannot_access_the_import_form(): void
@@ -54,9 +86,11 @@ class GameImportControllerTest extends TestCase
         ]);
 
         $response->assertRedirect(route('web.games.import'));
-        $response->assertSessionHas('importResult.imported', 1);
-        $response->assertSessionHas('importResult.createdPlatforms', 1);
-        $response->assertSessionHas('importResult.createdEditions', 1);
+        $status = $this->importStatus($response);
+        $status->assertJsonPath('done', true);
+        $status->assertJsonPath('imported', 1);
+        $status->assertJsonPath('createdPlatforms', 1);
+        $status->assertJsonPath('createdEditions', 1);
 
         $platform = Platform::where('name', 'Nintendo Switch')->firstOrFail();
         $edition = Edition::where('name', 'Coleccionista')->firstOrFail();
@@ -79,8 +113,8 @@ class GameImportControllerTest extends TestCase
 
         $csv = "Título,Plataforma\r\nHollow Knight,nintendo switch\r\n";
 
-        $this->actingAs($user)->post('/games/import', ['file' => $this->csvFile($csv)])
-            ->assertSessionHas('importResult.createdPlatforms', 0);
+        $response = $this->actingAs($user)->post('/games/import', ['file' => $this->csvFile($csv)]);
+        $this->importStatus($response)->assertJsonPath('createdPlatforms', 0);
 
         $this->assertDatabaseHas('games', ['title' => 'Hollow Knight', 'platform_id' => $platform->id]);
         $this->assertSame(1, Platform::where('name', 'Nintendo Switch')->count());
@@ -94,9 +128,9 @@ class GameImportControllerTest extends TestCase
 
         $response = $this->actingAs($user)->post('/games/import', ['file' => $this->csvFile($csv)]);
 
-        $response->assertSessionHas('importResult.imported', 1);
-        $errors = $response->getSession()->get('importResult')['errors'];
-        $this->assertCount(1, $errors);
+        $status = $this->importStatus($response);
+        $status->assertJsonPath('imported', 1);
+        $this->assertCount(1, $status->json('errors'));
         $this->assertDatabaseCount('games', 1);
     }
 
@@ -108,7 +142,7 @@ class GameImportControllerTest extends TestCase
 
         $response = $this->actingAs($user)->post('/games/import', ['file' => $this->csvFile($csv)]);
 
-        $response->assertSessionHas('importResult.imported', 1);
+        $this->importStatus($response)->assertJsonPath('imported', 1);
         $this->assertDatabaseHas('games', ['title' => 'Celeste', 'price_paid' => 19.99]);
     }
 
@@ -130,6 +164,63 @@ class GameImportControllerTest extends TestCase
 
         $this->actingAs($user)->post('/games/import', [])
             ->assertSessionHasErrors('file');
+    }
+
+    public function test_import_deletes_the_stored_csv_after_processing(): void
+    {
+        $user = User::factory()->create();
+        $csv = "Título\r\nCeleste\r\n";
+
+        $this->actingAs($user)->post('/games/import', ['file' => $this->csvFile($csv)]);
+
+        // Solo hacía falta mientras Jobs\ImportGamesFromCsv la procesaba (ver
+        // su comentario): no debe quedar huérfana en el disco.
+        Storage::disk('local')->assertDirectoryEmpty('imports');
+    }
+
+    public function test_import_status_reports_in_progress_before_the_job_runs(): void
+    {
+        // A diferencia del resto de tests (QUEUE_CONNECTION=sync deja el job
+        // ya terminado para cuando llega la respuesta), esto comprueba el
+        // estado que deja store() antes de despachar el job — el que vería
+        // un sondeo real contra un worker de cola de verdad.
+        $user = User::factory()->create();
+        $importId = (string) Str::uuid();
+        Cache::put(
+            GameImportController::cacheKey($importId),
+            ['user_id' => $user->id, 'done' => false],
+            now()->addHour(),
+        );
+
+        $this->actingAs($user)->getJson("/games/import/status/{$importId}")
+            ->assertOk()
+            ->assertJsonPath('done', false);
+    }
+
+    public function test_import_status_returns_404_for_an_unknown_import_id(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->getJson('/games/import/status/does-not-exist')
+            ->assertNotFound();
+    }
+
+    public function test_import_status_is_not_visible_to_another_user(): void
+    {
+        $owner = User::factory()->create();
+        $csv = "Título\r\nCeleste\r\n";
+
+        $response = $this->actingAs($owner)->post('/games/import', ['file' => $this->csvFile($csv)]);
+        $importId = $response->getSession()->get('importId');
+
+        $this->actingAs(User::factory()->create())
+            ->getJson("/games/import/status/{$importId}")
+            ->assertNotFound();
+    }
+
+    public function test_import_status_requires_authentication(): void
+    {
+        $this->getJson('/games/import/status/some-id')->assertUnauthorized();
     }
 
     public function test_preview_reports_matched_and_unmatched_columns_with_sample_rows(): void

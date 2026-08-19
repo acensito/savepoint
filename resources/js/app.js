@@ -449,6 +449,90 @@ function initImportPreview() {
 
 initImportPreview();
 
+/**
+ * Sondea el resultado de una importación en curso (games/import.blade.php,
+ * ver GameImportController::store()/importStatus()): el CSV ya no se
+ * procesa dentro de la propia petición (ver Jobs\ImportGamesFromCsv), así
+ * que el resumen se pinta aquí en cuanto el job termina, en vez de venir ya
+ * listo en la respuesta del formulario.
+ */
+function initImportStatusPolling() {
+    const statusEl = document.getElementById('import-status');
+    if (!statusEl) return;
+
+    const statusUrl = statusEl.dataset.statusUrl;
+    const pendingEl = document.getElementById('import-status-pending');
+    const resultEl = document.getElementById('import-status-result');
+
+    function renderResult(data) {
+        pendingEl.classList.add('hidden');
+        resultEl.classList.remove('hidden');
+        resultEl.innerHTML = '';
+
+        const summary = document.createElement('div');
+        summary.className = 'flex items-center gap-2 text-emerald-400 font-semibold';
+        summary.innerHTML = '<span class="material-symbols-outlined align-middle text-[20px]">check_circle</span>';
+        summary.append(` ${data.imported} ${data.imported === 1 ? 'juego importado' : 'juegos importados'}.`);
+        resultEl.appendChild(summary);
+
+        if (data.createdPlatforms || data.createdEditions) {
+            const created = document.createElement('p');
+            created.className = 'text-sm text-slate-400 mt-2';
+            created.textContent = `Creadas sobre la marcha: ${data.createdPlatforms} `
+                + (data.createdPlatforms === 1 ? 'plataforma' : 'plataformas')
+                + ` y ${data.createdEditions} ` + (data.createdEditions === 1 ? 'edición' : 'ediciones') + '.';
+            resultEl.appendChild(created);
+        }
+
+        if (data.errors && data.errors.length) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'mt-4 pt-4 border-t border-slate-800';
+
+            const title = document.createElement('p');
+            title.className = 'text-sm font-medium text-amber-400 mb-2';
+            title.textContent = `${data.errors.length} ${data.errors.length === 1 ? 'fila' : 'filas'} con incidencias:`;
+            wrapper.appendChild(title);
+
+            const list = document.createElement('ul');
+            list.className = 'text-sm text-slate-400 space-y-1 list-disc list-inside max-h-48 overflow-y-auto';
+            data.errors.forEach((message) => {
+                const li = document.createElement('li');
+                li.textContent = message;
+                list.appendChild(li);
+            });
+            wrapper.appendChild(list);
+
+            resultEl.appendChild(wrapper);
+        }
+    }
+
+    async function poll() {
+        try {
+            const response = await fetch(statusUrl, { headers: { 'Accept': 'application/json' } });
+
+            if (!response.ok) {
+                pendingEl.textContent = 'No se ha podido consultar el estado de la importación.';
+                return;
+            }
+
+            const data = await response.json();
+
+            if (!data.done) {
+                setTimeout(poll, 1500);
+                return;
+            }
+
+            renderResult(data);
+        } catch (e) {
+            pendingEl.textContent = 'No se ha podido consultar el estado de la importación.';
+        }
+    }
+
+    poll();
+}
+
+initImportStatusPolling();
+
 const MOBILE_DRAWER_CLASS = 'mobile-drawer-open';
 
 function initMobileDrawer() {

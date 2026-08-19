@@ -119,6 +119,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/games/import', [GameImportController::class, 'store'])->name('web.games.import.store');
     Route::post('/games/import/preview', [GameImportController::class, 'preview'])->name('web.games.import.preview');
     Route::get('/games/import/template', [GameImportController::class, 'template'])->name('web.games.import.template');
+    Route::get('/games/import/status/{importId}', [GameImportController::class, 'importStatus'])->name('web.games.import.status');
 
     // Papelera: juegos borrados (soft delete) del usuario, con opción de
     // restaurar o eliminar definitivamente.

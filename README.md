@@ -131,7 +131,8 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 - **Importación masiva** desde un CSV: solo el título es obligatorio, cada fila se procesa de forma independiente (una
   fila con error no bloquea al resto) y las plataformas/ediciones que el CSV mencione y no existan todavía en el
   catálogo se crean automáticamente. Antes de importar se muestra una vista previa de lo que se va a crear, con una
-  plantilla de ejemplo descargable.
+  plantilla de ejemplo descargable. El CSV se procesa en segundo plano (worker de cola), así que ficheros grandes no
+  bloquean el formulario: en cuanto se sube, la página pasa a sondear el resultado y lo muestra en cuanto termina.
 - **Buscar carátula y EAN en CEX** (webuy.com) desde el propio formulario de alta o edición: busca por EAN o título en
   su catálogo, muestra los resultados con carátula/EAN/plataforma para elegir con confianza, y rellena ambos campos al
   elegir uno. En el alta busca por lo que ya se haya tecleado en EAN/título antes de pulsar el botón (el juego todavía
@@ -463,8 +464,6 @@ Cobertura actual:
 
 Sin implementar todavía, por orden aproximado de impacto:
 
-- **Importación CSV fila a fila, síncrona**, sin chunking ni progreso — relevante justo porque la carga de la colección
-  real (1000+ juegos) sigue pendiente.
 - **`GameController` con 999 líneas y 23 métodos**: CRUD, IGDB, CEX, papelera y acciones en bloque mezclados. Separar al
   menos lo de IGDB a su propio controlador/servicio.
 - **Validación divergente entre API y web**: `StoreGameRequest` (API) acepta `rating` 1-10 y `status`/`play_status` como

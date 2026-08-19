@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @php
-    $result = session('importResult');
+    $importId = session('importId');
 @endphp
 
 @section('content')
@@ -16,32 +16,20 @@
             </a>
         </div>
 
-        @if($result)
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 mb-6">
-                <div class="flex items-center gap-2 text-emerald-400 font-semibold">
-                    <x-gicon name="check_circle" class="text-[20px]" />
-                    {{ $result['imported'] }} {{ \Illuminate\Support\Str::plural('juego', $result['imported']) }} {{ \Illuminate\Support\Str::plural('importado', $result['imported']) }}.
+        @if($importId)
+            <!-- La importación se procesa en segundo plano (ver
+                 Jobs\ImportGamesFromCsv, GameImportController::store()): este
+                 bloque sondea /games/import/status/{id} (ver
+                 initImportStatusPolling en app.js) hasta que termina, y
+                 entonces pinta el mismo resumen que antes llegaba ya listo en
+                 la propia redirección. -->
+            <div id="import-status" class="bg-slate-900 border border-slate-800 rounded-xl p-6 mb-6"
+                data-status-url="{{ route('web.games.import.status', $importId) }}">
+                <div id="import-status-pending" class="flex items-center gap-2 text-slate-300">
+                    <x-gicon name="progress_activity" class="text-[20px] animate-spin" />
+                    Importando tu colección… puede tardar un poco con ficheros grandes.
                 </div>
-
-                @if($result['createdPlatforms'] || $result['createdEditions'])
-                    <p class="text-sm text-slate-400 mt-2">
-                        Creadas sobre la marcha: {{ $result['createdPlatforms'] }} {{ \Illuminate\Support\Str::plural('plataforma', $result['createdPlatforms']) }}
-                        y {{ $result['createdEditions'] }} {{ \Illuminate\Support\Str::plural('edición', $result['createdEditions']) }}.
-                    </p>
-                @endif
-
-                @if(count($result['errors']))
-                    <div class="mt-4 pt-4 border-t border-slate-800">
-                        <p class="text-sm font-medium text-amber-400 mb-2">
-                            {{ count($result['errors']) }} {{ \Illuminate\Support\Str::plural('fila', count($result['errors'])) }} con incidencias:
-                        </p>
-                        <ul class="text-sm text-slate-400 space-y-1 list-disc list-inside max-h-48 overflow-y-auto">
-                            @foreach($result['errors'] as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
+                <div id="import-status-result" class="hidden"></div>
             </div>
         @endif
 

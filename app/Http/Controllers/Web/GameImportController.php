@@ -3,46 +3,23 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
-use App\Models\Edition;
-use App\Models\Game;
-use App\Models\Platform;
+use App\Jobs\ImportGamesFromCsv;
+use App\Services\GameImport\GameCsvImporter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Carbon;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class GameImportController extends Controller
 {
-    private const STATUS_MAP = [
-        'en coleccion' => 'owned',
-        'owned' => 'owned',
-        'lista de deseos' => 'wishlist',
-        'wishlist' => 'wishlist',
-        'vendido' => 'sold',
-        'sold' => 'sold',
-    ];
-
-    private const PLAY_STATUS_MAP = [
-        'pendiente' => 'pending',
-        'pending' => 'pending',
-        'jugando' => 'playing',
-        'playing' => 'playing',
-        'terminado' => 'finished',
-        'finished' => 'finished',
-    ];
-
-    private const MANUAL_MAP = [
-        'con manual' => 'included',
-        'included' => 'included',
-        'sin manual' => 'missing',
-        'missing' => 'missing',
-        'folleto' => 'booklet',
-        'booklet' => 'booklet',
-    ];
+    public function __construct(
+        private readonly GameCsvImporter $importer,
+    ) {
+    }
 
     /**
      * Formulario de importación.
@@ -98,7 +75,7 @@ class GameImportController extends Controller
             'file' => ['required', 'file', 'mimes:csv,txt', 'max:5120'],
         ]);
 
-        $parsed = $this->openImportFile($request->file('file'));
+        $parsed = $this->importer->openFile($request->file('file')->getRealPath());
 
         if (isset($parsed['error'])) {
             return response()->json(['error' => $parsed['error']], 422);
@@ -144,9 +121,13 @@ class GameImportController extends Controller
     }
 
     /**
-     * Procesa el CSV subido: cada fila se guarda de forma independiente (si
-     * una falla, no bloquea al resto) y las plataformas/ediciones que no
-     * existan todavía en el catálogo se crean sobre la marcha.
+     * Valida y guarda el CSV subido, y despacha su procesamiento al worker
+     * de cola (ver Jobs\ImportGamesFromCsv) en vez de recorrer las filas
+     * aquí mismo: con la colección real (1000+ juegos) que sigue pendiente
+     * de cargar, hacerlo dentro de la petición arriesgaba el timeout de
+     * PHP-FPM/nginx. Se valida ya aquí (no solo dentro del job) para poder
+     * devolver el error de "sin columna Título" en el propio formulario,
+     * igual que antes.
      */
     public function store(Request $request): RedirectResponse
     {
@@ -154,248 +135,51 @@ class GameImportController extends Controller
             'file' => ['required', 'file', 'mimes:csv,txt', 'max:5120'],
         ]);
 
-        $parsed = $this->openImportFile($request->file('file'));
+        $parsed = $this->importer->openFile($request->file('file')->getRealPath());
 
         if (isset($parsed['error'])) {
             return back()->withErrors(['file' => $parsed['error']]);
         }
 
-        ['handle' => $handle, 'delimiter' => $delimiter, 'columns' => $columns] = $parsed;
+        fclose($parsed['handle']);
 
-        $imported = 0;
-        $createdPlatforms = 0;
-        $createdEditions = 0;
-        $errors = [];
-        $rowNumber = 1;
+        // El directorio de subidas temporal de PHP no sobrevive a la
+        // petición, así que el job (que se procesa después de que esta
+        // respuesta ya se haya devuelto) necesita su propia copia persistida.
+        $path = $request->file('file')->store('imports');
 
-        while (($row = fgetcsv($handle, 0, $delimiter)) !== false) {
-            $rowNumber++;
+        $importId = (string) Str::uuid();
+        Cache::put(self::cacheKey($importId), ['user_id' => $request->user()->id, 'done' => false], now()->addHour());
 
-            // Ignora líneas totalmente vacías (frecuentes al final de un export de Excel).
-            if (count($row) === 1 && trim((string) $row[0]) === '') {
-                continue;
-            }
+        ImportGamesFromCsv::dispatch($request->user()->id, $path, $importId);
 
-            $get = fn (string $key): ?string => isset($columns[$key], $row[$columns[$key]])
-                ? trim((string) $row[$columns[$key]])
-                : null;
-
-            $title = $get('titulo');
-
-            if (blank($title)) {
-                $errors[] = "Fila {$rowNumber}: sin título, se ha omitido.";
-                continue;
-            }
-
-            try {
-                $platformId = null;
-                if (filled($get('plataforma'))) {
-                    [$platformId, $wasCreated] = $this->resolvePlatform($get('plataforma'));
-                    $createdPlatforms += $wasCreated ? 1 : 0;
-                }
-
-                $editionId = null;
-                if (filled($get('edicion'))) {
-                    [$editionId, $wasCreated] = $this->resolveEdition($get('edicion'));
-                    $createdEditions += $wasCreated ? 1 : 0;
-                }
-
-                Game::create([
-                    'user_id' => $request->user()->id,
-                    'title' => $title,
-                    'ean' => $get('ean') ?: null,
-                    'developer' => $get('desarrollador') ?: null,
-                    'platform_id' => $platformId,
-                    'edition_id' => $editionId,
-                    'release_date' => $this->parseDate($get('fecha lanzamiento')),
-                    'genres' => $this->parseGenres($get('generos')),
-                    'status' => $this->mapValue($get('propiedad'), self::STATUS_MAP, 'owned'),
-                    'play_status' => $this->mapValue($get('estado de juego'), self::PLAY_STATUS_MAP, 'pending'),
-                    'rating' => $this->parseRating($get('conservacion')),
-                    'price_paid' => $this->parseDecimal($get('precio pagado')),
-                    'purchase_place' => $get('lugar de compra') ?: null,
-                    'purchase_date' => $this->parseDate($get('fecha de compra')),
-                    'manual_status' => $this->mapValue($get('manual'), self::MANUAL_MAP, null),
-                    'region' => $get('region') ?: null,
-                    'age_rating' => $get('clasificacion por edad') ?: null,
-                    'notes' => $get('notas') ?: null,
-                ]);
-
-                $imported++;
-            } catch (\Throwable $e) {
-                $errors[] = "Fila {$rowNumber} («{$title}»): no se ha podido importar ({$e->getMessage()}).";
-            }
-        }
-
-        fclose($handle);
-
-        return redirect()->route('web.games.import')->with('importResult', [
-            'imported' => $imported,
-            'createdPlatforms' => $createdPlatforms,
-            'createdEditions' => $createdEditions,
-            'errors' => $errors,
-        ]);
+        return redirect()->route('web.games.import')->with('importId', $importId);
     }
 
     /**
-     * Busca una plataforma por nombre (sin distinguir mayúsculas) o la crea
-     * si no existe todavía. Devuelve [id, se_ha_creado].
+     * Sondeado por el formulario de importación (ver import.blade.php)
+     * mientras Jobs\ImportGamesFromCsv procesa el CSV despachado en store():
+     * {done: false} todavía en curso, {done: true, imported, ...} con el
+     * mismo resumen que antes se devolvía ya listo en la propia redirección.
      */
-    private function resolvePlatform(string $name): array
+    public function importStatus(Request $request, string $importId): JsonResponse
     {
-        $platform = Platform::whereRaw('LOWER(name) = ?', [Str::lower($name)])->first();
+        $status = Cache::get(self::cacheKey($importId));
 
-        if ($platform) {
-            return [$platform->id, false];
+        if ($status === null || $status['user_id'] !== $request->user()->id) {
+            return response()->json(['message' => 'Importación no encontrada.'], 404);
         }
 
-        $platform = Platform::create([
-            'name' => $name,
-            'slug' => $this->uniqueSlug(Platform::class, $name),
-        ]);
-
-        return [$platform->id, true];
+        return response()->json(Arr::except($status, ['user_id']));
     }
 
     /**
-     * Igual que resolvePlatform() pero para ediciones (sin fabricante ni colores que asignar).
+     * Compartida con Jobs\ImportGamesFromCsv, que escribe aquí el resultado
+     * final una vez procesa el CSV.
      */
-    private function resolveEdition(string $name): array
+    public static function cacheKey(string $importId): string
     {
-        $edition = Edition::whereRaw('LOWER(name) = ?', [Str::lower($name)])->first();
-
-        if ($edition) {
-            return [$edition->id, false];
-        }
-
-        $edition = Edition::create(['name' => $name]);
-
-        return [$edition->id, true];
-    }
-
-    private function uniqueSlug(string $modelClass, string $name): string
-    {
-        $base = Str::slug($name);
-        $slug = $base;
-        $i = 1;
-
-        while ($modelClass::where('slug', $slug)->exists()) {
-            $slug = $base . '-' . $i++;
-        }
-
-        return $slug;
-    }
-
-    /**
-     * Abre el CSV, detecta separador y cabeceras (compartido entre store() y
-     * preview() para no duplicar la detección de BOM/delimiter/columnas).
-     * Devuelve ['handle' => resource, 'delimiter' => string, 'columns' => array]
-     * o ['error' => string] si el fichero no se puede leer/está vacío/no
-     * tiene columna "Título". El caller es responsable de cerrar el handle.
-     */
-    private function openImportFile(UploadedFile $file): array
-    {
-        $handle = fopen($file->getRealPath(), 'r');
-
-        if ($handle === false) {
-            return ['error' => 'No se ha podido leer el fichero.'];
-        }
-
-        $headerLine = fgets($handle);
-
-        if ($headerLine === false) {
-            fclose($handle);
-
-            return ['error' => 'El fichero está vacío.'];
-        }
-
-        // Excel exporta CSV en UTF-8 con BOM; si no se quita, la primera cabecera
-        // ("Título") no coincide con ninguna columna esperada.
-        $headerLine = preg_replace('/^\xEF\xBB\xBF/', '', $headerLine);
-
-        // Excel en español suele exportar CSV con ';' en vez de ',' como separador.
-        $delimiter = substr_count($headerLine, ';') > substr_count($headerLine, ',') ? ';' : ',';
-
-        $header = array_map($this->normalizeHeader(...), str_getcsv($headerLine, $delimiter));
-        $columns = array_flip($header);
-
-        if (! isset($columns['titulo'])) {
-            fclose($handle);
-
-            return ['error' => 'El CSV debe tener una columna "Título".'];
-        }
-
-        return ['handle' => $handle, 'delimiter' => $delimiter, 'columns' => $columns];
-    }
-
-    private function normalizeHeader(string $value): string
-    {
-        $value = Str::lower(trim($value));
-        $value = Str::ascii($value); // quita acentos: 'título' -> 'titulo'
-
-        return $value;
-    }
-
-    private function mapValue(?string $value, array $map, ?string $default): ?string
-    {
-        if (blank($value)) {
-            return $default;
-        }
-
-        return $map[Str::lower(trim($value))] ?? $default;
-    }
-
-    private function parseGenres(?string $raw): ?array
-    {
-        if (blank($raw)) {
-            return null;
-        }
-
-        return array_values(array_filter(array_map('trim', explode(',', $raw))));
-    }
-
-    private function parseDate(?string $raw): ?string
-    {
-        if (blank($raw)) {
-            return null;
-        }
-
-        foreach (['Y-m-d', 'd/m/Y', 'd-m-Y'] as $format) {
-            try {
-                return Carbon::createFromFormat($format, $raw)->format('Y-m-d');
-            } catch (\Throwable) {
-                continue;
-            }
-        }
-
-        try {
-            return Carbon::parse($raw)->format('Y-m-d');
-        } catch (\Throwable) {
-            return null;
-        }
-    }
-
-    private function parseRating(?string $raw): ?int
-    {
-        if (blank($raw) || ! is_numeric($raw)) {
-            return null;
-        }
-
-        $rating = (int) round((float) $raw);
-
-        return ($rating >= 1 && $rating <= 5) ? $rating : null;
-    }
-
-    private function parseDecimal(?string $raw): ?float
-    {
-        if (blank($raw)) {
-            return null;
-        }
-
-        // Admite tanto "19.99" como "19,99" (formato español).
-        $normalized = str_replace(',', '.', $raw);
-
-        return is_numeric($normalized) ? (float) $normalized : null;
+        return "game-import:{$importId}";
     }
 
     private function csvEscape(string $value): string
