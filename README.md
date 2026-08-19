@@ -460,6 +460,7 @@ Cobertura actual:
 - Sin HTTPS en el despliegue actual: bloquea el escaneo de código de barras desde el móvil fuera de `localhost` (ver [Desplegar para uso propio](#desplegar-para-uso-propio)).
 - **Sin segundo factor en el login**: la app está expuesta a internet, así que un password filtrado/reusado en otro sitio (credential stuffing) es un vector real, no solo teórico. De momento se sigue solo con login por contraseña.
 - **Alta pública de usuario, con 2FA por email**: hoy no hay `/register` (cuentas solo desde gestión de usuarios o el seeder inicial, ver Autenticación). Al implementarlo, el 2FA iría por email a través de un proveedor externo configurado en `.env` (candidato: Mailtrap), no con el canal `log` que usa hoy la recuperación de contraseña en desarrollo.
+- **Documentar la API REST**: hoy la única "documentación" es leer `routes/api.php`/los controladores. Por endpoint (`/api/login`, `/api/logout`, `/api/user`, `/api/games` CRUD): qué recibe (cada campo del payload con su tipo y si es obligatorio/opcional — ver `StoreGameRequest`/`UpdateGameRequest` para las reglas ya validadas) y qué devuelve (forma del JSON de `GameResource`, paginación de `index()`, códigos de estado de error). Formato ligero (un `docs/api.md` a mano), no una herramienta tipo L5-Swagger/Scribe — de sobra para dos controladores.
 
 ### Mejoras técnicas identificadas (auditoría 2026-08-17)
 
