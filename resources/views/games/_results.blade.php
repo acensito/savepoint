@@ -28,8 +28,7 @@
                          a veces necesita un primer toque solo para el estado :active/:hover y
                          un segundo para disparar el click, así que la mayor parte visual de la
                          tarjeta respondía mal al primer tap. Los enlaces reales no tienen ese
-                         problema. La valoración se queda fuera de cualquier <a> a propósito:
-                         cada estrella tiene su propio click (quick-rating). -->
+                         problema. -->
                     <a href="{{ route('web.games.show', $game->id) }}" class="relative flex-shrink-0">
                         <x-game-cover :game="$game" size="lg" class="!w-16 !rounded-xl !text-xl shadow-sm shadow-black/20" />
                         @if($game->play_status === 'finished')
@@ -45,10 +44,11 @@
                             <x-platform-chip :platform="$game->platform" class="!px-2 !py-0.5 !text-[10px] flex-shrink-0" />
                         </a>
 
+                        <!-- Conservación de solo lectura aquí (se cambia desde la ficha de
+                             edición completa, en móvil o web): un toque accidental al
+                             hacer scroll en la tarjeta no debe poder cambiar la valoración. -->
                         <div class="mt-1.5 flex items-center gap-2">
-                            <div class="js-quick-rating" data-game-id="{{ $game->id }}" data-rating="{{ $game->rating }}">
-                                <x-star-rating :rating="$game->rating" size="text-[11px]" />
-                            </div>
+                            <x-star-rating :rating="$game->rating" size="text-[11px]" />
                             @if($game->edition && $game->edition->format !== \App\Models\Edition::FORMAT_PHYSICAL)
                                 <x-gicon :name="$game->edition->formatIcon()" :title="$game->edition->formatLabel()" class="text-[12px] text-sky-400" />
                             @endif

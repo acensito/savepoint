@@ -120,8 +120,10 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
   en IGDB para elegir uno (o ninguno) como cabecera de la ficha del juego. Con el ajuste "Fondo automático desde IGDB"
   (ver Panel de control) activado, el primer arte disponible se fija solo al dar de alta el juego; desactivado (por
   defecto), sigue siendo siempre una elección explícita.
-- **Edición rápida** de la conservación directamente desde la tarjeta o la estantería (clic en una estrella), sin abrir
-  el formulario completo.
+- **Edición rápida** de la conservación directamente desde la estantería (clic en una estrella) en cualquier tamaño de
+  pantalla, sin abrir el formulario completo. En la tarjeta del listado (vista móvil) y en la tabla (escritorio) la
+  conservación es de solo lectura a propósito: solo se cambia desde la ficha de edición, para evitar tocarla sin
+  querer al hacer scroll.
 - Edición de un juego existente, incluida la opción de reemplazar o quitar la carátula.
 - Al dar de alta o editar un juego con un EAN que ya tienes registrado, se avisa antes de guardar en vez de duplicarlo
   sin más (con opción de "guardar de todos modos" para el caso legítimo de tener dos copias físicas).
@@ -458,7 +460,8 @@ Cobertura actual:
 
 - Sin backups automatizados de Postgres (ni `pg_dump` programado ni snapshot del volumen).
 - Sin HTTPS en el despliegue actual: bloquea el escaneo de código de barras desde el móvil fuera de `localhost` (ver [Desplegar para uso propio](#desplegar-para-uso-propio)).
-- **Sin segundo factor en el login**: la app está expuesta a internet, así que un password filtrado/reusado en otro sitio (credential stuffing) es un vector real, no solo teórico. Valorado (2FA por email, tarjeta de códigos de coordenadas, TOTP) y descartado por ahora; de momento se sigue solo con login por contraseña.
+- **Sin segundo factor en el login**: la app está expuesta a internet, así que un password filtrado/reusado en otro sitio (credential stuffing) es un vector real, no solo teórico. De momento se sigue solo con login por contraseña.
+- **Alta pública de usuario, con 2FA por email**: hoy no hay `/register` (cuentas solo desde gestión de usuarios o el seeder inicial, ver Autenticación). Al implementarlo, el 2FA iría por email a través de un proveedor externo configurado en `.env` (candidato: Mailtrap), no con el canal `log` que usa hoy la recuperación de contraseña en desarrollo.
 
 ### Mejoras técnicas identificadas (auditoría 2026-08-17)
 
