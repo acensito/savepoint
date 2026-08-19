@@ -907,15 +907,19 @@ class GameControllerTest extends TestCase
         Http::assertNothingSent();
     }
 
-    public function test_user_can_quick_update_the_rating_of_their_own_game(): void
+    public function test_quick_update_no_longer_accepts_rating(): void
     {
+        // La conservación se editaba al vuelo tocando una estrella en el
+        // listado (tarjetas/estantería), pero se quitó (ver CHANGELOG) para
+        // no arriesgar cambios sin querer al hacer scroll — ahora solo se
+        // cambia desde la ficha de edición completa, nunca desde aquí.
         $user = User::factory()->create();
         $game = Game::factory()->for($user)->create(['rating' => 2]);
 
-        $response = $this->actingAs($user)->patchJson("/games/{$game->id}/quick-update", ['rating' => 5]);
+        $this->actingAs($user)->patchJson("/games/{$game->id}/quick-update", ['rating' => 5])
+            ->assertStatus(422);
 
-        $response->assertOk()->assertJson(['rating' => 5]);
-        $this->assertSame(5, $game->fresh()->rating);
+        $this->assertSame(2, $game->fresh()->rating);
     }
 
     public function test_user_can_quick_update_the_play_status_of_their_own_game(): void
@@ -969,12 +973,12 @@ class GameControllerTest extends TestCase
     public function test_user_cannot_quick_update_another_users_game(): void
     {
         $owner = User::factory()->create();
-        $game = Game::factory()->for($owner)->create(['rating' => 2]);
+        $game = Game::factory()->for($owner)->create(['play_status' => 'pending']);
 
-        $this->actingAs(User::factory()->create())->patchJson("/games/{$game->id}/quick-update", ['rating' => 5])
+        $this->actingAs(User::factory()->create())->patchJson("/games/{$game->id}/quick-update", ['play_status' => 'finished'])
             ->assertForbidden();
 
-        $this->assertSame(2, $game->fresh()->rating);
+        $this->assertSame('pending', $game->fresh()->play_status);
     }
 
     public function test_user_cannot_view_the_edit_form_of_another_users_game(): void

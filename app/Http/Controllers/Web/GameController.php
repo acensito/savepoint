@@ -404,16 +404,19 @@ class GameController extends Controller
     }
 
     /**
-     * Edición rápida de valoración y/o estado de juego desde la propia fila
-     * del listado (tabla, tarjetas o estantería), sin pasar por el
+     * Edición rápida de estado de juego y/o "en venta" sin pasar por el
      * formulario completo. Se valida y actualiza solo el campo que llega.
+     *
+     * La conservación (rating) ya no se acepta aquí: se editaba al vuelo
+     * tocando una estrella en el listado (tarjetas/estantería), pero eso se
+     * quitó (ver CHANGELOG) para no arriesgar cambios sin querer al hacer
+     * scroll — ahora solo se cambia desde la ficha de edición completa.
      */
     public function quickUpdate(Request $request, Game $game)
     {
         Gate::authorize('update', $game);
 
         $validated = $request->validate([
-            'rating' => ['sometimes', 'nullable', 'integer', 'min:'.Game::RATING_MIN, 'max:'.Game::RATING_MAX],
             'play_status' => ['sometimes', 'required', 'string', Rule::in(Game::PLAY_STATUSES)],
             'for_sale' => 'sometimes|boolean',
         ]);
@@ -434,7 +437,6 @@ class GameController extends Controller
         }
 
         return response()->json([
-            'rating' => $game->rating,
             'play_status' => $game->play_status,
             'for_sale' => $game->for_sale,
         ]);
