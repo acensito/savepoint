@@ -93,9 +93,9 @@ initThemeToggle();
  * estén en el documento.
  *
  * Usa delegación de eventos sobre #games-results (no listeners atados a
- * cada casilla) a propósito: ese contenedor se reemplaza entero tras cada
- * edición rápida (ver refreshGamesResults/initQuickEdit más abajo), y con
- * delegación no hace falta volver a enganchar nada tras cada refresco.
+ * cada casilla) a propósito: ese contenedor se reemplaza entero cada vez
+ * que refreshGamesResults() lo refresca por AJAX, y con delegación no hace
+ * falta volver a enganchar nada tras cada refresco.
  */
 function initBulkActions() {
     const results = document.getElementById('games-results');
@@ -267,9 +267,8 @@ initAdvancedFiltersToggle();
 /**
  * Refresca #games-results por AJAX con la URL dada (filtros/orden/página
  * incluidos en la query string) y vuelve a sincronizar lo que dependa de su
- * contenido. Lo usa la edición rápida (tras guardar, para que la
- * fila/tarjeta muestre el valor ya actualizado sin tener que reimplementar
- * en JS el mismo HTML que ya genera Blade).
+ * contenido, sin tener que reimplementar en JS el mismo HTML que ya genera
+ * Blade (ver GameController::index(), rama $request->ajax()).
  */
 async function refreshGamesResults(url) {
     const results = document.getElementById('games-results');
@@ -299,59 +298,6 @@ async function refreshGamesResults(url) {
         // acción (o recargar la página) ya lo pondrá al día.
     }
 }
-
-/**
- * Edición rápida de valoración de juego desde la propia fila/tarjeta
- * (tabla, tarjetas o estantería), sin abrir el formulario completo.
- * Delegado sobre #games-results por el mismo motivo que las acciones en
- * bloque: sobrevive a los refrescos de refreshGamesResults sin tener que
- * volver a engancharse.
- */
-function initQuickEdit() {
-    const results = document.getElementById('games-results');
-    if (!results) return;
-
-    const quickUpdate = async (gameId, payload) => {
-        const token = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
-
-        try {
-            const response = await fetch(`/games/${gameId}/quick-update`, {
-                method: 'PATCH',
-                credentials: 'same-origin',
-                headers: {
-                    'X-CSRF-TOKEN': token,
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                },
-                body: JSON.stringify(payload),
-            });
-
-            if (response.ok) {
-                // Se recarga el resultado por AJAX en vez de tocar el DOM a mano:
-                // así la fila/tarjeta queda exactamente como la pintaría Blade,
-                // sin arriesgarse a que el HTML generado en JS se desincronice
-                // del real con el tiempo.
-                refreshGamesResults(window.location.href);
-            }
-        } catch (e) {
-            // Sin conexión o similar: el valor en pantalla no cambia, se puede reintentar.
-        }
-    };
-
-    results.addEventListener('click', (e) => {
-        const star = e.target.closest('.material-symbols-outlined');
-        const ratingWrapper = e.target.closest('.js-quick-rating');
-        if (star && ratingWrapper) {
-            const starsRoot = ratingWrapper.querySelector(':scope > div');
-            const index = starsRoot ? Array.from(starsRoot.children).indexOf(star) + 1 : 0;
-            if (index >= 1) {
-                quickUpdate(ratingWrapper.dataset.gameId, { rating: index });
-            }
-        }
-    });
-}
-
-initQuickEdit();
 
 /**
  * Tarjetas de la colección en móvil (games/_results.blade.php): tocar

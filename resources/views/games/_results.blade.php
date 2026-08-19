@@ -222,9 +222,7 @@
                     </a>
                     <div class="mt-1 flex items-center justify-between gap-2">
                         <x-platform-chip :platform="$game->platform" class="!px-2 !py-0.5 !text-[10px]" />
-                        <div class="js-quick-rating" data-game-id="{{ $game->id }}" data-rating="{{ $game->rating }}">
-                            <x-star-rating :rating="$game->rating" size="text-[11px]" />
-                        </div>
+                        <x-star-rating :rating="$game->rating" size="text-[11px]" />
                     </div>
                 </div>
             </div>

@@ -120,10 +120,8 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
   en IGDB para elegir uno (o ninguno) como cabecera de la ficha del juego. Con el ajuste "Fondo automático desde IGDB"
   (ver Panel de control) activado, el primer arte disponible se fija solo al dar de alta el juego; desactivado (por
   defecto), sigue siendo siempre una elección explícita.
-- **Edición rápida** de la conservación directamente desde la estantería (clic en una estrella) en cualquier tamaño de
-  pantalla, sin abrir el formulario completo. En la tarjeta del listado (vista móvil) y en la tabla (escritorio) la
-  conservación es de solo lectura a propósito: solo se cambia desde la ficha de edición, para evitar tocarla sin
-  querer al hacer scroll.
+- La conservación se muestra como estrellas de solo lectura en cualquier vista del listado (tarjetas, tabla,
+  estantería): se cambia siempre desde la ficha de edición del juego, nunca tocando directamente sobre el listado.
 - Edición de un juego existente, incluida la opción de reemplazar o quitar la carátula.
 - Al dar de alta o editar un juego con un EAN que ya tienes registrado, se avisa antes de guardar en vez de duplicarlo
   sin más (con opción de "guardar de todos modos" para el caso legítimo de tener dos copias físicas).
