@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Throwable;
 
 class GameController extends Controller
@@ -411,8 +412,8 @@ class GameController extends Controller
         Gate::authorize('update', $game);
 
         $validated = $request->validate([
-            'rating' => 'sometimes|nullable|integer|min:1|max:5',
-            'play_status' => 'sometimes|required|string|in:pending,playing,finished',
+            'rating' => ['sometimes', 'nullable', 'integer', 'min:' . Game::RATING_MIN, 'max:' . Game::RATING_MAX],
+            'play_status' => ['sometimes', 'required', 'string', Rule::in(Game::PLAY_STATUSES)],
             'for_sale' => 'sometimes|boolean',
         ]);
 
@@ -636,7 +637,7 @@ class GameController extends Controller
     public function bulkUpdatePlayStatus(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'play_status' => 'required|string|in:pending,playing,finished',
+            'play_status' => ['required', 'string', Rule::in(Game::PLAY_STATUSES)],
         ]);
 
         $ids = $this->ownedSelectedIds($request);
@@ -757,16 +758,16 @@ class GameController extends Controller
             'genres'         => 'nullable|string|max:500',
             // 'sold' no es un valor asignable aquí: requiere precio/fecha de
             // venta, se marca desde GameController::markAsSold().
-            'status'         => 'nullable|string|in:owned,wishlist',
+            'status'         => ['nullable', 'string', Rule::in(Game::STATUSES)],
             'wishlist_priority' => 'nullable|integer|min:1|max:3',
             'wishlist_estimated_price' => 'nullable|numeric|min:0',
             'wishlist_store' => 'nullable|string|max:255',
-            'play_status'    => 'required|string|in:pending,playing,finished',
-            'rating'         => 'nullable|integer|min:1|max:5',
+            'play_status'    => ['required', 'string', Rule::in(Game::PLAY_STATUSES)],
+            'rating'         => ['nullable', 'integer', 'min:' . Game::RATING_MIN, 'max:' . Game::RATING_MAX],
             'price_paid'     => 'nullable|numeric|min:0',
             'purchase_place' => 'nullable|string|max:255',
             'purchase_date'  => 'nullable|date',
-            'manual_status'  => 'nullable|string|in:included,missing,booklet',
+            'manual_status'  => ['nullable', 'string', Rule::in(Game::MANUAL_STATUSES)],
             'region_select'  => 'nullable|string|max:20',
             'region_other'   => 'required_if:region_select,other|nullable|string|max:50',
             'age_rating'     => 'nullable|string|max:20',

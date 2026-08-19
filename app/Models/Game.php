@@ -74,6 +74,30 @@ class Game extends Model
     }
 
     // ==========================================
+    // VALORES VÁLIDOS
+    // ==========================================
+    // Única fuente de verdad para las reglas de validación de web
+    // (GameController::validated()/quickUpdate()/bulkUpdatePlayStatus()) y
+    // API (StoreGameRequest/UpdateGameRequest) — antes cada sitio repetía su
+    // propia lista/rango a mano, y habían llegado a desincronizarse (rating
+    // 1-10 en la API, 1-5 en la web; status/play_status como string libre en
+    // la API, enums cerrados en la web).
+
+    /**
+     * 'sold' no está aquí a propósito: es un estado derivado (borrado blando
+     * + precio/fecha de venta), nunca asignable directamente por el usuario
+     * — se marca solo desde GameController::markAsSold().
+     */
+    public const STATUSES = ['owned', 'wishlist'];
+
+    public const PLAY_STATUSES = ['pending', 'playing', 'finished'];
+
+    public const MANUAL_STATUSES = ['included', 'missing', 'booklet'];
+
+    public const RATING_MIN = 1;
+    public const RATING_MAX = 5;
+
+    // ==========================================
     // BÚSQUEDA
     // ==========================================
 

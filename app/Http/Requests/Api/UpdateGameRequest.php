@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Api;
 
+use App\Models\Game;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateGameRequest extends FormRequest
 {
@@ -16,11 +18,13 @@ class UpdateGameRequest extends FormRequest
         return [
             'title' => ['sometimes', 'required', 'string', 'max:255'],
             'platform_id' => ['sometimes', 'required', 'exists:platforms,id'],
-            'status' => ['nullable', 'string', 'max:50'],
-            'play_status' => ['nullable', 'string', 'max:50'],
+            // Ver StoreGameRequest: mismo rango/enums que el formulario web,
+            // vía las constantes de Game.
+            'status' => ['nullable', 'string', Rule::in(Game::STATUSES)],
+            'play_status' => ['nullable', 'string', Rule::in(Game::PLAY_STATUSES)],
             'release_date' => ['nullable', 'date'],
             'genres' => ['nullable', 'array'],
-            'rating' => ['nullable', 'integer', 'min:1', 'max:10'],
+            'rating' => ['nullable', 'integer', 'min:' . Game::RATING_MIN, 'max:' . Game::RATING_MAX],
             'price_paid' => ['nullable', 'numeric', 'min:0'],
         ];
     }

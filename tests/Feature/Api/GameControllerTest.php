@@ -175,6 +175,81 @@ class GameControllerTest extends TestCase
             ->assertJsonValidationErrors(['title', 'platform_id']);
     }
 
+    public function test_creating_a_game_rejects_a_rating_outside_the_webs_1_to_5_range(): void
+    {
+        // Regresión: la API aceptaba rating 1-10 mientras el formulario web
+        // lo restringe a 1-5 (ver Game::RATING_MIN/MAX) — un alta por API
+        // fuera de ese rango rendía raro en la web.
+        Sanctum::actingAs(User::factory()->create());
+        $platform = Platform::factory()->create();
+
+        $this->postJson('/api/games', [
+            'title' => 'Celeste',
+            'platform_id' => $platform->id,
+            'rating' => 8,
+        ])->assertStatus(422)->assertJsonValidationErrors('rating');
+    }
+
+    public function test_creating_a_game_rejects_a_status_outside_the_webs_closed_enum(): void
+    {
+        // Regresión: la API aceptaba cualquier string para status (ver
+        // Game::STATUSES) — incluido 'sold', que ni el propio formulario web
+        // permite asignar directamente (solo vía GameController::markAsSold()).
+        Sanctum::actingAs(User::factory()->create());
+        $platform = Platform::factory()->create();
+
+        $this->postJson('/api/games', [
+            'title' => 'Celeste',
+            'platform_id' => $platform->id,
+            'status' => 'sold',
+        ])->assertStatus(422)->assertJsonValidationErrors('status');
+    }
+
+    public function test_creating_a_game_rejects_a_play_status_outside_the_webs_closed_enum(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        $platform = Platform::factory()->create();
+
+        $this->postJson('/api/games', [
+            'title' => 'Celeste',
+            'platform_id' => $platform->id,
+            'play_status' => 'not-a-status',
+        ])->assertStatus(422)->assertJsonValidationErrors('play_status');
+    }
+
+    public function test_creating_a_game_accepts_status_play_status_and_rating_within_the_webs_ranges(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        $platform = Platform::factory()->create();
+
+        $this->postJson('/api/games', [
+            'title' => 'Celeste',
+            'platform_id' => $platform->id,
+            'status' => 'wishlist',
+            'play_status' => 'playing',
+            'rating' => 5,
+        ])->assertCreated();
+
+        $this->assertDatabaseHas('games', [
+            'title' => 'Celeste',
+            'status' => 'wishlist',
+            'play_status' => 'playing',
+            'rating' => 5,
+        ]);
+    }
+
+    public function test_updating_a_game_rejects_a_rating_outside_the_webs_1_to_5_range(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create();
+
+        Sanctum::actingAs($user);
+
+        $this->putJson("/api/games/{$game->id}", ['rating' => 10])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('rating');
+    }
+
     public function test_user_can_update_their_own_game(): void
     {
         $user = User::factory()->create();

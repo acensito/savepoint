@@ -464,9 +464,6 @@ Cobertura actual:
 
 Sin implementar todavía, por orden aproximado de impacto:
 
-- **Validación divergente entre API y web**: `StoreGameRequest` (API) acepta `rating` 1-10 y `status`/`play_status` como
-  string libre; el formulario web los restringe a 1-5 y a enums cerrados. Un alta por API fuera de esos rangos rendería
-  raro en la web.
 - Sin PHPStan/Larastan configurado.
 - CSP (`docker/nginx.conf`) con `'unsafe-inline' 'unsafe-eval'` en `script-src`: tantearía un nonce por petición para
   los `<script>` inline del layout, y probar si el escáner de códigos de barras (`@zxing/library`) realmente necesita
