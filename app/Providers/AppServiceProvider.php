@@ -42,15 +42,12 @@ class AppServiceProvider extends ServiceProvider
         // el único consumidor vive tras el middleware 'auth') o con IGDB
         // desactivado, se instancia sin credenciales: IgdbLookupService ya
         // sabe no hacer ninguna petición en ese caso.
-        $this->app->bind(IgdbLookupService::class, function () {
-            $user = auth()->user();
-            $enabled = $user?->igdb_enabled ?? false;
-
-            return new IgdbLookupService(
-                clientId: $enabled ? (string) $user->igdb_client_id : '',
-                clientSecret: $enabled ? (string) $user->igdb_client_secret : '',
-            );
-        });
+        //
+        // Solo válido para resolución ligada a la petición HTTP actual
+        // (auth()->user()): el worker de cola no tiene sesión, así que
+        // Jobs\MatchGameWithIgdb no pasa por este bind — construye su propio
+        // IgdbLookupService::forUser() con el dueño del juego.
+        $this->app->bind(IgdbLookupService::class, fn () => IgdbLookupService::forUser(auth()->user()));
     }
 
     /**

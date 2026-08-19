@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\MatchGameWithIgdb;
 use App\Models\Edition;
 use App\Models\Game;
 use App\Models\Platform;
 use App\Services\GameLookup\GameLookupInterface;
 use App\Services\GameLookup\IgdbGameMatch;
+use App\Services\GameLookup\IgdbGameMatcher;
 use App\Services\GameLookup\IgdbLookupService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -25,6 +27,7 @@ class GameController extends Controller
     public function __construct(
         private readonly GameLookupInterface $gameLookup,
         private readonly IgdbLookupService $igdbLookup,
+        private readonly IgdbGameMatcher $igdbMatcher,
     ) {
     }
 
@@ -349,8 +352,8 @@ class GameController extends Controller
     /**
      * Ficha de solo lectura de un juego: toda la información del modelo sin
      * abrir el formulario de edición, para "solo mirar" un juego concreto.
-     * De paso, si todavía no se ha intentado enlazar con IGDB, lo intenta
-     * (ver applyIgdbMatch()): es la única vía de entrada al enriquecimiento
+     * De paso, si todavía no se ha intentado enlazar con IGDB, lo dispara
+     * (ver MatchGameWithIgdb): es la única vía de entrada al enriquecimiento
      * automático, no hace falta ninguna acción del usuario.
      */
     public function show(Game $game)
@@ -359,7 +362,15 @@ class GameController extends Controller
 
         $game->load(['platform.manufacturer', 'edition']);
 
-        $this->matchIgdbIfNeeded($game);
+        // Antes se emparejaba con IGDB aquí mismo, en línea: una llamada
+        // HTTP externa síncrona bloqueaba la primera carga de cada ficha. Se
+        // despacha al worker de cola (MatchGameWithIgdb) en vez de esperarla
+        // — la ficha se sirve ya, y el match se ve la siguiente vez que se
+        // visite (o al recargar). Se comprueba aquí, no dentro del job, para
+        // no encolar un job de sobra en cada visita a un juego ya emparejado.
+        if ($game->igdb_matched_at === null) {
+            MatchGameWithIgdb::dispatch($game->id);
+        }
 
         return view('games.show', compact('game'));
     }
@@ -472,59 +483,21 @@ class GameController extends Controller
     }
 
     /**
-     * Intenta el match automático con IGDB (developer/release_date/géneros/
-     * nota) una sola vez por juego, haya encontrado algo o no (igdb_matched_at
-     * ya no es null): evita repetir la búsqueda en cada visita a la ficha, y
-     * también evita repetirla en store() si el ajuste "Fondo automático" ya
-     * la disparó ahí (ver autoAssignIgdbBackground()).
-     */
-    private function matchIgdbIfNeeded(Game $game): void
-    {
-        if ($game->igdb_matched_at !== null) {
-            return;
-        }
-
-        // limit 10, no 1: search() reordena por título exacto/plataforma
-        // dentro de lo que devuelva IGDB (ver IgdbLookupService::search()),
-        // así que hace falta margen para que esa prioridad sirva de algo.
-        $match = $this->igdbLookup->search($game->title, $game->platform?->name, limit: 10)[0] ?? null;
-        $this->applyIgdbMatch($game, $match);
-    }
-
-    /**
-     * Aplica un resultado de IGDB (o su ausencia) a un juego recién cargado
-     * en show(): developer/release_date solo se rellenan si estaban vacíos
-     * (nunca pisan lo que ya haya escrito el usuario a mano); igdb_genres/
-     * igdb_rating/igdb_id se sobrescriben siempre porque son campos
-     * exclusivos de IGDB, sin equivalente manual que proteger. Se marca
-     * igdb_matched_at haya habido match o no, para no repetir la búsqueda
-     * automática en cada visita a la ficha.
-     */
-    private function applyIgdbMatch(Game $game, ?IgdbGameMatch $match): void
-    {
-        $game->fill([
-            'developer' => $game->developer ?: $match?->developer,
-            'release_date' => $game->release_date ?: $match?->releaseDate,
-            'igdb_id' => $match?->igdbId,
-            'igdb_genres' => $match?->genres,
-            'igdb_rating' => $match?->rating,
-            'igdb_matched_at' => now(),
-        ]);
-
-        $game->save();
-    }
-
-    /**
      * Ajuste "Fondo automático desde IGDB" (ver PanelController::settings):
      * si el juego recién dado de alta se identifica en IGDB y tiene arte
      * disponible, fija el primero como fondo, sin esperar a que el usuario
      * lo elija a mano. Nunca bloquea el alta si IGDB falla o no encuentra
      * nada — IgdbLookupService ya devuelve vacío/null en ese caso, nunca
      * lanza una excepción.
+     *
+     * Síncrono a propósito, a diferencia del match de show() (ver
+     * MatchGameWithIgdb): el alta ya es una petición POST del usuario, no
+     * bloquea la lectura de una ficha, y este flujo necesita el resultado en
+     * el momento (igdb_id) para poder pedir a continuación el arte.
      */
     private function autoAssignIgdbBackground(Game $game): void
     {
-        $this->matchIgdbIfNeeded($game);
+        $this->igdbMatcher->matchIfNeeded($game);
 
         if ($game->igdb_id === null) {
             return;

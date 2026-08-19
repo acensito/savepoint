@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Services\GameLookup;
 
+use App\Models\User;
 use App\Services\GameLookup\IgdbLookupService;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Carbon;
@@ -10,6 +11,41 @@ use Tests\TestCase;
 
 class IgdbLookupServiceTest extends TestCase
 {
+    // Sin RefreshDatabase/factory a propósito: forUser() solo lee atributos
+    // en memoria, sin tocar la base de datos (importa para
+    // Jobs\MatchGameWithIgdb, que la llama desde el worker de cola).
+    public function test_for_user_uses_the_given_users_own_credentials_when_igdb_is_enabled(): void
+    {
+        $user = new User([
+            'igdb_enabled' => true,
+            'igdb_client_id' => 'owner-client-id',
+            'igdb_client_secret' => 'owner-client-secret',
+        ]);
+
+        $this->fakeToken();
+        Http::fake(['api.igdb.com/v4/games' => Http::response([], 200)]);
+
+        IgdbLookupService::forUser($user)->search('Celeste');
+
+        Http::assertSent(fn ($request) => $request->hasHeader('Client-ID', 'owner-client-id'));
+    }
+
+    public function test_for_user_returns_an_unconfigured_service_when_igdb_is_disabled(): void
+    {
+        $user = new User([
+            'igdb_enabled' => false,
+            'igdb_client_id' => 'owner-client-id',
+            'igdb_client_secret' => 'owner-client-secret',
+        ]);
+
+        $this->assertFalse(IgdbLookupService::forUser($user)->isConfigured());
+    }
+
+    public function test_for_user_returns_an_unconfigured_service_without_a_user(): void
+    {
+        $this->assertFalse(IgdbLookupService::forUser(null)->isConfigured());
+    }
+
     private function makeService(string $clientId = 'test-client-id', string $clientSecret = 'test-client-secret'): IgdbLookupService
     {
         return new IgdbLookupService(clientId: $clientId, clientSecret: $clientSecret);

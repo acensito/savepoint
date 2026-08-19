@@ -111,7 +111,8 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
   edición.
 - **Enriquecimiento automático con IGDB**: la primera vez que se abre la ficha de un juego, se busca en IGDB por título
   (acotado por plataforma si hay match) y se completan desarrollador/fecha de lanzamiento si estaban vacíos, más géneros
-  (en inglés, aparte de los que se escriben a mano) y la nota agregada — sin ninguna acción del usuario. Un botón
+  (en inglés, aparte de los que se escriben a mano) y la nota agregada — sin ninguna acción del usuario, y en segundo
+  plano (worker de cola): la ficha se sirve sin esperar a IGDB, el resultado se ve al volver a abrirla. Un botón
   "Corregir coincidencia" permite buscar y elegir otro resultado a mano si el automático no es el correcto (remaster,
   plataforma equivocada...). Requiere credenciales de IGDB (ver `IGDB_CLIENT_ID`/`IGDB_CLIENT_SECRET` en
   `.env.example`); sin ellas, este enriquecimiento simplemente no ocurre.
@@ -462,9 +463,6 @@ Cobertura actual:
 
 Sin implementar todavía, por orden aproximado de impacto:
 
-- **El worker de cola está desplegado pero ocioso**: no hay ni un solo `Job`/`dispatch()` en toda la app. Encajaría bien
-  con mover a segundo plano el match automático de IGDB en `GameController::show()` (hoy bloquea la carga de la ficha
-  con una llamada HTTP externa síncrona) y/o la importación CSV.
 - **Importación CSV fila a fila, síncrona**, sin chunking ni progreso — relevante justo porque la carga de la colección
   real (1000+ juegos) sigue pendiente.
 - **`GameController` con 999 líneas y 23 métodos**: CRUD, IGDB, CEX, papelera y acciones en bloque mezclados. Separar al

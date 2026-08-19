@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Web;
 
+use App\Jobs\MatchGameWithIgdb;
 use App\Models\Edition;
 use App\Models\Game;
 use App\Models\Platform;
@@ -10,6 +11,7 @@ use App\Services\GameLookup\IgdbGameMatch;
 use App\Services\GameLookup\IgdbLookupService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -831,117 +833,43 @@ class GameControllerTest extends TestCase
         $response->assertForbidden();
     }
 
-    public function test_show_saves_the_igdb_match_the_first_time_the_game_is_viewed(): void
+    public function test_show_dispatches_the_igdb_match_job_when_the_game_has_not_been_matched_yet(): void
     {
-        $user = User::factory()->create();
-        $platform = Platform::factory()->create(['name' => 'Nintendo Switch']);
-        $game = Game::factory()->for($user)->create([
-            'title' => 'Celeste',
-            'platform_id' => $platform->id,
-            'developer' => null,
-            'release_date' => null,
-        ]);
+        Bus::fake();
 
-        $this->mock(IgdbLookupService::class, function ($mock) {
-            $mock->shouldReceive('search')
-                ->once()
-                ->with('Celeste', 'Nintendo Switch', 10)
-                ->andReturn([new IgdbGameMatch(
-                    igdbId: 305,
-                    title: 'Celeste',
-                    platforms: 'Nintendo Switch',
-                    developer: 'Maddy Makes Games',
-                    releaseDate: '2018-01-25',
-                    genres: ['Platform', 'Indie'],
-                    rating: 87.65,
-                )]);
-        });
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['igdb_matched_at' => null]);
 
         $this->actingAs($user)->get("/games/{$game->id}")->assertOk();
 
-        $fresh = $game->fresh();
-        $this->assertSame('Maddy Makes Games', $fresh->developer);
-        $this->assertSame('2018-01-25', $fresh->release_date->format('Y-m-d'));
-        $this->assertSame(305, $fresh->igdb_id);
-        $this->assertSame(['Platform', 'Indie'], $fresh->igdb_genres);
-        $this->assertSame('87.65', $fresh->igdb_rating);
-        $this->assertNotNull($fresh->igdb_matched_at);
+        // GameController::show() ya no espera a IGDB en línea (ver
+        // Jobs\MatchGameWithIgdb): la ficha se sirve de inmediato y el match
+        // se ve la próxima vez que se abra, una vez el worker de cola lo
+        // procese.
+        Bus::assertDispatched(MatchGameWithIgdb::class, fn (MatchGameWithIgdb $job) => $job->gameId === $game->id);
     }
 
-    public function test_show_does_not_search_igdb_again_once_already_matched(): void
+    public function test_show_does_not_dispatch_the_igdb_match_job_once_already_matched(): void
     {
+        Bus::fake();
+
         $user = User::factory()->create();
         $game = Game::factory()->for($user)->create(['igdb_matched_at' => now()]);
 
-        $this->mock(IgdbLookupService::class, function ($mock) {
-            $mock->shouldNotReceive('search');
-        });
-
-        $this->actingAs($user)->get("/games/{$game->id}")->assertOk();
-    }
-
-    public function test_show_marks_igdb_matched_even_when_there_is_no_result(): void
-    {
-        $user = User::factory()->create();
-        $game = Game::factory()->for($user)->create();
-
-        $this->mock(IgdbLookupService::class, function ($mock) {
-            $mock->shouldReceive('search')->once()->andReturn([]);
-        });
-
         $this->actingAs($user)->get("/games/{$game->id}")->assertOk();
 
-        $fresh = $game->fresh();
-        $this->assertNotNull($fresh->igdb_matched_at);
-        $this->assertNull($fresh->igdb_id);
+        Bus::assertNotDispatched(MatchGameWithIgdb::class);
     }
 
-    public function test_show_never_overwrites_an_existing_developer_or_release_date(): void
+    public function test_show_matches_with_igdb_using_the_games_owner_credentials(): void
     {
-        $user = User::factory()->create();
-        $game = Game::factory()->for($user)->create(['developer' => 'Mi desarrollador', 'release_date' => '2010-01-01']);
-
-        $this->mock(IgdbLookupService::class, function ($mock) {
-            $mock->shouldReceive('search')->once()->andReturn([new IgdbGameMatch(
-                igdbId: 1,
-                title: 'X',
-                platforms: null,
-                developer: 'Otro desarrollador',
-                releaseDate: '2020-05-05',
-                genres: null,
-                rating: null,
-            )]);
-        });
-
-        $this->actingAs($user)->get("/games/{$game->id}");
-
-        $fresh = $game->fresh();
-        $this->assertSame('Mi desarrollador', $fresh->developer);
-        $this->assertSame('2010-01-01', $fresh->release_date->format('Y-m-d'));
-        // igdb_id sí se guarda siempre, aunque developer/release_date no se toquen.
-        $this->assertSame(1, $fresh->igdb_id);
-    }
-
-    public function test_show_does_not_contact_igdb_when_the_user_has_not_enabled_it(): void
-    {
-        // Sin mockear IgdbLookupService: prueba el binding real de
-        // AppServiceProvider, no solo GameController. igdb_enabled=false es
-        // el valor por defecto de la factory (ver UserFactory), igual que
-        // antes lo era no tener IGDB_CLIENT_ID/SECRET en .env.
-        $user = User::factory()->create(['igdb_enabled' => false]);
-        $game = Game::factory()->for($user)->create();
-        Http::fake();
-
-        $this->actingAs($user)->get("/games/{$game->id}")->assertOk();
-
-        Http::assertNothingSent();
-    }
-
-    public function test_show_reaches_igdb_using_the_authenticated_users_own_credentials(): void
-    {
-        // Igual que el test anterior, sin mockear IgdbLookupService: prueba
-        // que el contenedor resuelve las credenciales de la cuenta logueada
-        // (users.igdb_client_id/igdb_client_secret), no una config global.
+        // El entorno de test fuerza QUEUE_CONNECTION=sync (ver phpunit.xml),
+        // así que el job se procesa en línea antes de que termine la
+        // petición: sirve para probar el flujo completo (ver también
+        // Tests\Feature\Jobs\MatchGameWithIgdbTest, que prueba el job
+        // aislado). Sin mockear IgdbLookupService: el job la construye a
+        // mano con IgdbLookupService::forUser(), no vía inyección de
+        // dependencias (ver Jobs\MatchGameWithIgdb).
         $user = User::factory()->create([
             'igdb_enabled' => true,
             'igdb_client_id' => 'user-client-id',
@@ -963,6 +891,20 @@ class GameControllerTest extends TestCase
         $this->assertSame('Maddy Makes Games', $game->fresh()->developer);
         Http::assertSent(fn ($request) => $request->url() === 'https://api.igdb.com/v4/games'
             && $request->hasHeader('Client-ID', 'user-client-id'));
+    }
+
+    public function test_show_does_not_contact_igdb_when_the_user_has_not_enabled_it(): void
+    {
+        // igdb_enabled=false es el valor por defecto de la factory (ver
+        // UserFactory), igual que antes lo era no tener IGDB_CLIENT_ID/
+        // SECRET en .env.
+        $user = User::factory()->create(['igdb_enabled' => false]);
+        $game = Game::factory()->for($user)->create();
+        Http::fake();
+
+        $this->actingAs($user)->get("/games/{$game->id}")->assertOk();
+
+        Http::assertNothingSent();
     }
 
     public function test_igdb_search_lists_candidates_from_the_query(): void

@@ -2,6 +2,7 @@
 
 namespace App\Services\GameLookup;
 
+use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -38,6 +39,24 @@ class IgdbLookupService
         private readonly string $clientId,
         private readonly string $clientSecret,
     ) {
+    }
+
+    /**
+     * Credenciales de una cuenta concreta (users.igdb_enabled/igdb_client_id/
+     * igdb_client_secret), sin credenciales si no las tiene activadas. Único
+     * sitio que sabe leer esos campos: usado tanto por el binding de
+     * AppServiceProvider (cuenta autenticada de la petición actual) como por
+     * Jobs\MatchGameWithIgdb (dueño del juego, sin petición HTTP ni sesión de
+     * por medio en el worker de cola).
+     */
+    public static function forUser(?User $user): self
+    {
+        $enabled = $user?->igdb_enabled ?? false;
+
+        return new self(
+            clientId: $enabled ? (string) $user->igdb_client_id : '',
+            clientSecret: $enabled ? (string) $user->igdb_client_secret : '',
+        );
     }
 
     public function isConfigured(): bool
