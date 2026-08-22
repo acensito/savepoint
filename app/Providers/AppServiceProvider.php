@@ -8,6 +8,9 @@ use App\Observers\GameObserver;
 use App\Services\GameLookup\CexGameLookupService;
 use App\Services\GameLookup\GameLookupInterface;
 use App\Services\GameLookup\IgdbLookupService;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -65,5 +68,9 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Game::observe(GameObserver::class);
+
+        RateLimiter::for('registration', function (Request $request) {
+            return Limit::perMinute(5)->by($request->ip());
+        });
     }
 }
