@@ -12,6 +12,7 @@ use App\Http\Controllers\Web\PanelController;
 use App\Http\Controllers\Web\PasswordResetController;
 use App\Http\Controllers\Web\PlatformController;
 use App\Http\Controllers\Web\ProfileController;
+use App\Http\Controllers\Web\RegisterController;
 use App\Http\Controllers\Web\SalesController;
 use App\Http\Controllers\Web\SearchController;
 use App\Http\Controllers\Web\StatsController;
@@ -30,6 +31,12 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('web.login.attempt');
+
+    // Registro público de nuevos usuarios
+    Route::get('/register', [RegisterController::class, 'showRegister'])->name('register');
+    Route::post('/register', [RegisterController::class, 'register'])
+        ->middleware('throttle:registration')
+        ->name('web.register.attempt');
 
     // Recuperación de contraseña: pedir enlace por email y consumirlo con un token de un solo uso.
     Route::get('/forgot-password', [PasswordResetController::class, 'showForgot'])->name('password.request');
