@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\AppSetting;
 use App\Models\User;
 use App\Notifications\TwoFactorCodeNotification;
 use Illuminate\Auth\Events\Registered;
@@ -14,10 +15,15 @@ use Illuminate\View\View;
 class RegisterController extends Controller
 {
     /**
-     * Muestra el formulario de registro de nuevo usuario.
+     * Muestra el formulario de registro de nuevo usuario, o manda a /login
+     * si un admin lo ha cerrado (ver panel/users, AppSetting).
      */
-    public function showRegister(): View
+    public function showRegister(): View|RedirectResponse
     {
+        if (! AppSetting::current()->registration_enabled) {
+            return $this->registrationClosedRedirect();
+        }
+
         return view('auth.register');
     }
 
@@ -26,9 +32,17 @@ class RegisterController extends Controller
      * desafío de 2FA: toda cuenta nueva lo lleva activo de fábrica (ver
      * TwoFactorController), sin elección en el propio formulario — se puede
      * desactivar después desde Ajustes, una vez la cuenta ya existe.
+     *
+     * Comprueba el ajuste otra vez aquí, no solo en showRegister(): un POST
+     * directo (sin pasar por el formulario) tiene que respetar el cierre
+     * igual, no solo el enlace/vista.
      */
     public function register(Request $request): RedirectResponse
     {
+        if (! AppSetting::current()->registration_enabled) {
+            return $this->registrationClosedRedirect();
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
@@ -51,5 +65,11 @@ class RegisterController extends Controller
         $user->notify(new TwoFactorCodeNotification($user->generateTwoFactorCode()));
 
         return redirect()->route('two-factor.challenge');
+    }
+
+    private function registrationClosedRedirect(): RedirectResponse
+    {
+        return redirect()->route('login')
+            ->with('error', 'El registro está cerrado. Contacta con un administrador para que te dé de alta.');
     }
 }

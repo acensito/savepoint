@@ -203,9 +203,10 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
   solo uso, expira a los 60 minutos, mismo mensaje de éxito exista o no el email para no revelar qué cuentas están
   registradas). El email se envía por el canal configurado en `MAIL_MAILER` (`log` por defecto en desarrollo, así que el
   enlace aparece en `storage/logs/laravel.log`).
-- **Registro público** (`/register`): nombre, email único y contraseña (mínimo 8 caracteres, con mayúscula, minúscula,
-  número y símbolo) con confirmación; la cuenta creada nunca es admin. Limitado a 5 intentos por minuto y por IP para
-  evitar abuso, aparte del límite que ya protege el login.
+- **Registro público** (`/register`, activable/desactivable por un admin — ver Gestión de usuarios): nombre, email único
+  y contraseña (mínimo 8 caracteres, con mayúscula, minúscula, número y símbolo) con confirmación; la cuenta creada
+  nunca es admin. Limitado a 5 intentos por minuto y por IP para evitar abuso, aparte del límite que ya protege el
+  login.
 - **2FA por email**: toda cuenta nueva lo lleva activo desde el momento del registro (sin elección en el formulario:
   tras crear la cuenta, antes de dar acceso, pide un código de 6 dígitos enviado por email, válido 10 minutos y de un
   solo uso) — se puede desactivar después desde Ajustes una vez dentro, mismo patrón por cuenta que las credenciales
@@ -219,6 +220,9 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
   que todavía tenga juegos (evita el borrado en cascada real de toda su colección a nivel de base de datos). No hay
   ningún admin por defecto "de fábrica": la migración que añadió el rol marcó como admin a todas las cuentas que ya
   existían en ese momento.
+  - **Abrir o cerrar el registro público** desde la misma página: un interruptor decide si `/register` está disponible
+    para cualquiera o si las cuentas solo se pueden crear desde aquí. Primer ajuste de instancia de la app (no de
+    cuenta): vive en su propia tabla (`app_settings`, una sola fila), separado de todo lo que cuelga de un usuario.
 
 ### API REST
 
@@ -414,13 +418,15 @@ Cobertura actual:
 
 - `Tests\Feature\Auth\WebAuthTest`: login/logout, credenciales inválidas, redirect a la página originalmente solicitada,
   protección de rutas para invitados, bloqueo por fuerza bruta (por email+IP y, rotando de IP en cada intento, por el
-  límite adicional solo por email).
+  límite adicional solo por email), y que el enlace "Regístrate" aparece o no según el registro público esté abierto o
+  cerrado.
 - `Tests\Feature\Auth\RegisterTest`: alta con datos válidos (evento `Registered`, contraseña hasheada, cuenta creada
   con 2FA activo y sin autenticar todavía), que completar el desafío de 2FA es lo que autentica de verdad y respeta la
   página originalmente solicitada, validación (nombre obligatorio, email válido y único, contraseña con mínimo 8
   caracteres y mayúscula/minúscula/número/símbolo, confirmación), que no se puede escalar a admin desde el formulario,
   invitado vs. usuario ya autenticado, límite de 5 registros/minuto por IP, que el 2FA se puede desactivar después
-  desde Ajustes, y el enlace desde el login.
+  desde Ajustes, el enlace desde el login, y que el formulario y el propio endpoint quedan bloqueados (con redirect a
+  `/login` y aviso) cuando un admin cierra el registro público.
 - `Tests\Feature\Auth\TwoFactorTest`: login con 2FA desactivado sin cambios, login con 2FA activo redirige al desafío
   en vez de autenticar, código correcto/incorrecto/caducado, límites de verificación y reenvío, que reenviar invalida
   el código anterior, "recordar dispositivo" crea la cookie/fila y un login posterior con ella se salta el desafío
@@ -465,7 +471,8 @@ Cobertura actual:
 - `Tests\Feature\Web\UserControllerTest`: invitados y usuarios no-admin bloqueados (redirect/403) en todas las rutas de
   gestión de usuarios, listado con nº de juegos por cuenta, alta con contraseña hasheada, validación (email único,
   contraseña mínima y confirmada), edición de nombre/email/rol, cambio de contraseña opcional (en blanco no la toca),
-  que un admin no puede quitarse el rol ni borrarse a sí mismo, y que no se puede borrar una cuenta con juegos.
+  que un admin no puede quitarse el rol ni borrarse a sí mismo, que no se puede borrar una cuenta con juegos, que el
+  registro público está abierto por defecto, y que un admin puede cerrarlo/reabrirlo.
 - `Tests\Feature\Web\StatsControllerTest`: los totales y repartos (por plataforma, estado de juego, propiedad, gasto por
   mes, top de géneros, destacados y ventas por año) solo consideran los juegos del usuario autenticado.
 - `Tests\Feature\Web\SalesControllerTest`: histórico de ventas agrupado por año con sus totales/rendimiento, scoping por

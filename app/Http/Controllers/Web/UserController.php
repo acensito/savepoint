@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\AppSetting;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,8 +24,26 @@ class UserController extends Controller
         Gate::authorize('viewAny', User::class);
 
         $users = User::withCount('games')->orderBy('name')->get();
+        $appSetting = AppSetting::current();
 
-        return view('panel.users.index', compact('users'));
+        return view('panel.users.index', compact('users', 'appSetting'));
+    }
+
+    /**
+     * Activa/desactiva el registro público (/register). Reutiliza la misma
+     * autorización que el resto de esta página ('viewAny' de UserPolicy,
+     * "es admin"): un solo ajuste de instancia no justifica todavía una
+     * policy propia aparte.
+     */
+    public function updateRegistration(Request $request): RedirectResponse
+    {
+        Gate::authorize('viewAny', User::class);
+
+        AppSetting::current()->update([
+            'registration_enabled' => $request->boolean('registration_enabled'),
+        ]);
+
+        return redirect()->route('web.panel.users.index')->with('success', 'Ajuste de registro actualizado.');
     }
 
     public function create(): View

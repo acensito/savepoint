@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Concerns\ThrottlesLogins;
 use App\Http\Controllers\Controller;
+use App\Models\AppSetting;
 use App\Models\TwoFactorTrustedDevice;
 use App\Models\User;
 use App\Notifications\TwoFactorCodeNotification;
@@ -18,11 +19,12 @@ class AuthController extends Controller
     use ThrottlesLogins;
 
     /**
-     * Muestra el formulario de acceso.
+     * Muestra el formulario de acceso. Pasa si el registro público está
+     * abierto para que la vista decida si enseña el enlace "Regístrate".
      */
     public function showLogin(): View
     {
-        return view('auth.login');
+        return view('auth.login', ['registrationEnabled' => AppSetting::current()->registration_enabled]);
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\AppSetting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -16,6 +17,24 @@ class WebAuthTest extends TestCase
         $response = $this->get('/login');
 
         $response->assertOk();
+    }
+
+    public function test_login_shows_the_register_link_when_registration_is_open(): void
+    {
+        $response = $this->get('/login');
+
+        $response->assertSee(route('register'));
+        $response->assertSee('Regístrate');
+    }
+
+    public function test_login_hides_the_register_link_when_an_admin_has_closed_registration(): void
+    {
+        AppSetting::current()->update(['registration_enabled' => false]);
+
+        $response = $this->get('/login');
+
+        $response->assertDontSee(route('register'));
+        $response->assertDontSee('Regístrate');
     }
 
     public function test_user_can_login_with_correct_credentials(): void

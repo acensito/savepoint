@@ -17,6 +17,29 @@
         </div>
     </div>
 
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 mb-6">
+        <h2 class="text-base font-semibold text-slate-100 mb-1">Registro público</h2>
+        <p class="text-sm text-slate-500 mb-4">
+            Con esto activado, cualquiera puede crear su propia cuenta desde <code>/register</code>. Desactivado, solo
+            se pueden dar de alta cuentas nuevas desde aquí.
+        </p>
+
+        <form action="{{ route('web.panel.registration.update') }}" method="POST" class="flex items-center gap-4">
+            @csrf
+            @method('PATCH')
+
+            <label class="flex items-center gap-2 text-sm text-slate-300">
+                <input type="checkbox" name="registration_enabled" value="1" {{ $appSetting->registration_enabled ? 'checked' : '' }}
+                    class="rounded border-slate-600 bg-slate-800 text-indigo-600 focus:ring-indigo-500">
+                Permitir que cualquiera se registre libremente
+            </label>
+
+            <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-500 transition-colors">
+                Guardar
+            </button>
+        </form>
+    </div>
+
     <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-800">
             <thead class="bg-slate-800/50">

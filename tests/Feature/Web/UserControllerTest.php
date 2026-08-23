@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Web;
 
+use App\Models\AppSetting;
 use App\Models\Game;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -22,6 +23,7 @@ class UserControllerTest extends TestCase
         $this->get("/panel/users/{$other->id}/edit")->assertRedirect('/login');
         $this->put("/panel/users/{$other->id}")->assertRedirect('/login');
         $this->delete("/panel/users/{$other->id}")->assertRedirect('/login');
+        $this->patch('/panel/registration', ['registration_enabled' => '0'])->assertRedirect('/login');
     }
 
     public function test_a_non_admin_is_forbidden_from_every_users_route(): void
@@ -35,6 +37,7 @@ class UserControllerTest extends TestCase
         $this->actingAs($user)->get("/panel/users/{$other->id}/edit")->assertForbidden();
         $this->actingAs($user)->put("/panel/users/{$other->id}", [])->assertForbidden();
         $this->actingAs($user)->delete("/panel/users/{$other->id}")->assertForbidden();
+        $this->actingAs($user)->patch('/panel/registration', ['registration_enabled' => '0'])->assertForbidden();
     }
 
     public function test_admin_can_list_all_users_with_their_game_count(): void
@@ -174,5 +177,31 @@ class UserControllerTest extends TestCase
 
         $response->assertForbidden();
         $this->assertDatabaseHas('users', ['id' => $admin->id]);
+    }
+
+    public function test_registration_is_open_by_default(): void
+    {
+        $this->assertTrue(AppSetting::current()->registration_enabled);
+    }
+
+    public function test_admin_can_close_public_registration(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $response = $this->actingAs($admin)->patch('/panel/registration', []);
+
+        $response->assertRedirect(route('web.panel.users.index'));
+        $this->assertFalse(AppSetting::current()->fresh()->registration_enabled);
+    }
+
+    public function test_admin_can_reopen_public_registration(): void
+    {
+        $admin = User::factory()->admin()->create();
+        AppSetting::current()->update(['registration_enabled' => false]);
+
+        $response = $this->actingAs($admin)->patch('/panel/registration', ['registration_enabled' => '1']);
+
+        $response->assertRedirect(route('web.panel.users.index'));
+        $this->assertTrue(AppSetting::current()->fresh()->registration_enabled);
     }
 }

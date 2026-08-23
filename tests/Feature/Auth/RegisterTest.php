@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\AppSetting;
 use App\Models\User;
 use App\Notifications\TwoFactorCodeNotification;
 use Illuminate\Auth\Events\Registered;
@@ -37,6 +38,38 @@ class RegisterTest extends TestCase
         $response = $this->actingAs($user)->get(route('register'));
 
         $response->assertRedirect('/');
+    }
+
+    /**
+     * Requirement: an admin can close public registration (AppSetting)
+     */
+    public function test_registration_form_is_unreachable_when_closed_by_an_admin(): void
+    {
+        AppSetting::current()->update(['registration_enabled' => false]);
+
+        $response = $this->get(route('register'));
+
+        $response->assertRedirect(route('login'));
+        $response->assertSessionHas('error');
+    }
+
+    /**
+     * Requirement: closing registration also blocks a direct POST, not just the form
+     */
+    public function test_registration_is_blocked_when_closed_even_via_a_direct_post(): void
+    {
+        AppSetting::current()->update(['registration_enabled' => false]);
+
+        $response = $this->post(route('web.register.attempt'), [
+            'name' => 'Colado',
+            'email' => 'colado@example.com',
+            'password' => 'Secret123!',
+            'password_confirmation' => 'Secret123!',
+        ]);
+
+        $response->assertRedirect(route('login'));
+        $this->assertGuest();
+        $this->assertDatabaseMissing('users', ['email' => 'colado@example.com']);
     }
 
     /**

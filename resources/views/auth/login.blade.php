@@ -44,6 +44,12 @@
             <h1 class="text-lg font-bold text-slate-100 mb-1">Acceder</h1>
             <p class="text-slate-400 text-sm mb-6">Entra con tu cuenta para ver tu colección.</p>
 
+            @if (session('error'))
+                <div class="mb-4 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2">
+                    {{ session('error') }}
+                </div>
+            @endif
+
             @error('email')
                 <div class="mb-4 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2">
                     {{ $message }}
@@ -81,12 +87,14 @@
                 </button>
             </form>
 
-            <p class="mt-6 text-center text-sm text-slate-400">
-                ¿No tienes cuenta?
-                <a href="{{ route('register') }}" class="text-indigo-400 hover:text-indigo-300 transition-colors">
-                    Regístrate
-                </a>
-            </p>
+            @if($registrationEnabled)
+                <p class="mt-6 text-center text-sm text-slate-400">
+                    ¿No tienes cuenta?
+                    <a href="{{ route('register') }}" class="text-indigo-400 hover:text-indigo-300 transition-colors">
+                        Regístrate
+                    </a>
+                </p>
+            @endif
         </div>
     </div>
 
