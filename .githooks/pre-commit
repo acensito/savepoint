@@ -4,7 +4,11 @@ set -euo pipefail
 # 1. Buscar archivos PHP que están en el stage (listos para el commit), como
 #    array para que un nombre de fichero con espacio no se rompa por
 #    word-splitting al pasarlo a pint/git add.
-mapfile -t STAGED_FILES < <(git diff --cached --name-only --diff-filter=ACM -- '*.php')
+#    Sin mapfile: es un builtin de bash 4+ y el bash de serie de macOS es 3.2.
+STAGED_FILES=()
+while IFS= read -r staged_file; do
+    STAGED_FILES+=("$staged_file")
+done < <(git diff --cached --name-only --diff-filter=ACM -- '*.php')
 
 # Si no hay archivos PHP en este commit, salimos y dejamos que continúe
 if [ ${#STAGED_FILES[@]} -eq 0 ]; then
