@@ -385,6 +385,31 @@ class GameControllerTest extends TestCase
         $this->assertCount(1, $response->viewData('games'));
     }
 
+    /**
+     * Regresión: games/print-collection.blade.php es una vista independiente
+     * a propósito, sin `layouts.app` (ver comentario en el propio fichero).
+     * `viewData('games')` no lo habría pillado nunca: el bug real estaba en
+     * el HTML compilado, no en los datos pasados a la vista — el comentario
+     * CSS que explicaba "no usa @extends(...)" contenía el texto literal de
+     * la directiva sin escapar, y Blade la compilaba igual aunque solo
+     * apareciera mencionada dentro de un comentario, pegando el layout
+     * completo de la app (sidebar, header, diálogos) al final del HTML como
+     * una "página" extra sin ningún juego al exportar a PDF.
+     */
+    public function test_print_view_is_self_contained_without_the_app_layout(): void
+    {
+        $user = User::factory()->create();
+        Game::factory()->for($user)->create(['title' => 'Chrono Trigger']);
+
+        $response = $this->actingAs($user)->get('/games/print');
+
+        $response->assertOk();
+        $response->assertSee('Chrono Trigger');
+        $response->assertDontSee('id="sidebar"', false);
+        $response->assertDontSee('quick-search-dialog', false);
+        $this->assertSame(1, substr_count(strtolower($response->getContent()), '<!doctype html'));
+    }
+
     public function test_export_returns_a_csv_with_the_same_headers_the_importer_expects(): void
     {
         $user = User::factory()->create();

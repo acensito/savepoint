@@ -6,8 +6,14 @@
     <style>
         /*
          * Vista independiente del layout de la app (games/print-collection.blade.php):
-         * a propósito no usa @extends('layouts.app') ni las clases slate-* de
-         * Tailwind. El layout de la app fija la altura al viewport y mete el
+         * a propósito no usa @@extends('layouts.app') ni las clases slate-* de
+         * Tailwind. El @@ de arriba va escapado a propósito: Blade compila esa
+         * directiva aunque aparezca solo mencionada en un comentario CSS como
+         * este, no solo cuando se usa de verdad — sin escapar, acababa
+         * renderizando el layout completo de la app pegado al final del
+         * fichero, como una "página" extra con la interfaz y ningún juego al
+         * imprimir/exportar a PDF. El layout de la app fija la altura al
+         * viewport y mete el
          * contenido en un contenedor con scroll interno (pensado para una SPA
          * en pantalla), así que al imprimir solo saldría lo que cupiera en una
          * pantalla, no la colección entera. Aquí es HTML/CSS plano en flujo
