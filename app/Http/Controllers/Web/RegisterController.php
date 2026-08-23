@@ -11,6 +11,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
+use Throwable;
 
 class RegisterController extends Controller
 {
@@ -57,12 +58,27 @@ class RegisterController extends Controller
             'two_factor_enabled' => true,
         ]);
 
+        // Si el email no llega a salir (SMTP caído, credenciales mal puestas...),
+        // la cuenta recién creada quedaría huérfana: activa el 2FA pero sin
+        // ningún código nunca enviado, así que jamás se podría completar el
+        // login. Se borra y se avisa en vez de dejarla a medias — el usuario
+        // puede simplemente volver a intentar el registro cuando se arregle.
+        try {
+            $user->notify(new TwoFactorCodeNotification($user->generateTwoFactorCode()));
+        } catch (Throwable $e) {
+            report($e);
+            $user->delete();
+
+            return back()->withInput($request->except('password', 'password_confirmation'))->with(
+                'error',
+                'Error. Por favor, inténtalo más tarde y, si el problema persiste, comunícaselo al administrador.'
+            );
+        }
+
         event(new Registered($user));
 
         $request->session()->put('two_factor.user_id', $user->id);
         $request->session()->put('two_factor.remember', false);
-
-        $user->notify(new TwoFactorCodeNotification($user->generateTwoFactorCode()));
 
         return redirect()->route('two-factor.challenge');
     }

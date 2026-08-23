@@ -6,10 +6,12 @@ use App\Models\AppSetting;
 use App\Models\User;
 use App\Notifications\TwoFactorCodeNotification;
 use Illuminate\Auth\Events\Registered;
+use Illuminate\Contracts\Notifications\Dispatcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
+use RuntimeException;
 use Tests\TestCase;
 
 class RegisterTest extends TestCase
@@ -100,6 +102,30 @@ class RegisterTest extends TestCase
 
         $user = User::where('email', 'player1@example.com')->firstOrFail();
         Notification::assertSentTo($user, TwoFactorCodeNotification::class);
+    }
+
+    /**
+     * Requirement: a failed 2FA email (SMTP down, bad credentials...) rolls
+     * back the registration instead of leaving an orphaned account that can
+     * never receive a code (regresión de un 500 real en producción).
+     */
+    public function test_registration_rolls_back_the_account_when_the_two_factor_email_fails_to_send(): void
+    {
+        $this->mock(Dispatcher::class, function ($mock) {
+            $mock->shouldReceive('send')->andThrow(new RuntimeException('SMTP down'));
+        });
+
+        $response = $this->post(route('web.register.attempt'), [
+            'name' => 'Player Fails',
+            'email' => 'playerfails@example.com',
+            'password' => 'Secret123!',
+            'password_confirmation' => 'Secret123!',
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
+        $this->assertGuest();
+        $this->assertDatabaseMissing('users', ['email' => 'playerfails@example.com']);
     }
 
     /**

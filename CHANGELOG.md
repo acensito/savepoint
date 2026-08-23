@@ -5,6 +5,11 @@ sección al final de `README.md`; se separó a este fichero para que el README
 pueda ser un documento de presentación del proyecto en vez de una lista que
 crece sin parar.
 
+## 2026-08-23 (5)
+- **Fix: un fallo al enviar el código de 2FA tumbaba el registro/login entero con un 500**, detectado en un despliegue real contra Mailtrap con credenciales SMTP inválidas (`535 Authentication failed`). `RegisterController::register()`/`AuthController::login()`/`TwoFactorController::resend()` llamaban a `$user->notify(...)` sin capturar el error: la excepción del transporte de correo subía sin manejar y el usuario veía la página de error genérica de Laravel, sin ninguna pista de qué había pasado. Peor aún en el registro: `User::create()` ya había guardado la cuenta *antes* de intentar el envío, así que quedaba huérfana — 2FA activo, un código generado pero nunca entregado, sin ninguna forma de completarlo (y el email ya no servía para volver a registrarse, por el `unique`).
+  - Los tres puntos capturan ahora el fallo (`report()` para que quede en el log) y responden con un aviso claro: "Error. Por favor, inténtalo más tarde y, si el problema persiste, comunícaselo al administrador." En el registro, además, se borra la cuenta a medias en vez de dejarla huérfana — el usuario puede simplemente reintentarlo en cuanto se arregle el envío. En el login, tampoco se deja `two_factor.user_id` en sesión si el envío falla, así que `/login/verify` no ofrece un desafío para un código que nunca salió.
+  - Tests de regresión para los tres casos, simulando el fallo con un mock de `Illuminate\Contracts\Notifications\Dispatcher` (no depende de tener un mailer real fallando en el entorno de test).
+
 ## 2026-08-23 (4)
 - **`GameController` (887 líneas) dividido en cinco piezas más pequeñas**, cerrando el pendiente anotado en la auditoría de agosto ("`GameController` demasiado grande") con el mismo criterio que ya sacó `IgdbController` de aquí: acciones propias de un concepto, no CRUD del juego en sí. Puramente mecánico, sin cambio de comportamiento — ninguna URL, nombre de ruta, mensaje flash ni regla de autorización cambia.
   - `App\Services\Games\GameCollectionQuery` (nuevo): los antiguos métodos privados `filteredGamesQuery()`/`resolveSort()`, ahora reutilizables por dos controladores en vez de solo uno.

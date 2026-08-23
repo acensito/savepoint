@@ -5,10 +5,12 @@ namespace Tests\Feature\Auth;
 use App\Models\TwoFactorTrustedDevice;
 use App\Models\User;
 use App\Notifications\TwoFactorCodeNotification;
+use Illuminate\Contracts\Notifications\Dispatcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Testing\TestResponse;
+use RuntimeException;
 use Tests\TestCase;
 
 class TwoFactorTest extends TestCase
@@ -59,6 +61,31 @@ class TwoFactorTest extends TestCase
         $this->assertGuest();
 
         Notification::assertSentTo($user, TwoFactorCodeNotification::class);
+    }
+
+    /**
+     * Regresión de un 500 real en producción: un fallo de envío (SMTP
+     * caído, credenciales mal puestas...) no debe tumbar el login con un
+     * error sin manejar ni mandar a una pantalla de código que nunca va a
+     * llegar — se avisa y se vuelve a /login, sin dejar sesión pendiente.
+     */
+    public function test_login_shows_a_generic_error_when_the_two_factor_email_fails_to_send(): void
+    {
+        $this->mock(Dispatcher::class, function ($mock) {
+            $mock->shouldReceive('send')->andThrow(new RuntimeException('SMTP down'));
+        });
+
+        $user = User::factory()->twoFactorEnabled()->create(['password' => Hash::make('password')]);
+
+        $response = $this->login($user);
+
+        $response->assertRedirect(route('login'));
+        $response->assertSessionHas('error');
+        $this->assertGuest();
+
+        // Sin two_factor.user_id en sesión: /login/verify no debe dar acceso
+        // a un desafío para el que nunca se mandó ningún código.
+        $this->get(route('two-factor.challenge'))->assertRedirect(route('login'));
     }
 
     public function test_challenge_redirects_to_login_without_a_pending_session(): void
@@ -161,6 +188,19 @@ class TwoFactorTest extends TestCase
         $response = $this->withPendingChallenge($user)->post(route('two-factor.resend'));
 
         $response->assertStatus(429);
+    }
+
+    public function test_resend_shows_a_generic_error_when_the_email_fails_to_send(): void
+    {
+        $this->mock(Dispatcher::class, function ($mock) {
+            $mock->shouldReceive('send')->andThrow(new RuntimeException('SMTP down'));
+        });
+
+        $user = User::factory()->twoFactorEnabled()->create();
+
+        $response = $this->withPendingChallenge($user)->post(route('two-factor.resend'));
+
+        $response->assertSessionHas('error');
     }
 
     public function test_trusting_the_device_creates_a_trusted_device_and_a_cookie(): void

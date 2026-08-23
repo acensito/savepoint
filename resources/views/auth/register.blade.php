@@ -43,6 +43,12 @@
             <h1 class="text-lg font-bold text-slate-100 mb-1">Crear cuenta</h1>
             <p class="text-slate-400 text-sm mb-6">Regístrate para empezar a organizar tu colección.</p>
 
+            @if (session('error'))
+                <div class="mb-4 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2">
+                    {{ session('error') }}
+                </div>
+            @endif
+
             @if ($errors->any())
                 <div class="mb-4 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2 space-y-1">
                     @foreach ($errors->all() as $error)

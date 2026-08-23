@@ -51,6 +51,12 @@
                 </div>
             @endif
 
+            @if (session('error'))
+                <div class="mb-4 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2">
+                    {{ session('error') }}
+                </div>
+            @endif
+
             @error('code')
                 <div class="mb-4 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2">
                     {{ $message }}

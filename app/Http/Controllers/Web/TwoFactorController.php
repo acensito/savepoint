@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Throwable;
 
 /**
  * Desafío de 2FA compartido entre AuthController::login() y
@@ -95,7 +96,16 @@ class TwoFactorController extends Controller
             return redirect()->route('login');
         }
 
-        $user->notify(new TwoFactorCodeNotification($user->generateTwoFactorCode()));
+        try {
+            $user->notify(new TwoFactorCodeNotification($user->generateTwoFactorCode()));
+        } catch (Throwable $e) {
+            report($e);
+
+            return back()->with(
+                'error',
+                'Error. Por favor, inténtalo más tarde y, si el problema persiste, comunícaselo al administrador.'
+            );
+        }
 
         return back()->with('success', 'Te hemos enviado un código nuevo.');
     }

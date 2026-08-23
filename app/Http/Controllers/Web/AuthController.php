@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Throwable;
 
 class AuthController extends Controller
 {
@@ -69,10 +70,23 @@ class AuthController extends Controller
             return redirect()->intended(route('web.games.index'));
         }
 
+        // Si el email no llega a salir (SMTP caído, credenciales mal
+        // puestas...), no se manda a la pantalla del código: ahí se quedaría
+        // esperando uno que nunca llegó, sin ninguna forma de recuperarse
+        // salvo "Reenviar código" fallando exactamente igual.
+        try {
+            $user->notify(new TwoFactorCodeNotification($user->generateTwoFactorCode()));
+        } catch (Throwable $e) {
+            report($e);
+
+            return redirect()->route('login')->with(
+                'error',
+                'Error. Por favor, inténtalo más tarde y, si el problema persiste, comunícaselo al administrador.'
+            );
+        }
+
         $request->session()->put('two_factor.user_id', $user->id);
         $request->session()->put('two_factor.remember', $remember);
-
-        $user->notify(new TwoFactorCodeNotification($user->generateTwoFactorCode()));
 
         return redirect()->route('two-factor.challenge');
     }
