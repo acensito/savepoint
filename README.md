@@ -425,14 +425,17 @@ Cobertura actual:
   página originalmente solicitada, validación (nombre obligatorio, email válido y único, contraseña con mínimo 8
   caracteres y mayúscula/minúscula/número/símbolo, confirmación), que no se puede escalar a admin desde el formulario,
   invitado vs. usuario ya autenticado, límite de 5 registros/minuto por IP, que el 2FA se puede desactivar después
-  desde Ajustes, el enlace desde el login, y que el formulario y el propio endpoint quedan bloqueados (con redirect a
-  `/login` y aviso) cuando un admin cierra el registro público.
+  desde Ajustes, el enlace desde el login, que el formulario y el propio endpoint quedan bloqueados (con redirect a
+  `/login` y aviso) cuando un admin cierra el registro público, que un fallo al enviar el código de 2FA deshace el
+  registro en vez de dejar una cuenta huérfana, y que el formulario desactiva el autorrelleno de cuentas guardadas y
+  muestra los requisitos de la contraseña.
 - `Tests\Feature\Auth\TwoFactorTest`: login con 2FA desactivado sin cambios, login con 2FA activo redirige al desafío
   en vez de autenticar, código correcto/incorrecto/caducado, límites de verificación y reenvío, que reenviar invalida
   el código anterior, "recordar dispositivo" crea la cookie/fila y un login posterior con ella se salta el desafío
   (uno con una cookie desconocida sigue pidiéndolo), el email censurado que muestra la pantalla del desafío, y de
   seguridad: que la cookie de dispositivo de confianza de una cuenta no sirve para saltarse el desafío de otra, y que
-  un `user_id` colado a mano en el body de `two-factor.verify` no tiene ningún efecto (siempre sale de la sesión).
+  un `user_id` colado a mano en el body de `two-factor.verify` no tiene ningún efecto (siempre sale de la sesión); y
+  que un fallo al enviar el código (login o reenvío) muestra un aviso claro en vez de un 500 sin manejar.
 - `Tests\Feature\Api\AuthTest`: login/logout vía Sanctum (emisión y revocación de token), `/api/user` protegido, bloqueo
   por fuerza bruta, expiración de token (rechazado pasado el límite configurado, aceptado justo antes).
 - `Tests\Feature\SessionCookieSecurityTest`: la cookie de sesión no lleva `Secure` por HTTP plano, pero sí en cuanto la

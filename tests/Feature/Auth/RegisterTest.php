@@ -31,6 +31,41 @@ class RegisterTest extends TestCase
     }
 
     /**
+     * Requirement: el formulario de registro no debe autorrellenarse con
+     * credenciales de otras cuentas guardadas en el navegador (a diferencia
+     * del login, que sí lo permite) — email/nombre con autocomplete="off" y
+     * los campos de contraseña con autocomplete="new-password", que es lo
+     * que hace que los gestores de contraseñas ofrezcan generar/guardar una
+     * nueva en vez de rellenar una ya guardada.
+     */
+    public function test_registration_form_disables_autofill_from_saved_accounts(): void
+    {
+        $response = $this->get(route('register'));
+        $html = $response->getContent();
+
+        $response->assertOk();
+        // <form>, el campo oculto de @csrf (ya lo lleva Laravel de fábrica),
+        // name y email: autocomplete="off". password y
+        // password_confirmation: autocomplete="new-password" (le dice al
+        // navegador que no rellene con una contraseña ya guardada, y
+        // ofrezca generar/guardar una nueva).
+        $this->assertSame(4, substr_count($html, 'autocomplete="off"'));
+        $this->assertSame(2, substr_count($html, 'autocomplete="new-password"'));
+    }
+
+    /**
+     * Requirement: los requisitos de la contraseña se muestran en el propio
+     * formulario, no solo tras fallar la validación.
+     */
+    public function test_registration_form_shows_the_password_requirements(): void
+    {
+        $response = $this->get(route('register'));
+
+        $response->assertOk();
+        $response->assertSee('Mínimo 8 caracteres, con al menos una mayúscula, una minúscula, un número y un símbolo.');
+    }
+
+    /**
      * Requirement: Guest Middleware Redirection
      */
     public function test_authenticated_user_redirected_from_register_form(): void

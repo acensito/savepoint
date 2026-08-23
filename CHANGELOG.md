@@ -5,6 +5,9 @@ sección al final de `README.md`; se separó a este fichero para que el README
 pueda ser un documento de presentación del proyecto en vez de una lista que
 crece sin parar.
 
+## 2026-08-23 (7)
+- **Formulario de registro: sin autorrelleno de cuentas guardadas, y con los requisitos de la contraseña a la vista**. Nombre y email pasan a `autocomplete="off"`, y ambos campos de contraseña a `autocomplete="new-password"` (el token que hace que el navegador/gestor de contraseñas ofrezca generar y guardar una nueva en vez de rellenar una ya guardada de otra cuenta) — el login no se toca, ahí el autorrelleno sigue permitido a propósito. De paso, un texto de ayuda bajo el campo de contraseña ("Mínimo 8 caracteres, con al menos una mayúscula, una minúscula, un número y un símbolo") con la misma regla que ya validaba el backend (`Password::min(8)->letters()->numbers()->symbols()->mixedCase()`), antes solo visible tras fallar el envío.
+
 ## 2026-08-23 (6)
 - **Fix: `.env.example` traía `MAIL_FROM_ADDRESS=no-reply@savepoint.test`**, un TLD reservado (RFC 2606, como `.example`/`.invalid`/`.localhost`) que nunca resuelve en el DNS real — funcionaba contra el sandbox de Mailtrap en desarrollo, pero un despliegue real contra Mailtrap lo rechazaba con `550 5.7.1 Sending from domain savepoint.test is not allowed`, tumbando el registro tras el fix anterior (ver entrada de arriba) con el mismo síntoma (500 al enviar el código). Placeholder cambiado a un valor que obliga a poner un dominio real propio en vez de uno que parezca válido y no lo sea.
 
