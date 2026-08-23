@@ -442,13 +442,18 @@ Cobertura actual:
   a juegos ajenos (403 en view/update/delete).
 - `Tests\Feature\Web\GameControllerTest`: alta y edición de juegos con subida/reemplazo de carátula real, validación,
   aviso de EAN duplicado (con y sin confirmar), `GamePolicy` aplicada en las rutas web, la ficha de detalle, la edición
-  rápida (conservación/estado/en venta) por AJAX y por formulario normal, el filtro "en venta", marcar un juego como
-  vendido (validación, envío a la papelera, `GamePolicy`) y que la papelera excluye los juegos vendidos, el fragmento
-  que devuelve `index()` para peticiones AJAX, la papelera (listar/restaurar/eliminar definitivamente, buscador/filtro
-  propio, con scoping por usuario), el orden/paginación/región/edición por defecto de Ajustes (aplicados solo cuando la
-  URL o el formulario no traen un valor explícito), el autoasignado de fondo desde IGDB al dar de alta con ese ajuste
-  activo, y la búsqueda de carátula/EAN en CEX tanto para un juego ya guardado (por su EAN o su título, o por una
-  búsqueda manual) como para el alta (sin resultados ni llamada a CEX sin `q`, requiere sesión iniciada).
+  rápida (estado/en venta) por AJAX y por formulario normal, el filtro "en venta", el fragmento que devuelve `index()`
+  para peticiones AJAX, el orden/paginación/región/edición por defecto de Ajustes (aplicados solo cuando la URL o el
+  formulario no traen un valor explícito), y el autoasignado de fondo desde IGDB al dar de alta con ese ajuste activo.
+- `Tests\Feature\Web\GameExportControllerTest`: exportación imprimible/PDF y a CSV, mismos filtros que el listado,
+  scoping por usuario, y de regresión, que la vista imprimible es un documento autocontenido sin el layout de la app.
+- `Tests\Feature\Web\GameTrashControllerTest`: papelera (listar/restaurar/eliminar definitivamente, buscador/filtro
+  propio, con scoping por usuario) y que excluye los juegos vendidos.
+- `Tests\Feature\Web\GameBulkActionControllerTest`: acciones en bloque (borrar, cambiar estado de juego) acotadas al
+  usuario autenticado, con validación de los IDs seleccionados.
+- `Tests\Feature\Web\GameCoverLookupControllerTest`: búsqueda de carátula/EAN en CEX tanto para un juego ya guardado
+  (por su EAN o su título, o por una búsqueda manual) como para el alta (sin resultados ni llamada a CEX sin `q`,
+  requiere sesión iniciada).
 - `Tests\Feature\Web\GameImportControllerTest`: importación desde CSV (con/sin BOM, separador coma o punto y coma),
   creación automática de plataformas/ediciones que no existían, filas sin título omitidas y reportadas como incidencia,
   validación del fichero subido, y la vista previa (columnas reconocidas/no reconocidas, filas de ejemplo, que no
@@ -477,7 +482,7 @@ Cobertura actual:
   mes, top de géneros, destacados y ventas por año) solo consideran los juegos del usuario autenticado.
 - `Tests\Feature\Web\SalesControllerTest`: histórico de ventas agrupado por año con sus totales/rendimiento, scoping por
   usuario, deshacer una venta (el juego vuelve a la colección sin datos de venta) y `GamePolicy` bloqueando la
-  restauración de una venta ajena.
+  restauración de una venta ajena, marcar un juego como vendido (validación, envío a la papelera, `GamePolicy`).
 - `Tests\Feature\Web\PasswordResetTest`: envío del enlace de reset (mismo mensaje exista o no el email), reset con token
   válido/inválido.
 - `Tests\Unit\Models\GameTest` / `PlatformTest`: iniciales y URL de carátula, resolución de colores/etiqueta de chip con

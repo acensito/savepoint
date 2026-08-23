@@ -109,4 +109,53 @@ class SalesControllerTest extends TestCase
         $response->assertForbidden();
         $this->assertSoftDeleted('games', ['id' => $game->id]);
     }
+
+    public function test_user_can_mark_their_own_game_as_sold(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['status' => 'owned', 'for_sale' => true, 'price_paid' => 40]);
+
+        $response = $this->actingAs($user)->post("/games/{$game->id}/mark-sold", [
+            'sale_price' => 55,
+            'sold_at' => '2026-03-10',
+            'notes' => 'Vendido en mano',
+        ]);
+
+        $response->assertRedirect(route('web.games.index'));
+        $response->assertSessionHas('undoUrl', route('web.sales.restore', $game->id));
+
+        $this->assertSoftDeleted('games', ['id' => $game->id]);
+
+        $game->refresh();
+        $this->assertSame('sold', $game->status);
+        $this->assertFalse($game->for_sale);
+        $this->assertSame('55.00', $game->sale_price);
+        $this->assertSame('2026-03-10', $game->sold_at->format('Y-m-d'));
+        $this->assertSame('Vendido en mano', $game->notes);
+    }
+
+    public function test_marking_a_game_as_sold_requires_a_price_and_a_date(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['status' => 'owned']);
+
+        $response = $this->actingAs($user)->post("/games/{$game->id}/mark-sold", []);
+
+        $response->assertSessionHasErrors(['sale_price', 'sold_at']);
+        $this->assertDatabaseHas('games', ['id' => $game->id, 'deleted_at' => null, 'status' => 'owned']);
+    }
+
+    public function test_user_cannot_mark_another_users_game_as_sold(): void
+    {
+        $owner = User::factory()->create();
+        $game = Game::factory()->for($owner)->create(['status' => 'owned']);
+
+        $response = $this->actingAs(User::factory()->create())->post("/games/{$game->id}/mark-sold", [
+            'sale_price' => 10,
+            'sold_at' => '2026-03-10',
+        ]);
+
+        $response->assertForbidden();
+        $this->assertDatabaseHas('games', ['id' => $game->id, 'deleted_at' => null, 'status' => 'owned']);
+    }
 }

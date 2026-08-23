@@ -116,7 +116,7 @@ class StatsController extends Controller
     /**
      * Reparto por propiedad (en posesión/lista de deseos), con su % sobre el
      * total. No incluye "vendido": un juego vendido (ver
-     * GameController::markAsSold) es un borrado blando, así que nunca
+     * SalesController::markAsSold) es un borrado blando, así que nunca
      * aparece aquí — su propio reparto por año vive en salesByYear().
      */
     private function byOwnershipStatus($base, int $total): array

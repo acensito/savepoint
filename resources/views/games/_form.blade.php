@@ -82,7 +82,7 @@
      campos (Título, EAN...) en vez de quedar desplazado a la derecha.
      Misma búsqueda en alta y edición: en el alta no hay todavía un Game
      guardado al que atar la ruta, así que usa un endpoint aparte sin
-     autorización por juego (ver GameController::coverLookupForNew) y la
+     autorización por juego (ver GameCoverLookupController::coverLookupForNew) y la
      búsqueda por defecto sale del EAN/título ya tecleados en el propio
      formulario en vez de una fila de la base de datos. -->
 <div class="mt-3">

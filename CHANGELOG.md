@@ -5,6 +5,17 @@ sección al final de `README.md`; se separó a este fichero para que el README
 pueda ser un documento de presentación del proyecto en vez de una lista que
 crece sin parar.
 
+## 2026-08-23 (4)
+- **`GameController` (887 líneas) dividido en cinco piezas más pequeñas**, cerrando el pendiente anotado en la auditoría de agosto ("`GameController` demasiado grande") con el mismo criterio que ya sacó `IgdbController` de aquí: acciones propias de un concepto, no CRUD del juego en sí. Puramente mecánico, sin cambio de comportamiento — ninguna URL, nombre de ruta, mensaje flash ni regla de autorización cambia.
+  - `App\Services\Games\GameCollectionQuery` (nuevo): los antiguos métodos privados `filteredGamesQuery()`/`resolveSort()`, ahora reutilizables por dos controladores en vez de solo uno.
+  - `GameExportController` (nuevo): `print()`/`export()`, antes en `GameController`.
+  - `GameTrashController` (nuevo): la papelera (`trash()` → `index()`, `restore()`, `forceDelete()`).
+  - `GameBulkActionController` (nuevo): las acciones en bloque del listado (`bulkDestroy()` → `destroy()`, `bulkUpdatePlayStatus()` → `updatePlayStatus()`).
+  - `GameCoverLookupController` (nuevo): la búsqueda de carátula en CEX (`coverLookup()`, `coverLookupForNew()`).
+  - `SalesController::markAsSold()`: se mueve desde `GameController` — su propio `index()` ya remitía ahí ("ver GameController::markAsSold"), reconociendo que es la otra mitad del mismo concepto (marcar una venta / deshacerla). Con esto `SalesController` cubre el ciclo completo de una venta.
+  - `GameController` baja de 887 a ~500 líneas: se queda con el listado y el CRUD del juego (`index`, `create`, `store`, `show`, `edit`, `update`, `destroy`, `quickUpdate`) y sus privados de validación/alta. Pierde `GameLookupInterface` del constructor (ya no lo usa nadie ahí).
+  - Tests movidos junto con cada método (mismo patrón que ya separa `IgdbControllerTest`): `GameExportControllerTest`, `GameTrashControllerTest`, `GameBulkActionControllerTest`, `GameCoverLookupControllerTest` nuevos, y los tests de `markAsSold` pasan a `SalesControllerTest`.
+
 ## 2026-08-23 (3)
 - **Los admins pueden abrir o cerrar el registro público** (`/panel/users`, nueva tarjeta "Registro público"): hasta ahora `/register` estaba siempre abierto para cualquiera; ahora es un interruptor que cualquier admin puede apagar para volver al modelo anterior (cuentas solo desde gestión de usuarios). Primer ajuste de **instancia** de la app, no de cuenta — nueva tabla `app_settings` con una única fila (`AppSetting::current()`, creada por la propia migración con el mismo valor que ya tenía la app, registro abierto, para que aplicar la migración no cambie nada por sí sola) en vez de una columna más en `users`, porque esto no pertenece a ninguna cuenta en concreto. `RegisterController` comprueba el ajuste tanto en `showRegister()` como en `register()` (un POST directo al endpoint tiene que respetar el cierre igual que el formulario, no solo la vista) y redirige a `/login` con un aviso si está cerrado; el enlace "Regístrate" del login desaparece igual cuando está cerrado (`AuthController::showLogin()` pasa el valor a la vista). Reutiliza la autorización que ya protegía `/panel/users` (`UserPolicy::viewAny`, "es admin") en vez de crear una policy nueva para un único booleano.
 

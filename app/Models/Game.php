@@ -77,7 +77,7 @@ class Game extends Model
     // VALORES VÁLIDOS
     // ==========================================
     // Única fuente de verdad para las reglas de validación de web
-    // (GameController::validated()/quickUpdate()/bulkUpdatePlayStatus()) y
+    // (GameController::validated()/quickUpdate(), GameBulkActionController::updatePlayStatus()) y
     // API (StoreGameRequest/UpdateGameRequest) — antes cada sitio repetía su
     // propia lista/rango a mano, y habían llegado a desincronizarse (rating
     // 1-10 en la API, 1-5 en la web; status/play_status como string libre en
@@ -86,7 +86,7 @@ class Game extends Model
     /**
      * 'sold' no está aquí a propósito: es un estado derivado (borrado blando
      * + precio/fecha de venta), nunca asignable directamente por el usuario
-     * — se marca solo desde GameController::markAsSold().
+     * — se marca solo desde SalesController::markAsSold().
      */
     public const STATUSES = ['owned', 'wishlist'];
 
@@ -105,7 +105,7 @@ class Game extends Model
     /**
      * Coincidencia por título (parcial, sin distinguir mayúsculas) o EAN
      * (exacto). Mismo criterio usado por el buscador de la colección
-     * (GameController::filteredGamesQuery) y por el Ctrl+K (SearchController::quick).
+     * (GameCollectionQuery::query) y por el Ctrl+K (SearchController::quick).
      */
     public function scopeSearch(Builder $query, string $term): Builder
     {

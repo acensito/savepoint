@@ -194,7 +194,7 @@ class GameControllerTest extends TestCase
     {
         // Regresión: la API aceptaba cualquier string para status (ver
         // Game::STATUSES) — incluido 'sold', que ni el propio formulario web
-        // permite asignar directamente (solo vía GameController::markAsSold()).
+        // permite asignar directamente (solo vía SalesController::markAsSold()).
         Sanctum::actingAs(User::factory()->create());
         $platform = Platform::factory()->create();
 

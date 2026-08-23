@@ -4,8 +4,12 @@ use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\CommissionController;
 use App\Http\Controllers\Web\EditionController;
 use App\Http\Controllers\Web\ForSaleController;
+use App\Http\Controllers\Web\GameBulkActionController;
 use App\Http\Controllers\Web\GameController;
+use App\Http\Controllers\Web\GameCoverLookupController;
+use App\Http\Controllers\Web\GameExportController;
 use App\Http\Controllers\Web\GameImportController;
+use App\Http\Controllers\Web\GameTrashController;
 use App\Http\Controllers\Web\IgdbController;
 use App\Http\Controllers\Web\ManufacturerController;
 use App\Http\Controllers\Web\PanelController;
@@ -125,7 +129,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/for-sale', [ForSaleController::class, 'index'])->name('web.for-sale.index');
 
     // Ventas: histórico por año de los juegos marcados como vendidos (ver
-    // GameController::markAsSold), fuera de la colección principal.
+    // SalesController::markAsSold), fuera de la colección principal.
     Route::get('/sales', [SalesController::class, 'index'])->name('web.sales.index');
     Route::post('/sales/{id}/restore', [SalesController::class, 'restore'])->name('web.sales.restore');
 
@@ -144,33 +148,37 @@ Route::middleware('auth')->group(function () {
     Route::get('/games/import/template', [GameImportController::class, 'template'])->name('web.games.import.template');
     Route::get('/games/import/status/{importId}', [GameImportController::class, 'importStatus'])->name('web.games.import.status');
 
-    // Papelera: juegos borrados (soft delete) del usuario, con opción de
-    // restaurar o eliminar definitivamente.
+    // Papelera, exportación imprimible/PDF y CSV, acciones en bloque y
+    // búsqueda de carátula en CEX: controladores propios, separados de
+    // GameController (ver README, "Mejoras técnicas") — mismo criterio que
+    // ya separó IgdbController: acciones propias de un concepto, no CRUD
+    // del juego en sí.
+    //
     // Exportación imprimible/PDF y a CSV del listado filtrado (antes de
     // '/games/{game}' por la misma razón que '/games/create': si no,
     // '/games/print' o '/games/export' entrarían por ahí y buscarían un
     // juego con id "print"/"export").
-    Route::get('/games/print', [GameController::class, 'print'])->name('web.games.print');
-    Route::get('/games/export', [GameController::class, 'export'])->name('web.games.export');
+    Route::get('/games/print', [GameExportController::class, 'print'])->name('web.games.print');
+    Route::get('/games/export', [GameExportController::class, 'export'])->name('web.games.export');
 
     // Buscar carátula/EAN en CEX durante el alta: el juego todavía no existe,
     // así que no hay {game} al que atar esta ruta. Misma razón de orden que
     // las de arriba: antes de '/games/{game}' (show), si no "cover-lookup"
     // entraría por ahí y buscaría un juego con ese id.
-    Route::get('/games/cover-lookup', [GameController::class, 'coverLookupForNew'])->name('web.games.cover-lookup.new');
+    Route::get('/games/cover-lookup', [GameCoverLookupController::class, 'coverLookupForNew'])->name('web.games.cover-lookup.new');
 
-    Route::get('/games/trash', [GameController::class, 'trash'])->name('web.games.trash');
-    Route::post('/games/{id}/restore', [GameController::class, 'restore'])->name('web.games.restore');
-    Route::delete('/games/{id}/force-delete', [GameController::class, 'forceDelete'])->name('web.games.force-delete');
+    Route::get('/games/trash', [GameTrashController::class, 'index'])->name('web.games.trash');
+    Route::post('/games/{id}/restore', [GameTrashController::class, 'restore'])->name('web.games.restore');
+    Route::delete('/games/{id}/force-delete', [GameTrashController::class, 'forceDelete'])->name('web.games.force-delete');
 
     // Acciones en bloque sobre varios juegos a la vez desde el listado.
-    Route::post('/games/bulk-delete', [GameController::class, 'bulkDestroy'])->name('web.games.bulk-delete');
-    Route::post('/games/bulk-play-status', [GameController::class, 'bulkUpdatePlayStatus'])->name('web.games.bulk-play-status');
+    Route::post('/games/bulk-delete', [GameBulkActionController::class, 'destroy'])->name('web.games.bulk-delete');
+    Route::post('/games/bulk-play-status', [GameBulkActionController::class, 'updatePlayStatus'])->name('web.games.bulk-play-status');
 
     Route::post('/games', [GameController::class, 'store'])->name('web.games.store');
     Route::get('/games/{game}/edit', [GameController::class, 'edit'])->name('web.games.edit');
     Route::patch('/games/{game}/quick-update', [GameController::class, 'quickUpdate'])->name('web.games.quick-update');
-    Route::get('/games/{game}/cover-lookup', [GameController::class, 'coverLookup'])->name('web.games.cover-lookup');
+    Route::get('/games/{game}/cover-lookup', [GameCoverLookupController::class, 'coverLookup'])->name('web.games.cover-lookup');
 
     // Enriquecimiento con IGDB (desarrollador, fecha de lanzamiento, géneros
     // en inglés, nota agregada) desde la ficha de detalle: igdb-search solo
@@ -182,7 +190,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/games/{game}/igdb-artworks', [IgdbController::class, 'artworks'])->name('web.games.igdb-artworks');
     Route::post('/games/{game}/igdb-background', [IgdbController::class, 'setBackground'])->name('web.games.igdb-background');
     Route::put('/games/{game}', [GameController::class, 'update'])->name('web.games.update');
-    Route::post('/games/{game}/mark-sold', [GameController::class, 'markAsSold'])->name('web.games.mark-sold');
+    Route::post('/games/{game}/mark-sold', [SalesController::class, 'markAsSold'])->name('web.games.mark-sold');
     Route::delete('/games/{game}', [GameController::class, 'destroy'])->name('web.games.destroy');
     Route::get('/games/{game}', [GameController::class, 'show'])->name('web.games.show');
 

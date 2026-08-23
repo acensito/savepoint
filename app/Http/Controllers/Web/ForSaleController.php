@@ -12,7 +12,7 @@ class ForSaleController extends Controller
      * página para poder darles mantenimiento (quitarlos de venta, marcarlos
      * como vendidos) sin tener que filtrar la colección principal cada vez.
      * Ajustes > "Ocultar de la colección" decide si además desaparecen del
-     * listado sin filtrar de ahí (ver GameController::filteredGamesQuery());
+     * listado sin filtrar de ahí (ver GameCollectionQuery::query());
      * aquí siempre se ven, es la vía pensada justo para eso.
      */
     public function index()
