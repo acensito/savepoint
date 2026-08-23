@@ -493,9 +493,49 @@ Cobertura actual:
 
 ## Pendiente / en curso
 
+Agrupado por la sección de la app a la que afecta cada pendiente.
+
+### API REST
+
+- **Documentar la API REST**: hoy la única "documentación" es leer `routes/api.php`/los controladores. Por endpoint (`/api/login`, `/api/logout`, `/api/user`, `/api/games` CRUD): qué recibe (cada campo del payload con su tipo y si es obligatorio/opcional — ver `StoreGameRequest`/`UpdateGameRequest` para las reglas ya validadas) y qué devuelve (forma del JSON de `GameResource`, paginación de `index()`, códigos de estado de error). Formato ligero (un `docs/api.md` a mano), no una herramienta tipo L5-Swagger/Scribe — de sobra para dos controladores.
+
+### Gestión de la colección
+
+- **Filtro de plataforma: opción "Sin plataforma"** para los juegos con `platform_id` nulo — hoy el desplegable de plataformas (`games/_filters.blade.php`) solo lista plataformas reales, no hay forma de aislar los que no tienen ninguna asignada.
+- **Alta de un juego: quitar la sección "Lista de deseos" del formulario completo** (`games/_form.blade.php`, campos `wishlist_priority`/`wishlist_estimated_price`/`wishlist_store`) — no pinta nada ahí ahora que el alta reducida de la wishlist (`/wishlist/create`) es su propio flujo aparte.
+
+### Lista de deseos
+
+- **Alta de un juego deseado más completa**: `/wishlist/create` hoy solo pide título/plataforma/edición; añadir de entrada los campos que ya existen para esto en el formulario completo (prioridad, precio estimado, dónde comprarlo — ver el punto de arriba sobre quitarlos del alta normal, tendrían que mudarse aquí en vez de desaparecer sin más). Al "Pasar a la colección", usar el precio estimado y la tienda ya guardados para preseleccionar precio pagado y lugar de compra, en vez de dejarlos en blanco como ahora.
+- **Buscador rápido y escáner de código de barras: avisar si el juego ya está en la wishlist**. Al buscar por EAN o título (Ctrl+K o el escáner), si hay un juego que ya se está deseando, mostrarlo marcado como tal en los resultados, para no perder de vista que ya se está detrás de él.
+
+### Exportación / copias de seguridad
+
+- **Copia de seguridad con las carátulas incluidas**: mirar la viabilidad de exportar/importar la colección (datos + ficheros de `storage/app/public/covers`) en un único paquete (`.zip` u otro formato), de forma segura — hoy la exportación (CSV) y las carátulas en disco son cosas separadas, sin ninguna vía para respaldarlas o moverlas juntas.
+
+### Usuarios y cuentas
+
+- **`/panel/users`: orden del listado y ciclo de vida del registro sin terminar** (anotado tras el incidente real de cuentas huérfanas por fallo de envío del código, ver CHANGELOG 2026-08-23):
+  - Orden actual: alfabético por nombre (`UserController::index()`). Cambiar a admins primero, luego el resto, y dentro de cada grupo por fecha de alta (`created_at`).
+  - Marcar con una etiqueta/badge las cuentas que se registraron pero nunca completaron el desafío de 2FA (`two_factor_code` todavía puesto, sin verificar nunca) — hoy son indistinguibles de una cuenta normal en el listado. Antes de implementarlo, decidir qué debe pasar si esa misma persona quiere reintentar el registro con ese email: hoy choca con el `unique` de `users.email` sin ninguna salida (¿se le deja reenviar el código desde `/login` en vez de volver a `/register`? ¿Hace falta que un admin la borre a mano desde el panel para liberar el email?).
+  - Purgado de esas cuentas abandonadas (job programado, o una acción manual desde el panel) para que no se acumulen indefinidamente bloqueando el email de alguien que de verdad quiere registrarse.
+- **Permitir que un usuario borre su propia cuenta y todos sus datos** (colección, carátulas incluidas) desde `/profile`, con una confirmación reforzada dado lo irreversible del borrado (más allá del diálogo de confirmación genérico que ya usa el resto de la app para acciones destructivas).
+
+### Panel de control y Ajustes
+
+- **Reordenar el Panel de control** (`/panel`): revisar el agrupado actual ("Colección" / "Cuenta" / "Administración", ver `panel/index.blade.php`) y el orden de las tarjetas dentro de cada grupo.
+- **Reordenar Ajustes** (`/panel/settings`): la tarjeta "Verificación en dos pasos" quedó metida entre las dos de IGDB (justo después de "IGDB" y antes de "Fondo automático desde IGDB", ver `panel/settings.blade.php`) sin relación entre ellas — sacarla de en medio.
+
+### Interfaz
+
+- **Menú de usuario de la cabecera como desplegable**: hoy el avatar/email de la barra superior es un enlace directo al perfil, con el botón "Salir" suelto al lado (`layouts/app.blade.php`) y sin acceso al Panel de control desde ahí. Pasarlo a un desplegable con: acceso al perfil, al Panel de control (y a la gestión de usuarios si la cuenta es admin) y "Salir".
+- **Reordenar los iconos de vista de la colección**: hoy van lista → compacta → estantería (`games/index.blade.php`); pasar a compacta → lista → estantería, con compacta como el primer icono a la izquierda. El valor por defecto ya es compacta (`users.games_view`, ver migración de Ajustes) — esto es solo el orden visual del toggle, no el default.
+- **Investigar por qué la vista móvil se ve distinta en desarrollo local que en producción** (en producción se ve bien) — sin diagnosticar todavía qué difiere entre ambos entornos.
+
+### Infraestructura y despliegue
+
 - Sin backups automatizados de Postgres (ni `pg_dump` programado ni snapshot del volumen).
 - Sin HTTPS en el despliegue actual: bloquea el escaneo de código de barras desde el móvil fuera de `localhost` (ver [Desplegar para uso propio](#desplegar-para-uso-propio)).
-- **Documentar la API REST**: hoy la única "documentación" es leer `routes/api.php`/los controladores. Por endpoint (`/api/login`, `/api/logout`, `/api/user`, `/api/games` CRUD): qué recibe (cada campo del payload con su tipo y si es obligatorio/opcional — ver `StoreGameRequest`/`UpdateGameRequest` para las reglas ya validadas) y qué devuelve (forma del JSON de `GameResource`, paginación de `index()`, códigos de estado de error). Formato ligero (un `docs/api.md` a mano), no una herramienta tipo L5-Swagger/Scribe — de sobra para dos controladores.
 
 ### Mejoras técnicas identificadas (auditoría 2026-08-17)
 
