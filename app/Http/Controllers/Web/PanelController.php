@@ -65,6 +65,7 @@ class PanelController extends Controller
             'quick_search_exclude_wishlist' => $request->boolean('quick_search_exclude_wishlist'),
             'hide_for_sale_from_collection' => $request->boolean('hide_for_sale_from_collection'),
             'igdb_enabled' => $request->boolean('igdb_enabled'),
+            'two_factor_enabled' => $request->boolean('two_factor_enabled'),
             'igdb_client_id' => $validated['igdb_client_id'] ?? null,
             // El campo llega siempre en blanco desde la vista (nunca se
             // reimprime un secreto ya guardado, ver settings.blade.php): en

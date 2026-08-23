@@ -78,6 +78,11 @@
                         class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500 outline-none">
                 </div>
 
+                <p class="text-xs text-slate-500">
+                    Por seguridad, tras registrarte te pediremos un código de verificación por email. Podrás
+                    desactivarlo cuando quieras desde Ajustes una vez dentro.
+                </p>
+
                 <button type="submit" class="w-full bg-indigo-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-indigo-500 transition-colors mt-2">
                     Crear cuenta
                 </button>

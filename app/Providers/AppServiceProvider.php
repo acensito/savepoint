@@ -72,5 +72,18 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('registration', function (Request $request) {
             return Limit::perMinute(5)->by($request->ip());
         });
+
+        // Claves por usuario pendiente de verificar (guardado en sesión al
+        // entrar al desafío, ver TwoFactorController), no por IP: dos
+        // cuentas distintas desde la misma IP no deben compartir límite, y
+        // la IP sola no sirve para frenar a alguien tanteando códigos contra
+        // una única cuenta rotando de IP.
+        RateLimiter::for('two-factor-verify', function (Request $request) {
+            return Limit::perMinutes(10, 5)->by($request->session()->get('two_factor.user_id', $request->ip()));
+        });
+
+        RateLimiter::for('two-factor-resend', function (Request $request) {
+            return Limit::perMinutes(5, 3)->by($request->session()->get('two_factor.user_id', $request->ip()));
+        });
     }
 }

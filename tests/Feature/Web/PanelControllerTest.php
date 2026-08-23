@@ -172,6 +172,27 @@ class PanelControllerTest extends TestCase
         $this->assertSame('my-client-secret', $fresh->igdb_client_secret);
     }
 
+    public function test_user_can_enable_two_factor(): void
+    {
+        $user = User::factory()->create(['two_factor_enabled' => false]);
+
+        $response = $this->actingAs($user)->put('/panel/settings', [
+            'two_factor_enabled' => '1',
+        ]);
+
+        $response->assertRedirect(route('web.panel.settings'));
+        $this->assertTrue($user->fresh()->two_factor_enabled);
+    }
+
+    public function test_user_can_disable_two_factor_by_omitting_the_checkbox(): void
+    {
+        $user = User::factory()->create(['two_factor_enabled' => true]);
+
+        $this->actingAs($user)->put('/panel/settings', []);
+
+        $this->assertFalse($user->fresh()->two_factor_enabled);
+    }
+
     public function test_user_can_disable_igdb_by_omitting_the_checkbox(): void
     {
         $user = User::factory()->create(['igdb_enabled' => true, 'igdb_client_id' => 'id', 'igdb_client_secret' => 'secret']);

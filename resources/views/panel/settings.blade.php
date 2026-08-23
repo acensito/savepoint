@@ -53,6 +53,20 @@
             </div>
 
             <div class="bg-slate-900 border border-slate-800 rounded-xl p-8">
+                <h2 class="text-lg font-semibold text-slate-100 mb-1">Verificación en dos pasos</h2>
+                <p class="text-sm text-slate-500 mb-6">
+                    Activado, cada inicio de sesión desde un dispositivo que no hayas marcado como "de confianza"
+                    pedirá además un código de un solo uso enviado a tu email.
+                </p>
+
+                <label class="flex items-center gap-2 text-sm text-slate-300">
+                    <input type="checkbox" name="two_factor_enabled" value="1" {{ old('two_factor_enabled', $user->two_factor_enabled) ? 'checked' : '' }}
+                        class="rounded border-slate-600 bg-slate-800 text-indigo-600 focus:ring-indigo-500">
+                    Pedir un código por email al iniciar sesión
+                </label>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-8">
                 <h2 class="text-lg font-semibold text-slate-100 mb-1">Fondo automático desde IGDB</h2>
                 <p class="text-sm text-slate-500 mb-6">
                     Requiere IGDB activado arriba. Al dar de alta un juego, se intentará identificarlo en IGDB y, si

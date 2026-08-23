@@ -4,6 +4,9 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Concerns\ThrottlesLogins;
 use App\Http\Controllers\Controller;
+use App\Models\TwoFactorTrustedDevice;
+use App\Models\User;
+use App\Notifications\TwoFactorCodeNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -36,7 +39,11 @@ class AuthController extends Controller
 
         $remember = $request->boolean('remember');
 
-        if (! Auth::attempt($credentials, $remember)) {
+        // Auth::validate() comprueba las credenciales sin autenticar a nadie
+        // (ni siquiera para esta petición, a diferencia de Auth::once()): si
+        // hace falta 2FA, no queremos que el guard llegue a considerar al
+        // usuario logueado en ningún momento antes de que lo verifique.
+        if (! Auth::validate($credentials)) {
             $this->incrementLoginAttempts($request);
 
             // Un único mensaje genérico: no revelamos si el email existe o no.
@@ -47,10 +54,25 @@ class AuthController extends Controller
 
         $this->clearLoginAttempts($request);
 
-        // Evita el session fixation: nuevo ID de sesión tras autenticarse.
-        $request->session()->regenerate();
+        $user = User::where('email', $credentials['email'])->firstOrFail();
 
-        return redirect()->intended(route('web.games.index'));
+        $trustedDevice = TwoFactorTrustedDevice::isTrusted($user, $request->cookie(TwoFactorTrustedDevice::COOKIE_NAME));
+
+        if (! $user->two_factor_enabled || $trustedDevice) {
+            Auth::login($user, $remember);
+
+            // Evita el session fixation: nuevo ID de sesión tras autenticarse.
+            $request->session()->regenerate();
+
+            return redirect()->intended(route('web.games.index'));
+        }
+
+        $request->session()->put('two_factor.user_id', $user->id);
+        $request->session()->put('two_factor.remember', $remember);
+
+        $user->notify(new TwoFactorCodeNotification($user->generateTwoFactorCode()));
+
+        return redirect()->route('two-factor.challenge');
     }
 
     /**

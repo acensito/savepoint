@@ -52,4 +52,14 @@ class UserFactory extends Factory
             'is_admin' => true,
         ]);
     }
+
+    /**
+     * Cuenta con 2FA por email activo (ver TwoFactorController).
+     */
+    public function twoFactorEnabled(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'two_factor_enabled' => true,
+        ]);
+    }
 }

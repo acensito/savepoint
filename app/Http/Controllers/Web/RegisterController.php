@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Notifications\TwoFactorCodeNotification;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 
@@ -22,7 +22,10 @@ class RegisterController extends Controller
     }
 
     /**
-     * Procesa la solicitud de registro, crea el usuario y lo autentica en sesión.
+     * Procesa la solicitud de registro, crea el usuario y lo manda al
+     * desafío de 2FA: toda cuenta nueva lo lleva activo de fábrica (ver
+     * TwoFactorController), sin elección en el propio formulario — se puede
+     * desactivar después desde Ajustes, una vez la cuenta ya existe.
      */
     public function register(Request $request): RedirectResponse
     {
@@ -37,14 +40,16 @@ class RegisterController extends Controller
             'email' => $validated['email'],
             'password' => $validated['password'],
             'is_admin' => false,
+            'two_factor_enabled' => true,
         ]);
 
         event(new Registered($user));
 
-        Auth::login($user);
+        $request->session()->put('two_factor.user_id', $user->id);
+        $request->session()->put('two_factor.remember', false);
 
-        $request->session()->regenerate();
+        $user->notify(new TwoFactorCodeNotification($user->generateTwoFactorCode()));
 
-        return redirect()->intended(route('web.games.index'));
+        return redirect()->route('two-factor.challenge');
     }
 }

@@ -34,7 +34,7 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 - **Estadísticas de la colección**: gasto total y por mes, reparto por plataforma/estado/década, top de géneros,
   destacados y rendimiento de ventas.
 - **Lista de deseos** independiente y **seguimiento de ventas** con beneficio real por juego y por año.
-- **Multiusuario con roles**, aislamiento total de datos por cuenta y sin alta pública — cada cuenta ve solo lo suyo.
+- **Multiusuario con roles** y registro público, con aislamiento total de datos por cuenta — cada cuenta ve solo lo suyo.
 - **Tuya de verdad**: autoalojada con Docker, tus datos en tu propio Postgres, sin límites ni suscripción.
 
 ## Capturas
@@ -196,14 +196,23 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 - **Web:** login/logout con sesión (regenera el ID de sesión al iniciar sesión para evitar session fixation; redirige a
   la página original tras el login).
 - **API:** login/logout con emisión y revocación de token Sanctum, pensado para un cliente externo (app móvil).
-- **Perfil** (`/profile`): el usuario puede actualizar su nombre/email y cambiar su contraseña (pide la contraseña
-  actual para confirmarla).
+- **Perfil** (`/profile`): el usuario puede actualizar su nombre/email, subir/cambiar/quitar su **avatar** (JPG/PNG/GIF/
+  WEBP, máx. 2MB, con vista previa antes de guardar — sin avatar se muestra un icono genérico en su lugar) y cambiar su
+  contraseña (pide la contraseña actual para confirmarla).
 - **Recuperación de contraseña** (`/forgot-password`, `/reset-password/{token}`): flujo estándar de Laravel (token de un
   solo uso, expira a los 60 minutos, mismo mensaje de éxito exista o no el email para no revelar qué cuentas están
   registradas). El email se envía por el canal configurado en `MAIL_MAILER` (`log` por defecto en desarrollo, así que el
   enlace aparece en `storage/logs/laravel.log`).
-- **Sin alta pública**: no hay ningún `/register`, las cuentas se crean solo desde la gestión de usuarios de abajo (o,
-  para el primer arranque, por el seeder).
+- **Registro público** (`/register`): nombre, email único y contraseña (mínimo 8 caracteres, con mayúscula, minúscula,
+  número y símbolo) con confirmación; la cuenta creada nunca es admin. Limitado a 5 intentos por minuto y por IP para
+  evitar abuso, aparte del límite que ya protege el login.
+- **2FA por email**: toda cuenta nueva lo lleva activo desde el momento del registro (sin elección en el formulario:
+  tras crear la cuenta, antes de dar acceso, pide un código de 6 dígitos enviado por email, válido 10 minutos y de un
+  solo uso) — se puede desactivar después desde Ajustes una vez dentro, mismo patrón por cuenta que las credenciales
+  de IGDB. Las cuentas ya existentes antes de esta función lo llevan desactivado y lo activan igual desde Ajustes si
+  quieren. Con "recordar este dispositivo" marcado en el propio desafío, no se repite en el mismo navegador durante
+  30 días. Reenvío de código y verificación limitados aparte (5 intentos/10 min y 3 reenvíos/5 min) para que no se
+  pueda tantear por fuerza bruta.
 - **Gestión de usuarios** (`/panel/users`, solo cuentas con el rol **admin**): listar todas las cuentas de la plataforma
   con su nº de juegos, dar de alta cuentas nuevas (nombre/email/contraseña puesta a mano, rol admin opcional), editarlas
   y borrarlas. Un admin no puede quitarse el rol a sí mismo ni borrar su propia cuenta, y no se puede borrar una cuenta
@@ -406,6 +415,18 @@ Cobertura actual:
 - `Tests\Feature\Auth\WebAuthTest`: login/logout, credenciales inválidas, redirect a la página originalmente solicitada,
   protección de rutas para invitados, bloqueo por fuerza bruta (por email+IP y, rotando de IP en cada intento, por el
   límite adicional solo por email).
+- `Tests\Feature\Auth\RegisterTest`: alta con datos válidos (evento `Registered`, contraseña hasheada, cuenta creada
+  con 2FA activo y sin autenticar todavía), que completar el desafío de 2FA es lo que autentica de verdad y respeta la
+  página originalmente solicitada, validación (nombre obligatorio, email válido y único, contraseña con mínimo 8
+  caracteres y mayúscula/minúscula/número/símbolo, confirmación), que no se puede escalar a admin desde el formulario,
+  invitado vs. usuario ya autenticado, límite de 5 registros/minuto por IP, que el 2FA se puede desactivar después
+  desde Ajustes, y el enlace desde el login.
+- `Tests\Feature\Auth\TwoFactorTest`: login con 2FA desactivado sin cambios, login con 2FA activo redirige al desafío
+  en vez de autenticar, código correcto/incorrecto/caducado, límites de verificación y reenvío, que reenviar invalida
+  el código anterior, "recordar dispositivo" crea la cookie/fila y un login posterior con ella se salta el desafío
+  (uno con una cookie desconocida sigue pidiéndolo), el email censurado que muestra la pantalla del desafío, y de
+  seguridad: que la cookie de dispositivo de confianza de una cuenta no sirve para saltarse el desafío de otra, y que
+  un `user_id` colado a mano en el body de `two-factor.verify` no tiene ningún efecto (siempre sale de la sesión).
 - `Tests\Feature\Api\AuthTest`: login/logout vía Sanctum (emisión y revocación de token), `/api/user` protegido, bloqueo
   por fuerza bruta, expiración de token (rechazado pasado el límite configurado, aceptado justo antes).
 - `Tests\Feature\SessionCookieSecurityTest`: la cookie de sesión no lleva `Secure` por HTTP plano, pero sí en cuanto la
@@ -438,8 +459,9 @@ Cobertura actual:
 - `Tests\Feature\Web\PanelControllerTest`: enlaces del panel y contador de la papelera por usuario, y la página de
   Ajustes — guardar cada grupo de preferencias (incluido dejar un valor en blanco para volver al comportamiento por
   defecto), que no afectan a otros usuarios, y el endpoint AJAX de tema/vista de la colección.
-- `Tests\Feature\Web\ProfileControllerTest`: actualización de nombre/email (con email único), cambio de contraseña
-  exigiendo la actual y confirmación.
+- `Tests\Feature\Web\ProfileControllerTest`: actualización de nombre/email (con email único), subida/reemplazo/
+  eliminación de avatar (con limpieza del fichero anterior en disco), validación del avatar (tipo/tamaño), y cambio de
+  contraseña exigiendo la actual y confirmación.
 - `Tests\Feature\Web\UserControllerTest`: invitados y usuarios no-admin bloqueados (redirect/403) en todas las rutas de
   gestión de usuarios, listado con nº de juegos por cuenta, alta con contraseña hasheada, validación (email único,
   contraseña mínima y confirmada), edición de nombre/email/rol, cambio de contraseña opcional (en blanco no la toca),
@@ -458,8 +480,6 @@ Cobertura actual:
 
 - Sin backups automatizados de Postgres (ni `pg_dump` programado ni snapshot del volumen).
 - Sin HTTPS en el despliegue actual: bloquea el escaneo de código de barras desde el móvil fuera de `localhost` (ver [Desplegar para uso propio](#desplegar-para-uso-propio)).
-- **Sin segundo factor en el login**: la app está expuesta a internet, así que un password filtrado/reusado en otro sitio (credential stuffing) es un vector real, no solo teórico. De momento se sigue solo con login por contraseña.
-- **Alta pública de usuario, con 2FA por email**: hoy no hay `/register` (cuentas solo desde gestión de usuarios o el seeder inicial, ver Autenticación). Al implementarlo, el 2FA iría por email a través de un proveedor externo configurado en `.env` (candidato: Mailtrap), no con el canal `log` que usa hoy la recuperación de contraseña en desarrollo.
 - **Documentar la API REST**: hoy la única "documentación" es leer `routes/api.php`/los controladores. Por endpoint (`/api/login`, `/api/logout`, `/api/user`, `/api/games` CRUD): qué recibe (cada campo del payload con su tipo y si es obligatorio/opcional — ver `StoreGameRequest`/`UpdateGameRequest` para las reglas ya validadas) y qué devuelve (forma del JSON de `GameResource`, paginación de `index()`, códigos de estado de error). Formato ligero (un `docs/api.md` a mano), no una herramienta tipo L5-Swagger/Scribe — de sobra para dos controladores.
 
 ### Mejoras técnicas identificadas (auditoría 2026-08-17)

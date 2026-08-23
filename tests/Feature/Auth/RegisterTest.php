@@ -3,10 +3,12 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\User;
+use App\Notifications\TwoFactorCodeNotification;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class RegisterTest extends TestCase
@@ -38,10 +40,12 @@ class RegisterTest extends TestCase
     }
 
     /**
-     * Requirement: Successful Registration, Persistence & Auto-Login
+     * Requirement: Successful Registration & Persistence (2FA always active on new accounts)
      */
     public function test_user_can_register_with_valid_data(): void
     {
+        Notification::fake();
+
         $response = $this->post(route('web.register.attempt'), [
             'name' => 'Player One',
             'email' => 'player1@example.com',
@@ -49,14 +53,50 @@ class RegisterTest extends TestCase
             'password_confirmation' => 'Secret123!',
         ]);
 
-        $response->assertRedirect(route('web.games.index'));
-        $this->assertAuthenticated();
+        // Toda cuenta nueva lleva el 2FA activo de fábrica (ver
+        // RegisterController::register()): no autentica directo, manda al
+        // desafío de código por email.
+        $response->assertRedirect(route('two-factor.challenge'));
 
         $this->assertDatabaseHas('users', [
             'name' => 'Player One',
             'email' => 'player1@example.com',
             'is_admin' => false,
+            'two_factor_enabled' => true,
         ]);
+
+        $user = User::where('email', 'player1@example.com')->firstOrFail();
+        Notification::assertSentTo($user, TwoFactorCodeNotification::class);
+    }
+
+    /**
+     * Requirement: Registration completes only after the 2FA code is verified
+     */
+    public function test_registration_authenticates_only_after_completing_the_two_factor_challenge(): void
+    {
+        Notification::fake();
+
+        $this->post(route('web.register.attempt'), [
+            'name' => 'Player Verified',
+            'email' => 'playerverified@example.com',
+            'password' => 'Secret123!',
+            'password_confirmation' => 'Secret123!',
+        ]);
+
+        $user = User::where('email', 'playerverified@example.com')->firstOrFail();
+        $this->assertGuest();
+
+        $code = null;
+        Notification::assertSentTo($user, TwoFactorCodeNotification::class, function (TwoFactorCodeNotification $notification) use (&$code) {
+            $code = $notification->code;
+
+            return true;
+        });
+
+        $response = $this->post(route('two-factor.verify'), ['code' => $code]);
+
+        $response->assertRedirect(route('web.games.index'));
+        $this->assertAuthenticatedAs($user);
     }
 
     /**
@@ -242,6 +282,24 @@ class RegisterTest extends TestCase
     }
 
     /**
+     * Requirement: Cannot register with 2FA pre-disabled (RegisterController
+     * hardcodes two_factor_enabled => true, it never reads it from the request)
+     */
+    public function test_registration_cannot_disable_two_factor_via_the_request(): void
+    {
+        $this->post(route('web.register.attempt'), [
+            'name' => 'Tamper Attempt',
+            'email' => 'tamper@example.com',
+            'password' => 'Secret123!',
+            'password_confirmation' => 'Secret123!',
+            'two_factor_enabled' => false,
+        ]);
+
+        $user = User::where('email', 'tamper@example.com')->firstOrFail();
+        $this->assertTrue($user->two_factor_enabled);
+    }
+
+    /**
      * Requirement: Password securely hashed in database
      */
     public function test_password_is_stored_hashed(): void
@@ -259,18 +317,31 @@ class RegisterTest extends TestCase
     }
 
     /**
-     * Requirement: Intended URL Redirection
+     * Requirement: Intended URL Redirection (once the 2FA challenge is completed)
      */
     public function test_registration_redirects_to_intended_destination(): void
     {
+        Notification::fake();
+
         $this->get(route('web.stats.index')); // Sets intended URL in session
 
-        $response = $this->post(route('web.register.attempt'), [
+        $this->post(route('web.register.attempt'), [
             'name' => 'Player Intended',
             'email' => 'intended@example.com',
             'password' => 'Secret123!',
             'password_confirmation' => 'Secret123!',
         ]);
+
+        $user = User::where('email', 'intended@example.com')->firstOrFail();
+
+        $code = null;
+        Notification::assertSentTo($user, TwoFactorCodeNotification::class, function (TwoFactorCodeNotification $notification) use (&$code) {
+            $code = $notification->code;
+
+            return true;
+        });
+
+        $response = $this->post(route('two-factor.verify'), ['code' => $code]);
 
         $response->assertRedirect(route('web.stats.index'));
     }
@@ -280,6 +351,8 @@ class RegisterTest extends TestCase
      */
     public function test_registration_is_rate_limited(): void
     {
+        Notification::fake();
+
         for ($i = 0; $i < 5; $i++) {
             $this->post(route('web.register.attempt'), [
                 'name' => "User {$i}",
@@ -287,8 +360,6 @@ class RegisterTest extends TestCase
                 'password' => 'Secret123!',
                 'password_confirmation' => 'Secret123!',
             ]);
-            // Logout after each successful registration to allow next guest attempt from same IP
-            auth()->logout();
         }
 
         $response = $this->post(route('web.register.attempt'), [
@@ -299,6 +370,35 @@ class RegisterTest extends TestCase
         ]);
 
         $response->assertStatus(429);
+    }
+
+    /**
+     * Requirement: 2FA can be turned off afterward from Ajustes, once the account exists
+     */
+    public function test_two_factor_can_be_disabled_from_settings_after_registering(): void
+    {
+        Notification::fake();
+
+        $this->post(route('web.register.attempt'), [
+            'name' => 'Player Opts Out',
+            'email' => 'playeroptsout@example.com',
+            'password' => 'Secret123!',
+            'password_confirmation' => 'Secret123!',
+        ]);
+
+        $user = User::where('email', 'playeroptsout@example.com')->firstOrFail();
+
+        $code = null;
+        Notification::assertSentTo($user, TwoFactorCodeNotification::class, function (TwoFactorCodeNotification $notification) use (&$code) {
+            $code = $notification->code;
+
+            return true;
+        });
+        $this->post(route('two-factor.verify'), ['code' => $code]);
+
+        $this->put('/panel/settings', []);
+
+        $this->assertFalse($user->fresh()->two_factor_enabled);
     }
 
     /**

@@ -16,6 +16,7 @@ use App\Http\Controllers\Web\RegisterController;
 use App\Http\Controllers\Web\SalesController;
 use App\Http\Controllers\Web\SearchController;
 use App\Http\Controllers\Web\StatsController;
+use App\Http\Controllers\Web\TwoFactorController;
 use App\Http\Controllers\Web\UserController;
 use App\Http\Controllers\Web\WishlistController;
 use Illuminate\Support\Facades\Route;
@@ -37,6 +38,18 @@ Route::middleware('guest')->group(function () {
     Route::post('/register', [RegisterController::class, 'register'])
         ->middleware('throttle:registration')
         ->name('web.register.attempt');
+
+    // Desafío de 2FA por email: al que login()/register() redirigen cuando
+    // la cuenta lo tiene activo. Va en el grupo 'guest' porque, llegados
+    // aquí, el usuario todavía NO tiene sesión iniciada de verdad (ver
+    // AuthController::login()/RegisterController::register()).
+    Route::get('/login/verify', [TwoFactorController::class, 'challenge'])->name('two-factor.challenge');
+    Route::post('/login/verify', [TwoFactorController::class, 'verify'])
+        ->middleware('throttle:two-factor-verify')
+        ->name('two-factor.verify');
+    Route::post('/login/verify/resend', [TwoFactorController::class, 'resend'])
+        ->middleware('throttle:two-factor-resend')
+        ->name('two-factor.resend');
 
     // Recuperación de contraseña: pedir enlace por email y consumirlo con un token de un solo uso.
     Route::get('/forgot-password', [PasswordResetController::class, 'showForgot'])->name('password.request');
