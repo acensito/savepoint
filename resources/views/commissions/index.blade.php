@@ -7,7 +7,7 @@
             <p class="text-slate-400 mt-1">Juegos que te compran/envían amigos, o que tú compras/envías a alguien.</p>
         </div>
 
-        <a href="{{ route('web.commissions.create') }}" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-500 transition-colors whitespace-nowrap">
+        <a href="{{ route('web.commissions.create') }}" class="bg-[var(--color-navbar)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-navbar-hover)] transition-colors whitespace-nowrap">
             + Añadir encargo
         </a>
     </div>

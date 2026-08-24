@@ -11,7 +11,7 @@
             <a href="{{ route('web.panel.index') }}" class="text-sm font-medium text-slate-400 hover:text-slate-100">
                 ← Volver al panel
             </a>
-            <a href="{{ route('web.panel.users.create') }}" class="bg-indigo-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-indigo-500 transition-colors whitespace-nowrap">
+            <a href="{{ route('web.panel.users.create') }}" class="bg-[var(--color-navbar)] text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-[var(--color-navbar-hover)] transition-colors whitespace-nowrap">
                 Nuevo usuario
             </a>
         </div>
@@ -34,7 +34,7 @@
                 Permitir que cualquiera se registre libremente
             </label>
 
-            <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-500 transition-colors">
+            <button type="submit" class="bg-[var(--color-navbar)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-navbar-hover)] transition-colors">
                 Guardar
             </button>
         </form>

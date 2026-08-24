@@ -70,13 +70,27 @@
     --color-amber-400: var(--color-amber-600);
 }
 
-/* Color de la barra de navegación superior (ver PanelController::NAVBAR_COLORS
-   y layouts/app.blade.php, que pinta la clase html.navbar-{color} server-side):
-   una property propia (--color-navbar), no una redefinición de --color-indigo-*,
-   porque bg-indigo-600 se usa también en botones/chips que no deben cambiar de
-   color al elegir un preset distinto para la navbar. */
+/* Color de la barra de navegación superior Y de los botones primarios de
+   acción (Guardar, Añadir Juego, submits de formularios) — ver
+   PanelController::NAVBAR_COLORS y layouts/app.blade.php, que pinta la clase
+   html.navbar-{color} server-side. Una property propia (--color-navbar), no
+   una redefinición de --color-indigo-*: los chips/badges/enlaces/resaltados
+   de navegación en indigo NO se tocan (issue #21, alcance elegido:
+   "solo botones primarios"), así que solo los sitios que usan
+   bg-[var(--color-navbar)] explícitamente cambian con el preset.
+   --color-navbar-hover: mismo criterio que ya usan los botones con indigo
+   fijo (un tono más claro al pasar el ratón, 600→500 en la escala de
+   Tailwind), pero calculado con color-mix en vez de una tabla de "un tono
+   más claro" por preset — aclarar ~15% hacia blanco da un resultado
+   parecido en cualquier color de partida. Definida una sola vez en :root:
+   al ser custom properties, var(--color-navbar) dentro de esta declaración
+   se resuelve por elemento con el valor heredado de --color-navbar en ESE
+   punto del árbol, así que sigue automáticamente al preset activo (la
+   clase html.navbar-* de abajo) sin tener que repetir el cálculo en cada
+   bloque. */
 :root {
     --color-navbar: var(--color-indigo-600);
+    --color-navbar-hover: color-mix(in oklch, var(--color-navbar) 85%, white);
 }
 
 html.navbar-emerald {

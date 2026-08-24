@@ -17,7 +17,7 @@
         </div>
 
         <a href="{{ route('web.wishlist.create') }}"
-            class="inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 transition-colors whitespace-nowrap">
+            class="inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 bg-[var(--color-navbar)] text-white text-sm font-medium hover:bg-[var(--color-navbar-hover)] transition-colors whitespace-nowrap">
             <x-gicon name="add" class="text-[18px]" />
             Añadir Juego
         </a>

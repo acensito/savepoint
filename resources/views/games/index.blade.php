@@ -11,7 +11,7 @@
 
         <div class="flex-shrink-0 flex items-center gap-2">
             <a href="{{ route('web.games.create') }}" aria-label="Añadir juego"
-                class="hidden sm:flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 transition-colors">
+                class="hidden sm:flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 bg-[var(--color-navbar)] text-white text-sm font-medium hover:bg-[var(--color-navbar-hover)] transition-colors">
                 <x-gicon name="add" class="text-[18px]" />
                 Añadir Juego
             </a>
@@ -23,7 +23,7 @@
          que volver arriba a por el icono del header. En sm: y superior ya
          hay un botón normal en el header, así que este se oculta. -->
     <a href="{{ route('web.games.create') }}" aria-label="Añadir juego"
-        class="sm:hidden fixed bottom-5 right-5 z-30 flex items-center justify-center w-14 h-14 rounded-full bg-indigo-600 text-white shadow-lg shadow-black/30 hover:bg-indigo-500 transition-colors">
+        class="sm:hidden fixed bottom-5 right-5 z-30 flex items-center justify-center w-14 h-14 rounded-full bg-[var(--color-navbar)] text-white shadow-lg shadow-black/30 hover:bg-[var(--color-navbar-hover)] transition-colors">
         <x-gicon name="add" class="text-[26px]" />
     </a>
 

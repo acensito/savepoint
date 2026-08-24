@@ -70,7 +70,7 @@
                                        tabindex="0"
                                        role="button"
                                        aria-label="Cambiar imagen de avatar"
-                                       class="cursor-pointer inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-300">
+                                       class="cursor-pointer inline-flex items-center gap-2 bg-[var(--color-navbar)] hover:bg-[var(--color-navbar-hover)] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-300">
                                     <x-gicon name="upload" class="text-[18px]" />
                                     <span>Cambiar avatar</span>
                                 </label>
@@ -128,7 +128,7 @@
 
                 <div class="flex items-center justify-end pt-2">
                     <button type="submit"
-                            class="bg-indigo-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-indigo-500 transition-colors">
+                            class="bg-[var(--color-navbar)] text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-[var(--color-navbar-hover)] transition-colors">
                         Guardar cambios
                     </button>
                 </div>
@@ -166,7 +166,7 @@
 
                 <div class="flex items-center justify-end pt-2">
                     <button type="submit"
-                            class="bg-indigo-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-indigo-500 transition-colors">
+                            class="bg-[var(--color-navbar)] text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-[var(--color-navbar-hover)] transition-colors">
                         Actualizar contraseña
                     </button>
                 </div>

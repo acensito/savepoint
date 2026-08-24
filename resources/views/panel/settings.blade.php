@@ -213,7 +213,7 @@
             </div>
 
             <div class="flex items-center justify-end">
-                <button type="submit" class="bg-indigo-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-indigo-500 transition-colors">
+                <button type="submit" class="bg-[var(--color-navbar)] text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-[var(--color-navbar-hover)] transition-colors">
                     Guardar ajustes
                 </button>
             </div>

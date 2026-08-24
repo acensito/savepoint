@@ -8,7 +8,7 @@
         </div>
 
         <div class="flex gap-2">
-            <a href="{{ route('web.editions.create') }}" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-500 transition-colors">
+            <a href="{{ route('web.editions.create') }}" class="bg-[var(--color-navbar)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-navbar-hover)] transition-colors">
                 + Nueva Edición
             </a>
         </div>

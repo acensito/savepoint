@@ -26,7 +26,7 @@
 
             <div class="flex items-center gap-2">
                 <a href="{{ route('web.games.edit', $game->id) }}"
-                    class="flex items-center gap-1.5 bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-500 transition-colors">
+                    class="flex items-center gap-1.5 bg-[var(--color-navbar)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-navbar-hover)] transition-colors">
                     <x-gicon name="edit" class="text-[16px]" />
                     Editar
                 </a>

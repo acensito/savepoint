@@ -64,7 +64,7 @@
                     <p class="text-xs text-slate-500 mt-2">Comprueba que los datos coinciden antes de darlo de alta: la búsqueda es de CEX, no de tu colección.</p>
                 </div>
             </div>
-            <a id="cex-preview-add-link" href="#" class="mt-4 inline-flex items-center gap-1.5 bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-500 transition-colors">
+            <a id="cex-preview-add-link" href="#" class="mt-4 inline-flex items-center gap-1.5 bg-[var(--color-navbar)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-navbar-hover)] transition-colors">
                 <x-gicon name="add_circle" class="text-[16px]" />
                 Dar de alta
             </a>

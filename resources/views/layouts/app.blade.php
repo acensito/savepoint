@@ -222,7 +222,7 @@
                     </a>
 
                     <a href="{{ route('web.games.create') }}" title="Añadir Juego"
-                        class="flex items-center justify-center gap-2 w-full bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2.5 rounded-lg text-sm font-medium transition-colors mt-2">
+                        class="flex items-center justify-center gap-2 w-full bg-[var(--color-navbar)] hover:bg-[var(--color-navbar-hover)] text-white px-3 py-2.5 rounded-lg text-sm font-medium transition-colors mt-2">
                         <x-gicon name="add_circle" class="text-[18px]" />
                         <span class="sidebar-label">Añadir Juego</span>
                     </a>

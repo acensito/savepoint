@@ -11,7 +11,7 @@
             <a href="{{ route('web.platforms.index') }}" class="text-sm font-medium text-slate-400 hover:text-slate-100 self-center">
                 Ver plataformas →
             </a>
-            <a href="{{ route('web.manufacturers.create') }}" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-500 transition-colors">
+            <a href="{{ route('web.manufacturers.create') }}" class="bg-[var(--color-navbar)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-navbar-hover)] transition-colors">
                 + Nuevo Fabricante
             </a>
         </div>
