@@ -28,6 +28,13 @@ services:
     image: redis:7-alpine
     container_name: savepoint_redis
     restart: unless-stopped
+    # AOF (además del snapshot RDB por defecto): sin esto, un crash no
+    # limpio podía perder los últimos segundos de sesiones/caché. Bajo
+    # riesgo real (nada vive solo aquí, todo tiene su copia en Postgres),
+    # pero el coste de activarlo es nulo. fsync cada segundo (por defecto,
+    # "everysec") en vez de en cada escritura: pérdida máxima de ~1s de
+    # datos a cambio de no penalizar el rendimiento en cada operación.
+    command: redis-server --appendonly yes
     ports:
       # Cerrado al exterior: Solo accesible desde localhost
       - "127.0.0.1:${REDIS_PORT:-6379}:6379"
