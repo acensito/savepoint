@@ -85,6 +85,7 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 - [Desplegar para uso propio](#desplegar-para-uso-propio)
 - [Tests](#tests)
 - [Pendiente / en curso](#pendiente--en-curso)
+- [Ideas a futuro](#ideas-a-futuro)
 - [Contribuir](#contribuir)
 - [Licencia](#licencia)
 
@@ -544,6 +545,68 @@ Sin implementar todavía, por orden aproximado de impacto:
 - Sin PHPStan/Larastan configurado.
 - Redis sin AOF (solo snapshots RDB): en un crash no limpio se podrían perder los últimos segundos de sesiones/caché.
   Bajo riesgo, ahí no vive ningún dato que no esté también en Postgres.
+
+## Ideas a futuro
+
+A diferencia de "Pendiente / en curso" (cosas ya acotadas y con intención real de hacerse pronto), esto es una lista de
+ideas sueltas sin planificar ni acotar todavía — una tormenta de ideas, no un roadmap. Agrupadas por la sección de la
+app a la que afectarían.
+
+### Colección
+
+- **Préstamos**: marcar un juego como "prestado a X" con fecha, aparte de "en venta" (que es vender lo tuyo) y de
+  Encargos (que es logística de compra/envío a través de otra persona) — hoy no hay forma de recordar a quién le
+  dejaste algo.
+- **Copias múltiples como cantidad**, no como filas duplicadas: hoy dos copias físicas del mismo juego son dos `Game`
+  distintos (el aviso de EAN duplicado ya lo permite, con "guardar de todos modos") — la alternativa sería un campo
+  `quantity` en el mismo registro.
+- **Agrupar por saga/franquicia** (Zelda, Final Fantasy...) para verlas juntas en la colección o en las estadísticas.
+- **Importar biblioteca digital**: conectar con Steam/PSN/Xbox (Steam tiene API pública sin auth compleja) para
+  detectar juegos digitales que ya tienes y no están en Savepoint.
+
+### Lista de deseos / compras
+
+- **Aviso de bajada de precio**: comparar periódicamente `wishlist_estimated_price` contra CEX (que ya se usa para
+  carátulas) y avisar si baja.
+- **Lista de deseos compartible**: enlace de solo lectura para regalos (cumpleaños, Navidad) sin dar acceso a toda la
+  cuenta.
+
+### Estadísticas
+
+- **Valor estimado de la colección** cruzando con precios de mercado actuales (CEX/PriceCharting), no solo lo que se
+  pagó en su día.
+- **Coste por hora jugada**, si en algún momento se registra tiempo jugado (encajaría con el pendiente de tiempos de
+  completado de IGDB).
+- **Evolución del backlog** (pendientes vs. terminados) en el tiempo, no solo la foto actual.
+
+### Notificaciones
+
+- **Email de aviso de inicio de sesión desde un dispositivo nuevo** (ya existe la infraestructura de Mailtrap/2FA) —
+  sensación de seguridad extra sin activar 2FA completo.
+- **Resumen mensual por email**: "añadiste 5 juegos, gastaste 120€, tu género favorito fue RPG".
+
+### Integraciones
+
+- **HowLongToBeat** para tiempos de completado más fiables que IGDB en ese aspecto concreto.
+- **Webhook/Discord**: aviso a un canal cuando se da de alta un juego o se completa un backup.
+
+### Multiusuario / social
+
+- **Comparar colecciones entre cuentas** de la misma instancia (útil si la familia comparte servidor): "juegos que tú
+  tienes y yo no".
+- **Perfil público opcional** (como Backloggd) para quien quiera presumir de colección fuera de la app.
+
+### PWA / móvil
+
+- **Caché offline de la colección**: hoy el service worker solo cachea assets estáticos de Vite, no datos — poder
+  consultar la colección sin conexión.
+- **Compartir desde otra app** (share target de la PWA): mandar un enlace de una tienda directo a "Añadir a la
+  wishlist".
+
+### Internacionalización
+
+- **Interfaz en inglés** además de español — el proyecto ya tiene licencia dual pensada para uso más amplio, y hoy
+  todo está hardcodeado en `lang/es/`.
 
 ## Contribuir
 
