@@ -92,7 +92,7 @@ class SearchControllerTest extends TestCase
         $response->assertSee('Silksong');
     }
 
-    public function test_quick_marks_a_wishlist_game_as_deseado(): void
+    public function test_quick_marks_a_wishlist_game_as_en_lista_deseos(): void
     {
         $user = User::factory()->create();
         Game::factory()->for($user)->create(['title' => 'Silksong', 'status' => 'wishlist']);
@@ -100,10 +100,10 @@ class SearchControllerTest extends TestCase
         $response = $this->actingAs($user)->get(route('web.search.quick', ['q' => 'Silksong']));
 
         $response->assertOk();
-        $response->assertSee('Deseado');
+        $response->assertSee('En lista deseos');
     }
 
-    public function test_quick_does_not_mark_an_owned_game_as_deseado(): void
+    public function test_quick_does_not_mark_an_owned_game_as_en_lista_deseos(): void
     {
         $user = User::factory()->create();
         Game::factory()->for($user)->create(['title' => 'Silksong', 'status' => 'owned']);
@@ -111,7 +111,7 @@ class SearchControllerTest extends TestCase
         $response = $this->actingAs($user)->get(route('web.search.quick', ['q' => 'Silksong']));
 
         $response->assertOk();
-        $response->assertDontSee('Deseado');
+        $response->assertDontSee('En lista deseos');
     }
 
     public function test_quick_excludes_wishlist_games_when_the_setting_is_enabled(): void

@@ -91,9 +91,9 @@
                         <div class="flex items-center gap-2 mt-1">
                             <x-platform-chip :platform="$game->platform" class="!px-1.5 !py-0.5 !text-[10px]" />
                             @if($game->status === 'wishlist')
-                                <span class="inline-flex items-center gap-0.5 text-[10px] font-medium text-rose-400" title="En tu lista de deseos">
+                                <span class="inline-flex items-center gap-0.5 text-[10px] font-medium text-red-400" title="En tu lista de deseos">
                                     <x-gicon name="favorite" class="text-[12px]" />
-                                    Deseado
+                                    En lista deseos
                                 </span>
                             @elseif($game->price_paid !== null)
                                 <span class="text-xs text-emerald-400 tabular-nums">{{ number_format($game->price_paid, 2, ',', '.') }} €</span>
