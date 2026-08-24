@@ -548,28 +548,9 @@ Sin implementar todavía, por orden aproximado de impacto:
 ## Contribuir
 
 Savepoint es, hoy, un proyecto de uso personal (una sola persona catalogando su propia colección), así que no hay un
-proceso de contribución formal ni CI configurado. Aun así, si se bifurca o alguien quiere proponer un cambio:
-
-- **Commits**: se usa el prefijo convencional del tipo de cambio en el mensaje (`feat:`, `fix:`, `docs:`, `test:`), en
-  español y explicando el *por qué* del cambio, no solo el *qué* — se puede ver el patrón en `git log`.
-- **Tests**: cualquier cambio de comportamiento (no solo visual) debería llevar test y pasar
-  `docker compose exec app php artisan test` en verde antes de proponerlo.
-- **Idioma**: la interfaz, los mensajes de validación y la documentación del proyecto están en español; se mantiene así
-  para no mezclar idiomas a medias.
-- **Documentación**: los cambios de comportamiento visible (nueva función, fix de UI, etc.) se documentan como una
-  entrada nueva en [`CHANGELOG.md`](CHANGELOG.md) con la fecha del día, y si añaden o cambian una característica ya
-  descrita, la sección correspondiente de "Características" en este README se actualiza a la vez para no dejarla
-  desincronizada.
-- **Hook de pre-commit (opcional)**: [`.githooks/pre-commit`](.githooks/pre-commit) corre `laravel/pint` (ya viene como
-  dependencia de desarrollo) sobre los `.php` en stage antes de cada commit, y los vuelve a añadir ya formateados —
-  para no tener que acordarse de correr Pint a mano. No se activa solo: git no lee hooks de ahí por defecto, hay que
-  apuntarlo una vez por clon del repo con
-  ```bash
-  git config core.hooksPath .githooks
-  ```
-  A partir de ahí cualquier actualización del hook en este fichero se aplica sola, sin volver a copiar nada. Requiere
-  el contenedor `app` levantado (`docker compose up -d`); si Pint falla o el contenedor no está arriba, el hook aborta
-  el commit con un mensaje en vez de dejarlo pasar sin formatear.
+proceso de contribución formal ni CI configurado. Aun así, si se bifurca o alguien quiere proponer un cambio, la guía
+está en [`CONTRIBUTING.md`](CONTRIBUTING.md): entorno de desarrollo, tests, estilo de commits/código y cómo enviar un
+PR.
 
 ## Licencia
 
