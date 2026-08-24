@@ -105,9 +105,9 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
   abre la ficha de detalle del juego, que es el único sitio desde el que se edita o se borra.
 - La colección se busca por **título**/ **EAN** desde el mismo buscador rápido de toda la app (`Ctrl+K`, ver Interfaz):
   ya no hay un buscador de texto aparte en la propia página, solo un botón con su misma pinta que lo abre, precargado
-  con la búsqueda activa si la hay. Un icono "Avanzado" en la página sigue desplegando los filtros de **plataforma**,
-  **estado de juego**, **propiedad**, orden y tamaño de página, que gobiernan el listado paginado (el buscador rápido no
-  pagina).
+  con la búsqueda activa si la hay. Un icono "Avanzado" en la página sigue desplegando los filtros de **plataforma**
+  (incluida la opción **"Sin plataforma"**, para aislar los juegos sin ninguna asignada), **estado de juego**,
+  **propiedad**, orden y tamaño de página, que gobiernan el listado paginado (el buscador rápido no pagina).
 - **Ficha de detalle de solo lectura** con toda la información del juego, para "solo mirar" sin abrir el formulario de
   edición.
 - **Enriquecimiento automático con IGDB**: la primera vez que se abre la ficha de un juego, se busca en IGDB por título
@@ -162,13 +162,14 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 
 - Página propia para los juegos que todavía no tienes: **nunca aparecen en la colección principal** ni cuentan en sus
   totales.
-- **Alta reducida**: a diferencia del alta normal, solo pide título, plataforma y edición — el resto de campos (precio,
-  conservación, manual...) no tienen sentido todavía.
-- Cada juego admite **prioridad** (alta/media/baja), **precio estimado** y **dónde comprarlo**. Buscador por título/EAN
-  y orden por prioridad, título o precio estimado.
-- Acción **"Pasar a la colección"**: abre el formulario de edición completo con los datos ya insertados y
-  Propiedad/fecha de compra preseleccionadas, para no tener que rellenar todo de nuevo cuando por fin compras un juego
-  de tu lista.
+- **Alta reducida**: a diferencia del alta normal, solo pide título, plataforma, edición, **prioridad** (alta/media/
+  baja), **precio estimado** y **dónde comprarlo** — el resto de campos (precio realmente pagado, conservación,
+  manual...) no tienen sentido todavía, se rellenan al pasarlo a la colección. Buscador por título/EAN y orden por
+  prioridad, título o precio estimado.
+- Acción **"Pasar a la colección"**: abre el formulario de edición completo con los datos ya insertados, Propiedad/
+  fecha de compra preseleccionadas, y precio pagado/lugar de compra precargados con el precio estimado y la tienda ya
+  guardados (se pueden corregir ahí mismo antes de guardar), para no tener que rellenar todo de nuevo cuando por fin
+  compras un juego de tu lista.
 
 ### Encargos
 
@@ -260,7 +261,8 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
   comportamiento (ver debajo). Sustituye a los iconos "Importar" y "Papelera" que antes vivían sueltos en el sidebar
   (siguen accesibles por URL directa, y el icono del panel se resalta como activo también en esas páginas).
 - **Ajustes** (`/panel/settings`): comportamiento de la app configurable por cuenta, no de instancia (esta app no tiene
-  concepto de administrador global).
+  concepto de administrador global). Agrupado en tres secciones: IGDB, Cuenta (verificación en dos pasos, apariencia)
+  y Colección.
     - **IGDB**: activar la búsqueda en IGDB (desarrollador, fecha de lanzamiento, géneros, nota y fondos) requiere darse
       de alta como desarrollador en Twitch (gratis, https://dev.twitch.tv/console/apps) e introducir el Client ID y
       Client Secret propios — son credenciales por cuenta, no de instancia, así que quien se despliegue esta app no
@@ -304,6 +306,10 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 - Tema claro/oscuro y vista de la colección (línea de abajo) son ajustes de **cuenta**, no solo del navegador (antes
   vivían solo en `localStorage`): se pintan server-side desde el primer HTML, sin parpadeo al cargar o navegar, y te
   siguen a cualquier dispositivo donde inicies sesión.
+- **Color de la barra de navegación y de los botones primarios**, a elegir entre varios presets (indigo, emerald,
+  rose, amber, sky, violet) desde Ajustes — mismo ajuste de cuenta que el tema.
+- **Menú de usuario de la cabecera**: el avatar/email de la barra superior abre un desplegable con acceso al perfil,
+  al Panel de control y "Salir", en vez de tener el botón de salir suelto al lado.
 - Orden del listado por título, precio, conservación o fecha de compra (con un valor por defecto configurable desde
   Ajustes); atajo de teclado `/` abre el buscador rápido, igual que `Ctrl+K`.
 - Acciones en bloque: seleccionar varios juegos a la vez para enviarlos a la papelera o cambiarles el estado de golpe.
@@ -316,7 +322,8 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 - **Buscador único de la app** (`Ctrl+K`/`Cmd+K`, también la tecla `/` y el botón-buscador de la propia colección):
   resultados en vivo por título o EAN mientras se escribe (con un esqueleto de carga mientras llegan, en vez de dejar
   los resultados anteriores congelados), con filtros opcionales de plataforma/estado de juego/propiedad y un enlace para
-  ver todos los resultados en la colección paginada cuando hace falta más que eso. Si el juego no está en tu colección,
+  ver todos los resultados en la colección paginada cuando hace falta más que eso. Los resultados que ya están en tu
+  lista de deseos llevan un badge "En lista deseos" para no perderlo de vista. Si el juego no está en tu colección,
   se ofrecen además **sugerencias de CEX** (webuy.com) con EAN y carátula reales para rellenar el alta con un clic; la
   lista de deseos se puede excluir de estos resultados desde Ajustes.
 - **Escaneo de código de barras** con la cámara desde la propia búsqueda rápida: detecta el EAN y lo vuelca en el
@@ -494,57 +501,44 @@ Cobertura actual:
 
 ## Pendiente / en curso
 
-Agrupado por la sección de la app a la que afecta cada pendiente.
+Agrupado por la sección de la app a la que afecta cada pendiente. Cada uno tiene su propio issue en GitHub (número
+entre paréntesis) — este listado es un resumen, el issue tiene el detalle completo y el estado real.
 
 ### API REST
 
-- **Documentar la API REST**: hoy la única "documentación" es leer `routes/api.php`/los controladores. Por endpoint (`/api/login`, `/api/logout`, `/api/user`, `/api/games` CRUD): qué recibe (cada campo del payload con su tipo y si es obligatorio/opcional — ver `StoreGameRequest`/`UpdateGameRequest` para las reglas ya validadas) y qué devuelve (forma del JSON de `GameResource`, paginación de `index()`, códigos de estado de error). Formato ligero (un `docs/api.md` a mano), no una herramienta tipo L5-Swagger/Scribe — de sobra para dos controladores.
+- **Documentar la API REST** (#4): hoy la única "documentación" es leer `routes/api.php`/los controladores. Por endpoint (`/api/login`, `/api/logout`, `/api/user`, `/api/games` CRUD): qué recibe (cada campo del payload con su tipo y si es obligatorio/opcional — ver `StoreGameRequest`/`UpdateGameRequest` para las reglas ya validadas) y qué devuelve (forma del JSON de `GameResource`, paginación de `index()`, códigos de estado de error). Formato ligero (un `docs/api.md` a mano), no una herramienta tipo L5-Swagger/Scribe — de sobra para dos controladores.
 
 ### Gestión de la colección
 
-- **Filtro de plataforma: opción "Sin plataforma"** para los juegos con `platform_id` nulo — hoy el desplegable de plataformas (`games/_filters.blade.php`) solo lista plataformas reales, no hay forma de aislar los que no tienen ninguna asignada.
-- **Alta de un juego: quitar la sección "Lista de deseos" del formulario completo** (`games/_form.blade.php`, campos `wishlist_priority`/`wishlist_estimated_price`/`wishlist_store`) — no pinta nada ahí ahora que el alta reducida de la wishlist (`/wishlist/create`) es su propio flujo aparte.
-
-### Lista de deseos
-
-- **Alta de un juego deseado más completa**: `/wishlist/create` hoy solo pide título/plataforma/edición; añadir de entrada los campos que ya existen para esto en el formulario completo (prioridad, precio estimado, dónde comprarlo — ver el punto de arriba sobre quitarlos del alta normal, tendrían que mudarse aquí en vez de desaparecer sin más). Al "Pasar a la colección", usar el precio estimado y la tienda ya guardados para preseleccionar precio pagado y lugar de compra, en vez de dejarlos en blanco como ahora.
-- **Buscador rápido y escáner de código de barras: avisar si el juego ya está en la wishlist**. Al buscar por EAN o título (Ctrl+K o el escáner), si hay un juego que ya se está deseando, mostrarlo marcado como tal en los resultados, para no perder de vista que ya se está detrás de él.
+- **Mostrar tiempos de completado de IGDB** (#22): si está disponible y el usuario tiene IGDB configurado, mostrar el
+  tiempo medio en completar el juego ("No disponible" si IGDB no lo tiene, oculto del todo sin credenciales IGDB); más
+  un campo para que el usuario anote su propio tiempo al marcar un juego como terminado.
 
 ### Exportación / copias de seguridad
 
-- **Copia de seguridad con las carátulas incluidas**: mirar la viabilidad de exportar/importar la colección (datos + ficheros de `storage/app/public/covers`) en un único paquete (`.zip` u otro formato), de forma segura — hoy la exportación (CSV) y las carátulas en disco son cosas separadas, sin ninguna vía para respaldarlas o moverlas juntas.
+- **Copia de seguridad con las carátulas incluidas** (#9): mirar la viabilidad de exportar/importar la colección (datos + ficheros de `storage/app/public/covers`) en un único paquete (`.zip` u otro formato), de forma segura — hoy la exportación (CSV) y las carátulas en disco son cosas separadas, sin ninguna vía para respaldarlas o moverlas juntas.
 
 ### Usuarios y cuentas
 
-- **`/panel/users`: orden del listado y ciclo de vida del registro sin terminar** (anotado tras el incidente real de cuentas huérfanas por fallo de envío del código, ver CHANGELOG 2026-08-23):
+- **`/panel/users`: orden del listado y ciclo de vida del registro sin terminar** (#10, anotado tras el incidente real de cuentas huérfanas por fallo de envío del código, ver CHANGELOG 2026-08-23):
   - Orden actual: alfabético por nombre (`UserController::index()`). Cambiar a admins primero, luego el resto, y dentro de cada grupo por fecha de alta (`created_at`).
   - Marcar con una etiqueta/badge las cuentas que se registraron pero nunca completaron el desafío de 2FA (`two_factor_code` todavía puesto, sin verificar nunca) — hoy son indistinguibles de una cuenta normal en el listado. Antes de implementarlo, decidir qué debe pasar si esa misma persona quiere reintentar el registro con ese email: hoy choca con el `unique` de `users.email` sin ninguna salida (¿se le deja reenviar el código desde `/login` en vez de volver a `/register`? ¿Hace falta que un admin la borre a mano desde el panel para liberar el email?).
   - Purgado de esas cuentas abandonadas (job programado, o una acción manual desde el panel) para que no se acumulen indefinidamente bloqueando el email de alguien que de verdad quiere registrarse.
-- **Permitir que un usuario borre su propia cuenta y todos sus datos** (colección, carátulas incluidas) desde `/profile`, con una confirmación reforzada dado lo irreversible del borrado (más allá del diálogo de confirmación genérico que ya usa el resto de la app para acciones destructivas).
-
-### Panel de control y Ajustes
-
-- **Reordenar el Panel de control** (`/panel`): revisar el agrupado actual ("Colección" / "Cuenta" / "Administración", ver `panel/index.blade.php`) y el orden de las tarjetas dentro de cada grupo.
-- **Reordenar Ajustes** (`/panel/settings`): la tarjeta "Verificación en dos pasos" quedó metida entre las dos de IGDB (justo después de "IGDB" y antes de "Fondo automático desde IGDB", ver `panel/settings.blade.php`) sin relación entre ellas — sacarla de en medio.
+- **Permitir que un usuario borre su propia cuenta y todos sus datos** (#11, colección, carátulas incluidas) desde `/profile`, con una confirmación reforzada dado lo irreversible del borrado (más allá del diálogo de confirmación genérico que ya usa el resto de la app para acciones destructivas).
 
 ### Interfaz
 
-- **Menú de usuario de la cabecera como desplegable**: hoy el avatar/email de la barra superior es un enlace directo al perfil, con el botón "Salir" suelto al lado (`layouts/app.blade.php`) y sin acceso al Panel de control desde ahí. Pasarlo a un desplegable con: acceso al perfil, al Panel de control (y a la gestión de usuarios si la cuenta es admin) y "Salir".
-- **Reordenar los iconos de vista de la colección**: hoy van lista → compacta → estantería (`games/index.blade.php`); pasar a compacta → lista → estantería, con compacta como el primer icono a la izquierda. El valor por defecto ya es compacta (`users.games_view`, ver migración de Ajustes) — esto es solo el orden visual del toggle, no el default.
-- **Investigar por qué la vista móvil se ve distinta en desarrollo local que en producción** (en producción se ve bien) — sin diagnosticar todavía qué difiere entre ambos entornos.
+- **Investigar por qué la vista móvil se ve distinta en desarrollo local que en producción** (#16, en producción se ve bien) — sin diagnosticar todavía qué difiere entre ambos entornos.
+- **Precargar/subsetear la fuente de iconos** (#23): la fuente variable completa de Material Symbols Outlined pesa ~4 MB (incluye todos los iconos del catálogo, no solo los ~49 que usa la app) — a veces se nota el tiempo de carga (aparece el nombre del icono en texto plano antes de pintarse el glifo). Subsetear con el parámetro `icon_names=` de Google Fonts baja el fichero a ~49 KB, momento en el que sí compensa además precargarlo.
 
 ### Infraestructura y despliegue
 
-- Sin backups automatizados de Postgres (ni `pg_dump` programado ni snapshot del volumen).
+- **Backups automatizados de Postgres** (#17): ni `pg_dump` programado ni snapshot del volumen.
 - Sin HTTPS en el despliegue actual: bloquea el escaneo de código de barras desde el móvil fuera de `localhost` (ver [Desplegar para uso propio](#desplegar-para-uso-propio)).
 
 ### Mejoras técnicas identificadas (auditoría 2026-08-17)
 
-Sin implementar todavía, por orden aproximado de impacto:
-
-- Sin PHPStan/Larastan configurado.
-- Redis sin AOF (solo snapshots RDB): en un crash no limpio se podrían perder los últimos segundos de sesiones/caché.
-  Bajo riesgo, ahí no vive ningún dato que no esté también en Postgres.
+- **Sin PHPStan/Larastan configurado** (#18).
 
 ## Ideas a futuro
 
