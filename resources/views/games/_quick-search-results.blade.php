@@ -92,7 +92,7 @@
                             <x-platform-chip :platform="$game->platform" class="!px-1.5 !py-0.5 !text-[10px]" />
                             @if($game->status === 'wishlist')
                                 <span class="inline-flex items-center gap-0.5 text-[10px] font-medium text-red-400" title="En tu lista de deseos">
-                                    <x-gicon name="favorite" class="text-[12px]" />
+                                    <x-gicon name="favorite" :filled="true" class="text-[12px]" />
                                     En lista deseos
                                 </span>
                             @elseif($game->price_paid !== null)
