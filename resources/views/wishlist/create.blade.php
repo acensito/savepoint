@@ -11,7 +11,7 @@
         <div class="mb-8 flex items-center justify-between">
             <div>
                 <h1 class="text-3xl font-bold text-slate-100 tracking-tight">Añadir a la lista de deseos</h1>
-                <p class="text-slate-400 mt-1">Solo lo justo para no perderlo de vista. El resto de datos (precio, conservación...) se rellenan al pasarlo a la colección.</p>
+                <p class="text-slate-400 mt-1">Lo justo para no perderlo de vista, más cuánto esperas pagar y dónde. El resto de datos (conservación, manual...) se rellena al pasarlo a la colección.</p>
             </div>
             <a href="{{ route('web.wishlist.index') }}" class="text-sm font-medium text-slate-400 hover:text-slate-100 whitespace-nowrap">
                 ← Volver a la wishlist
@@ -53,6 +53,30 @@
                             @endforeach
                         </select>
                         @error('edition_id') <span class="{{ $error }}">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label for="wishlist_priority" class="{{ $label }}">Prioridad</label>
+                        <select name="wishlist_priority" id="wishlist_priority" class="{{ $input }}">
+                            <option value="">—</option>
+                            <option value="1" {{ (string) old('wishlist_priority') === '1' ? 'selected' : '' }}>Alta</option>
+                            <option value="2" {{ (string) old('wishlist_priority') === '2' ? 'selected' : '' }}>Media</option>
+                            <option value="3" {{ (string) old('wishlist_priority') === '3' ? 'selected' : '' }}>Baja</option>
+                        </select>
+                        @error('wishlist_priority') <span class="{{ $error }}">{{ $message }}</span> @enderror
+                    </div>
+                    <div>
+                        <label for="wishlist_estimated_price" class="{{ $label }}">Precio estimado</label>
+                        <input type="number" step="0.01" min="0" name="wishlist_estimated_price" id="wishlist_estimated_price"
+                            value="{{ old('wishlist_estimated_price') }}" class="{{ $input }}">
+                        @error('wishlist_estimated_price') <span class="{{ $error }}">{{ $message }}</span> @enderror
+                    </div>
+                    <div>
+                        <label for="wishlist_store" class="{{ $label }}">Dónde comprarlo</label>
+                        <input type="text" name="wishlist_store" id="wishlist_store" value="{{ old('wishlist_store') }}" autocomplete="off" autocorrect="off" spellcheck="false" class="{{ $input }}">
+                        @error('wishlist_store') <span class="{{ $error }}">{{ $message }}</span> @enderror
                     </div>
                 </div>
 

@@ -62,9 +62,12 @@ class WishlistControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Añadir a la lista de deseos');
+        $response->assertSee('name="wishlist_priority"', false);
+        $response->assertSee('name="wishlist_estimated_price"', false);
+        $response->assertSee('name="wishlist_store"', false);
     }
 
-    public function test_store_creates_a_wishlist_game_with_only_the_reduced_fields(): void
+    public function test_store_creates_a_wishlist_game_without_optional_fields(): void
     {
         $user = User::factory()->create();
         $platform = Platform::factory()->create();
@@ -81,6 +84,37 @@ class WishlistControllerTest extends TestCase
         $this->assertSame('wishlist', $game->status);
         $this->assertSame('pending', $game->play_status);
         $this->assertSame($platform->id, $game->platform_id);
+        $this->assertNull($game->wishlist_priority);
+    }
+
+    public function test_store_saves_priority_estimated_price_and_store(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post(route('web.wishlist.store'), [
+            'title' => 'Silksong',
+            'wishlist_priority' => '1',
+            'wishlist_estimated_price' => '39.99',
+            'wishlist_store' => 'CEX',
+        ]);
+
+        $game = Game::where('title', 'Silksong')->firstOrFail();
+        $this->assertSame(1, $game->wishlist_priority);
+        $this->assertEquals(39.99, $game->wishlist_estimated_price);
+        $this->assertSame('CEX', $game->wishlist_store);
+    }
+
+    public function test_store_rejects_a_priority_outside_the_1_to_3_range(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post(route('web.wishlist.store'), [
+            'title' => 'Silksong',
+            'wishlist_priority' => '4',
+        ]);
+
+        $response->assertSessionHasErrors('wishlist_priority');
+        $this->assertDatabaseCount('games', 0);
     }
 
     public function test_store_requires_a_title(): void

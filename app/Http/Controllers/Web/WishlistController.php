@@ -84,6 +84,9 @@ class WishlistController extends Controller
             'title' => 'required|string|max:255',
             'platform_id' => 'nullable|exists:platforms,id',
             'edition_id' => 'nullable|exists:editions,id',
+            'wishlist_priority' => 'nullable|integer|min:1|max:3',
+            'wishlist_estimated_price' => 'nullable|numeric|min:0',
+            'wishlist_store' => 'nullable|string|max:255',
         ]);
 
         Game::create([

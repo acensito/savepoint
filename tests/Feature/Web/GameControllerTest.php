@@ -20,6 +20,31 @@ class GameControllerTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_create_form_does_not_show_the_wishlist_fields(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get(route('web.games.create'));
+
+        $response->assertOk();
+        $response->assertDontSee('name="wishlist_priority"', false);
+        $response->assertDontSee('name="wishlist_estimated_price"', false);
+        $response->assertDontSee('name="wishlist_store"', false);
+    }
+
+    public function test_edit_form_does_not_show_the_wishlist_fields(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create();
+
+        $response = $this->actingAs($user)->get(route('web.games.edit', $game->id));
+
+        $response->assertOk();
+        $response->assertDontSee('name="wishlist_priority"', false);
+        $response->assertDontSee('name="wishlist_estimated_price"', false);
+        $response->assertDontSee('name="wishlist_store"', false);
+    }
+
     public function test_index_only_lists_the_authenticated_users_games(): void
     {
         $user = User::factory()->create();
@@ -132,6 +157,60 @@ class GameControllerTest extends TestCase
         $response->assertOk();
         $response->assertSee('value="owned" selected', false);
         $response->assertSee('value="'.now()->format('Y-m-d').'"', false);
+    }
+
+    public function test_editing_with_convert_to_owned_preselects_price_and_place_from_the_wishlist_estimate(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create([
+            'status' => 'wishlist',
+            'price_paid' => null,
+            'purchase_place' => null,
+            'wishlist_estimated_price' => 39.99,
+            'wishlist_store' => 'CEX',
+        ]);
+
+        $response = $this->actingAs($user)->get(route('web.games.edit', ['game' => $game->id, 'convert_to_owned' => 1]));
+
+        $response->assertOk();
+        $response->assertSee('name="price_paid" id="price_paid" value="39.99"', false);
+        $response->assertSee('name="purchase_place" id="purchase_place" value="CEX"', false);
+    }
+
+    public function test_editing_with_convert_to_owned_keeps_an_already_saved_price_and_place(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create([
+            'status' => 'wishlist',
+            'price_paid' => 10,
+            'purchase_place' => 'GAME',
+            'wishlist_estimated_price' => 39.99,
+            'wishlist_store' => 'CEX',
+        ]);
+
+        $response = $this->actingAs($user)->get(route('web.games.edit', ['game' => $game->id, 'convert_to_owned' => 1]));
+
+        $response->assertOk();
+        $response->assertSee('name="price_paid" id="price_paid" value="10.00"', false);
+        $response->assertSee('name="purchase_place" id="purchase_place" value="GAME"', false);
+    }
+
+    public function test_editing_normally_does_not_preselect_price_or_place_from_the_wishlist_estimate(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create([
+            'status' => 'wishlist',
+            'price_paid' => null,
+            'purchase_place' => null,
+            'wishlist_estimated_price' => 39.99,
+            'wishlist_store' => 'CEX',
+        ]);
+
+        $response = $this->actingAs($user)->get(route('web.games.edit', $game->id));
+
+        $response->assertOk();
+        $response->assertSee('name="price_paid" id="price_paid" value=""', false);
+        $response->assertSee('name="purchase_place" id="purchase_place" value=""', false);
     }
 
     public function test_editing_normally_keeps_the_games_current_status(): void

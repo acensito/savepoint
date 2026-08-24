@@ -25,6 +25,14 @@
     $defaultPurchaseDate = $game?->purchase_date?->format('Y-m-d')
         ?? ($convertToOwned || !$game ? now()->format('Y-m-d') : null);
 
+    // Al pasar de la wishlist a la colección, precarga precio/lugar de
+    // compra con lo que ya se había apuntado ahí (precio estimado, dónde
+    // comprarlo) en vez de dejarlos en blanco: no son el precio/lugar
+    // reales todavía (el usuario los confirma o corrige aquí antes de
+    // guardar), pero es mejor punto de partida que nada.
+    $defaultPricePaid = $game?->price_paid ?? ($convertToOwned ? $game?->wishlist_estimated_price : null);
+    $defaultPurchasePlace = $game?->purchase_place ?? ($convertToOwned ? $game?->wishlist_store : null);
+
     $regionPresets = \App\Http\Controllers\Web\GameController::REGION_PRESETS;
     // Misma idea que $defaultEditionId: región por defecto de Ajustes al dar
     // de alta, vacío ("Sin especificar") si no la ha configurado.
@@ -258,38 +266,6 @@
     </div>
 </div>
 
-<!-- Lista de deseos: solo tiene sentido mientras el juego no se ha comprado
-     todavía (Propiedad = "Lista de deseos"), pero se deja siempre visible en
-     vez de ocultarla con JS según el desplegable de arriba, igual que la
-     sección "Compra" tampoco se oculta cuando el juego SÍ está en colección. -->
-<div class="pt-6 border-t border-slate-800 space-y-4">
-    <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Lista de deseos</h2>
-
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div>
-            <label for="wishlist_priority" class="{{ $label }}">Prioridad</label>
-            <select name="wishlist_priority" id="wishlist_priority" class="{{ $input }}">
-                <option value="">—</option>
-                <option value="1" {{ (string) old('wishlist_priority', $game?->wishlist_priority) === '1' ? 'selected' : '' }}>Alta</option>
-                <option value="2" {{ (string) old('wishlist_priority', $game?->wishlist_priority) === '2' ? 'selected' : '' }}>Media</option>
-                <option value="3" {{ (string) old('wishlist_priority', $game?->wishlist_priority) === '3' ? 'selected' : '' }}>Baja</option>
-            </select>
-            @error('wishlist_priority') <span class="{{ $error }}">{{ $message }}</span> @enderror
-        </div>
-        <div>
-            <label for="wishlist_estimated_price" class="{{ $label }}">Precio estimado</label>
-            <input type="number" step="0.01" min="0" name="wishlist_estimated_price" id="wishlist_estimated_price"
-                value="{{ old('wishlist_estimated_price', $game?->wishlist_estimated_price) }}" class="{{ $input }}">
-            @error('wishlist_estimated_price') <span class="{{ $error }}">{{ $message }}</span> @enderror
-        </div>
-        <div>
-            <label for="wishlist_store" class="{{ $label }}">Dónde comprarlo</label>
-            <input type="text" name="wishlist_store" id="wishlist_store" value="{{ old('wishlist_store', $game?->wishlist_store) }}" autocomplete="off" autocorrect="off" spellcheck="false" class="{{ $input }}">
-            @error('wishlist_store') <span class="{{ $error }}">{{ $message }}</span> @enderror
-        </div>
-    </div>
-</div>
-
 <!-- Compra -->
 <div class="pt-6 border-t border-slate-800 space-y-4">
     <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Compra</h2>
@@ -297,12 +273,12 @@
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
             <label for="price_paid" class="{{ $label }}">Precio pagado</label>
-            <input type="number" step="0.01" min="0" name="price_paid" id="price_paid" value="{{ old('price_paid', $game?->price_paid) }}" class="{{ $input }}">
+            <input type="number" step="0.01" min="0" name="price_paid" id="price_paid" value="{{ old('price_paid', $defaultPricePaid) }}" class="{{ $input }}">
             @error('price_paid') <span class="{{ $error }}">{{ $message }}</span> @enderror
         </div>
         <div>
             <label for="purchase_place" class="{{ $label }}">Lugar de compra</label>
-            <input type="text" name="purchase_place" id="purchase_place" value="{{ old('purchase_place', $game?->purchase_place) }}" autocomplete="off" autocorrect="off" spellcheck="false" class="{{ $input }}">
+            <input type="text" name="purchase_place" id="purchase_place" value="{{ old('purchase_place', $defaultPurchasePlace) }}" autocomplete="off" autocorrect="off" spellcheck="false" class="{{ $input }}">
             @error('purchase_place') <span class="{{ $error }}">{{ $message }}</span> @enderror
         </div>
         <div>
