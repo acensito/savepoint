@@ -83,6 +83,24 @@
             </div>
 
             <div class="bg-slate-900 border border-slate-800 rounded-xl p-8">
+                <h2 class="text-lg font-semibold text-slate-100 mb-1">Apariencia</h2>
+                <p class="text-sm text-slate-500 mb-6">
+                    Color de la barra de navegación superior, entre unos cuantos preseleccionados.
+                </p>
+
+                <div class="flex flex-wrap gap-3">
+                    @foreach(\App\Http\Controllers\Web\PanelController::NAVBAR_COLORS as $value => $hex)
+                        <label class="cursor-pointer">
+                            <input type="radio" name="navbar_color" value="{{ $value }}" class="sr-only peer"
+                                {{ old('navbar_color', $user->navbar_color) === $value ? 'checked' : '' }}>
+                            <span class="flex items-center justify-center w-9 h-9 rounded-full border-2 border-transparent peer-checked:border-slate-100 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-slate-900 peer-focus-visible:ring-indigo-500 transition-colors"
+                                style="background-color: {{ $hex }}" title="{{ ucfirst($value) }}"></span>
+                        </label>
+                    @endforeach
+                </div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-8">
                 <h2 class="text-lg font-semibold text-slate-100 mb-1">Preferencias de la colección</h2>
                 <p class="text-sm text-slate-500 mb-6">
                     Con qué orden y tamaño de página arranca "Mi Colección" cuando no lo cambias a mano en el

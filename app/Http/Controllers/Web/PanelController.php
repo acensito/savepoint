@@ -14,6 +14,21 @@ use Illuminate\View\View;
 class PanelController extends Controller
 {
     /**
+     * Presets de color de la barra de navegación superior (ver
+     * layouts/app.blade.php y el bloque html.navbar-* de resources/css/app.css):
+     * clave guardada en users.navbar_color => hex usado en el swatch de
+     * Ajustes y en el <meta name="theme-color"> del layout.
+     */
+    public const NAVBAR_COLORS = [
+        'indigo' => '#4f46e5',
+        'emerald' => '#059669',
+        'rose' => '#e11d48',
+        'amber' => '#d97706',
+        'sky' => '#0284c7',
+        'violet' => '#7c3aed',
+    ];
+
+    /**
      * Punto de entrada único para tareas que antes vivían sueltas por el
      * sidebar (importar, papelera): importar/exportar la colección, la
      * papelera de reciclaje y el perfil del usuario.
@@ -45,6 +60,7 @@ class PanelController extends Controller
             'default_per_page' => ['nullable', Rule::in(GameController::PER_PAGE_OPTIONS)],
             'default_region' => ['nullable', Rule::in(GameController::REGION_PRESETS)],
             'default_edition_id' => 'nullable|exists:editions,id',
+            'navbar_color' => ['nullable', Rule::in(array_keys(self::NAVBAR_COLORS))],
             'igdb_client_id' => 'nullable|string|max:255',
             'igdb_client_secret' => 'nullable|string|max:255',
         ]);
@@ -60,6 +76,7 @@ class PanelController extends Controller
             'default_per_page' => $validated['default_per_page'] ?? 20,
             'default_region' => $validated['default_region'] ?? null,
             'default_edition_id' => $validated['default_edition_id'] ?? null,
+            'navbar_color' => $validated['navbar_color'] ?? 'indigo',
             // Checkboxes: si no llegan en el POST, es que estaban desmarcados.
             'auto_igdb_background' => $request->boolean('auto_igdb_background'),
             'quick_search_exclude_wishlist' => $request->boolean('quick_search_exclude_wishlist'),

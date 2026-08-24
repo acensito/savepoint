@@ -70,6 +70,35 @@
     --color-amber-400: var(--color-amber-600);
 }
 
+/* Color de la barra de navegación superior (ver PanelController::NAVBAR_COLORS
+   y layouts/app.blade.php, que pinta la clase html.navbar-{color} server-side):
+   una property propia (--color-navbar), no una redefinición de --color-indigo-*,
+   porque bg-indigo-600 se usa también en botones/chips que no deben cambiar de
+   color al elegir un preset distinto para la navbar. */
+:root {
+    --color-navbar: var(--color-indigo-600);
+}
+
+html.navbar-emerald {
+    --color-navbar: var(--color-emerald-600);
+}
+
+html.navbar-rose {
+    --color-navbar: var(--color-rose-600);
+}
+
+html.navbar-amber {
+    --color-navbar: var(--color-amber-600);
+}
+
+html.navbar-sky {
+    --color-navbar: var(--color-sky-600);
+}
+
+html.navbar-violet {
+    --color-navbar: var(--color-violet-600);
+}
+
 /* Sidebar plegable: el ancho y el estado colapsado se controlan aquí (no con
    utilidades de Tailwind) para poder alternarlos con una sola clase en <html>,
    aplicada antes del primer pintado desde el script bloqueante del layout. */

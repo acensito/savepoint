@@ -15,7 +15,7 @@ use Laravel\Sanctum\HasApiTokens;
 
 #[Fillable([
     'name', 'email', 'password', 'is_admin', 'auto_igdb_background',
-    'theme', 'games_view', 'default_sort', 'default_dir', 'default_per_page',
+    'theme', 'games_view', 'navbar_color', 'default_sort', 'default_dir', 'default_per_page',
     'default_region', 'default_edition_id', 'quick_search_exclude_wishlist',
     'igdb_enabled', 'igdb_client_id', 'igdb_client_secret',
     'hide_for_sale_from_collection', 'avatar_path', 'two_factor_enabled',

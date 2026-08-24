@@ -127,6 +127,39 @@ class PanelControllerTest extends TestCase
         $this->assertTrue($fresh->quick_search_exclude_wishlist);
     }
 
+    public function test_user_can_update_the_navbar_color(): void
+    {
+        $user = User::factory()->create(['navbar_color' => 'indigo']);
+
+        $response = $this->actingAs($user)->put('/panel/settings', [
+            'navbar_color' => 'emerald',
+        ]);
+
+        $response->assertRedirect(route('web.panel.settings'));
+        $this->assertSame('emerald', $user->fresh()->navbar_color);
+    }
+
+    public function test_updating_settings_without_a_navbar_color_falls_back_to_indigo(): void
+    {
+        $user = User::factory()->create(['navbar_color' => 'rose']);
+
+        $this->actingAs($user)->put('/panel/settings', []);
+
+        $this->assertSame('indigo', $user->fresh()->navbar_color);
+    }
+
+    public function test_updating_settings_rejects_a_navbar_color_outside_the_presets(): void
+    {
+        $user = User::factory()->create(['navbar_color' => 'indigo']);
+
+        $response = $this->actingAs($user)->put('/panel/settings', [
+            'navbar_color' => 'not-a-real-color',
+        ]);
+
+        $response->assertSessionHasErrors('navbar_color');
+        $this->assertSame('indigo', $user->fresh()->navbar_color);
+    }
+
     public function test_settings_shows_the_igdb_checkbox_unchecked_by_default(): void
     {
         $user = User::factory()->create();

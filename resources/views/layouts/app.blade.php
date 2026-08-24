@@ -11,7 +11,9 @@
             'compact' => 'games-compact-view',
             default => null,
         },
+        'navbar-' . auth()->user()->navbar_color,
     ])->filter()->implode(' ');
+    $navbarThemeColor = \App\Http\Controllers\Web\PanelController::NAVBAR_COLORS[auth()->user()->navbar_color] ?? '#4f46e5';
 @endphp
 <html lang="es" class="{{ $htmlClasses }}">
 <head>
@@ -20,7 +22,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>SavePoint - Mi Colección</title>
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#4f46e5">
+    <meta name="theme-color" content="{{ $navbarThemeColor }}">
     <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
     <meta name="mobile-web-app-capable" content="yes">
@@ -45,7 +47,7 @@
     </script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="bg-indigo-600 text-slate-300 antialiased">
+<body class="bg-[var(--color-navbar)] text-slate-300 antialiased">
 
     <div class="h-screen flex flex-col overflow-hidden">
 
