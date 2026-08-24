@@ -45,7 +45,7 @@
                 'route' => route('web.panel.settings'),
                 'icon' => 'tune',
                 'title' => 'Ajustes',
-                'description' => 'Comportamiento de la app, como el fondo automático de IGDB.',
+                'description' => 'Comportamiento de la app: IGDB, cuenta y colección.',
             ],
         ],
     ];
