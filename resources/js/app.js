@@ -85,6 +85,41 @@ function initThemeToggle() {
 initThemeToggle();
 
 /**
+ * Desplegable del menú de usuario del header (avatar/email → perfil, panel
+ * de control, salir). Se cierra al clicar fuera, con Escape, o al elegir
+ * una opción (navegación normal de <a>/submit de formulario, no hace falta
+ * gestionarlo aquí); el propio botón vuelve a abrir/cerrar si se clica de
+ * nuevo estando ya abierto.
+ */
+function initUserMenu() {
+    const trigger = document.querySelector('.js-user-menu-trigger');
+    const menu = document.querySelector('.js-user-menu');
+    if (!trigger || !menu) return;
+
+    const isOpen = () => !menu.classList.contains('hidden');
+
+    const setOpen = (open) => {
+        menu.classList.toggle('hidden', !open);
+        trigger.setAttribute('aria-expanded', String(open));
+    };
+
+    trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setOpen(!isOpen());
+    });
+
+    document.addEventListener('click', (e) => {
+        if (isOpen() && !menu.contains(e.target)) setOpen(false);
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && isOpen()) setOpen(false);
+    });
+}
+
+initUserMenu();
+
+/**
  * Acciones en bloque en la colección (games/index.blade.php): las casillas
  * de cada fila/tarjeta no viven dentro de un <form> propio (irían anidadas
  * dentro del <form> individual de "Borrar" de esa misma fila, lo cual es

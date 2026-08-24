@@ -78,8 +78,13 @@
                     <x-gicon name="light_mode" class="text-[20px]" />
                 </button>
 
-                <form action="{{ route('web.logout') }}" method="POST" class="flex items-center gap-4">
-                    <a href="{{ route('web.profile.edit') }}" class="flex items-center gap-1.5 text-sm text-indigo-100 hover:text-white transition-colors {{ request()->routeIs('web.profile.*') ? 'text-white font-medium' : '' }}">
+                <!-- Menú de usuario: antes un enlace directo al perfil con el botón
+                     "Salir" suelto al lado, sin acceso al Panel de control desde aquí.
+                     Ahora un desplegable único (ver initUserMenu en app.js) para dejar
+                     la navbar más limpia. -->
+                <div class="relative">
+                    <button type="button" id="user-menu-trigger" class="js-user-menu-trigger flex items-center gap-1.5 text-sm text-indigo-100 hover:text-white transition-colors"
+                        aria-haspopup="true" aria-expanded="false" aria-controls="user-menu">
                         @if(auth()->user()->avatarUrl())
                             <img src="{{ auth()->user()->avatarUrl() }}"
                                  alt="Avatar"
@@ -90,13 +95,30 @@
                             </div>
                         @endif
                         <span class="hidden sm:inline">{{ auth()->user()->email }}</span>
-                    </a>
-                    @csrf
-                    <button type="submit" class="flex items-center gap-1.5 text-sm font-medium text-indigo-100 hover:text-white transition-colors">
-                        <x-gicon name="logout" class="text-[18px]" />
-                        <span class="hidden sm:inline">Salir</span>
+                        <x-gicon name="expand_more" class="text-[18px]" />
                     </button>
-                </form>
+
+                    <div id="user-menu" class="js-user-menu hidden absolute right-0 top-full mt-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-lg py-1 text-slate-100 z-20">
+                        <a href="{{ route('web.profile.edit') }}"
+                            class="flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-slate-700 transition-colors {{ request()->routeIs('web.profile.*') ? 'text-indigo-400' : '' }}">
+                            <x-gicon name="person" class="text-[18px]" />
+                            Perfil
+                        </a>
+                        <a href="{{ route('web.panel.index') }}"
+                            class="flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-slate-700 transition-colors {{ request()->routeIs('web.panel.*', 'web.games.import*', 'web.games.trash') ? 'text-indigo-400' : '' }}">
+                            <x-gicon name="settings" class="text-[18px]" />
+                            Panel de control
+                        </a>
+                        <div class="border-t border-slate-700 my-1"></div>
+                        <form action="{{ route('web.logout') }}" method="POST">
+                            @csrf
+                            <button type="submit" class="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-left hover:bg-slate-700 transition-colors">
+                                <x-gicon name="logout" class="text-[18px]" />
+                                Salir
+                            </button>
+                        </form>
+                    </div>
+                </div>
             </div>
         </header>
 
