@@ -128,7 +128,7 @@
             <!-- Fondo oscuro tras el sidebar cuando el drawer móvil está abierto; tocarlo lo cierra -->
             <div id="sidebar-backdrop"></div>
 
-            <aside id="sidebar" class="sidebar flex-shrink-0 bg-slate-900 border-r border-slate-800 flex flex-col overflow-y-auto transition-[width] duration-200 ease-in-out">
+            <aside id="sidebar" class="sidebar flex-shrink-0 bg-slate-900 border-r border-slate-800 flex flex-col overflow-y-auto overscroll-contain transition-[width] duration-200 ease-in-out">
                 <div class="flex items-center justify-between px-3 py-2">
                     <span class="md:hidden pl-1 text-sm font-semibold text-slate-200">Menú</span>
 
@@ -229,7 +229,18 @@
                 </div>
             </aside>
 
-            <main class="flex-1 overflow-y-auto bg-slate-950 px-4 py-6 md:px-8 md:py-8">
+            <!-- overscroll-contain: sin esto, un scroll/wheel/swipe que llega al
+                 final de este contenedor en páginas largas (p. ej. Ajustes con
+                 muchas tarjetas) encadena ("scroll chaining") al <html>/<body>
+                 exteriores, que no están pensados para desplazarse (el layout es
+                 un h-screen fijo). El resultado era una zona "fantasma" pintada
+                 con el color de fondo de <body> (bg-[var(--color-navbar)], que
+                 se propaga al lienzo) tapando el contenido real — reportado como
+                 "el selector de color deforma la vista" en el issue #21, aunque
+                 el bug es de scroll, no del selector: ya pasaba con el indigo
+                 fijo de antes, solo que al ser siempre el mismo color no se
+                 notaba tanto como con presets distintos. -->
+            <main class="flex-1 overflow-y-auto overscroll-contain bg-slate-950 px-4 py-6 md:px-8 md:py-8">
                 @yield('content')
             </main>
 
