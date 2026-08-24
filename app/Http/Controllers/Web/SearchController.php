@@ -49,7 +49,7 @@ class SearchController extends Controller
         $games = ($query === '' && ! $hasFilters)
             ? collect()
             : Game::where('user_id', auth()->id())
-                ->select(['id', 'title', 'cover', 'platform_id', 'rating', 'price_paid'])
+                ->select(['id', 'title', 'cover', 'platform_id', 'rating', 'price_paid', 'status'])
                 ->with([
                     'platform:id,name,label,bg_color,text_color,border_color,manufacturer_id',
                     'platform.manufacturer:id,bg_color,text_color,border_color',

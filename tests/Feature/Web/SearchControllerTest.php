@@ -92,6 +92,28 @@ class SearchControllerTest extends TestCase
         $response->assertSee('Silksong');
     }
 
+    public function test_quick_marks_a_wishlist_game_as_deseado(): void
+    {
+        $user = User::factory()->create();
+        Game::factory()->for($user)->create(['title' => 'Silksong', 'status' => 'wishlist']);
+
+        $response = $this->actingAs($user)->get(route('web.search.quick', ['q' => 'Silksong']));
+
+        $response->assertOk();
+        $response->assertSee('Deseado');
+    }
+
+    public function test_quick_does_not_mark_an_owned_game_as_deseado(): void
+    {
+        $user = User::factory()->create();
+        Game::factory()->for($user)->create(['title' => 'Silksong', 'status' => 'owned']);
+
+        $response = $this->actingAs($user)->get(route('web.search.quick', ['q' => 'Silksong']));
+
+        $response->assertOk();
+        $response->assertDontSee('Deseado');
+    }
+
     public function test_quick_excludes_wishlist_games_when_the_setting_is_enabled(): void
     {
         // Sin match local (se excluye la wishlist a propósito), se
