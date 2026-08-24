@@ -35,7 +35,12 @@ class GameCollectionQuery
             // aparece aquí, ni siquiera con el filtro de Propiedad a mano.
             ->where('status', '!=', 'wishlist')
             ->when($query !== '', fn ($q) => $q->search($query))
-            ->when($platformId !== '', fn ($q) => $q->where('platform_id', $platformId))
+            ->when(
+                $platformId !== '',
+                fn ($q) => $platformId === 'none'
+                    ? $q->whereNull('platform_id')
+                    : $q->where('platform_id', $platformId),
+            )
             ->when($playStatus !== '', fn ($q) => $q->where('play_status', $playStatus))
             ->when($status !== '', fn ($q) => $q->where('status', $status))
             ->when(

@@ -38,7 +38,7 @@ class GameExportController extends Controller
         $platformId = (string) $request->input('platform_id', '');
         $playStatus = (string) $request->input('play_status', '');
         $status = (string) $request->input('status', '');
-        $platform = $platformId !== '' ? Platform::find($platformId) : null;
+        $platform = ctype_digit($platformId) ? Platform::find($platformId) : null;
 
         $totals = [
             'count' => $games->count(),

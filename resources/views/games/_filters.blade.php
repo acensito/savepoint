@@ -41,6 +41,7 @@
                     {{ $platform->name }}
                 </option>
             @endforeach
+            <option value="none" {{ $platformId === 'none' ? 'selected' : '' }}>Sin plataforma</option>
         </select>
 
         <select name="play_status" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-none text-sm">

@@ -72,6 +72,20 @@ class GameControllerTest extends TestCase
         $this->assertSame('En venta', $games->first()->title);
     }
 
+    public function test_index_filters_by_no_platform(): void
+    {
+        $user = User::factory()->create();
+        $platform = Platform::factory()->create();
+        Game::factory()->for($user)->create(['title' => 'Sin plataforma', 'platform_id' => null]);
+        Game::factory()->for($user)->create(['title' => 'Con plataforma', 'platform_id' => $platform->id]);
+
+        $response = $this->actingAs($user)->get('/?platform_id=none');
+
+        $games = $response->viewData('games');
+        $this->assertCount(1, $games);
+        $this->assertSame('Sin plataforma', $games->first()->title);
+    }
+
     public function test_index_shows_for_sale_games_by_default(): void
     {
         $user = User::factory()->create(['hide_for_sale_from_collection' => false]);
