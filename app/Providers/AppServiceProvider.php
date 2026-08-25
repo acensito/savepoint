@@ -118,5 +118,23 @@ class AppServiceProvider extends ServiceProvider
 
             return Limit::perMinutes(5, 3)->by($userId ?? $request->ip());
         });
+
+        // /search/quick, /games/cover-lookup(.new): antes sin ningún límite.
+        // CexGameLookupService usa una clave Algolia de INSTANCIA, no por
+        // cuenta (ver register() arriba) — un solo usuario scripteando un
+        // bucle contra estas rutas podría agotar la cuota o hacer que CEX la
+        // bloquee, afectando a todos los usuarios de la instancia. Más
+        // estricto que el de IGDB de abajo por eso mismo.
+        RateLimiter::for('external-search-cex', function (Request $request) {
+            return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip());
+        });
+
+        // /games/{game}/igdb-search, /games/{game}/igdb-artworks: mismo
+        // problema pero con credenciales por cuenta (users.igdb_client_id/
+        // igdb_client_secret) — abusar de esto solo agota la cuota Twitch
+        // propia del atacante, así que el límite puede ser más laxo.
+        RateLimiter::for('external-search-igdb', function (Request $request) {
+            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+        });
     }
 }

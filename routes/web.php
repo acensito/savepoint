@@ -134,7 +134,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/sales/{id}/restore', [SalesController::class, 'restore'])->name('web.sales.restore');
 
     // Búsqueda rápida global (Ctrl+K): unos pocos resultados en vivo por título/EAN.
-    Route::get('/search/quick', [SearchController::class, 'quick'])->name('web.search.quick');
+    // throttle:external-search-cex: consulta CexGameLookupService, que usa
+    // una clave Algolia de instancia (no por cuenta) — sin límite, un solo
+    // usuario podría agotarla o hacer que CEX la bloquee, afectando a todos.
+    Route::get('/search/quick', [SearchController::class, 'quick'])
+        ->middleware('throttle:external-search-cex')
+        ->name('web.search.quick');
 
     // OJO con el orden: las rutas estáticas van ANTES que las que llevan
     // un parámetro {game}, o '/games/create' acabaría entrando por
@@ -165,7 +170,10 @@ Route::middleware('auth')->group(function () {
     // así que no hay {game} al que atar esta ruta. Misma razón de orden que
     // las de arriba: antes de '/games/{game}' (show), si no "cover-lookup"
     // entraría por ahí y buscaría un juego con ese id.
-    Route::get('/games/cover-lookup', [GameCoverLookupController::class, 'coverLookupForNew'])->name('web.games.cover-lookup.new');
+    // Mismo throttle que /search/quick (misma clave CEX de instancia).
+    Route::get('/games/cover-lookup', [GameCoverLookupController::class, 'coverLookupForNew'])
+        ->middleware('throttle:external-search-cex')
+        ->name('web.games.cover-lookup.new');
 
     Route::get('/games/trash', [GameTrashController::class, 'index'])->name('web.games.trash');
     Route::post('/games/{id}/restore', [GameTrashController::class, 'restore'])->name('web.games.restore');
@@ -178,16 +186,26 @@ Route::middleware('auth')->group(function () {
     Route::post('/games', [GameController::class, 'store'])->name('web.games.store');
     Route::get('/games/{game}/edit', [GameController::class, 'edit'])->name('web.games.edit');
     Route::patch('/games/{game}/quick-update', [GameController::class, 'quickUpdate'])->name('web.games.quick-update');
-    Route::get('/games/{game}/cover-lookup', [GameCoverLookupController::class, 'coverLookup'])->name('web.games.cover-lookup');
+    Route::get('/games/{game}/cover-lookup', [GameCoverLookupController::class, 'coverLookup'])
+        ->middleware('throttle:external-search-cex')
+        ->name('web.games.cover-lookup');
 
     // Enriquecimiento con IGDB (desarrollador, fecha de lanzamiento, géneros
     // en inglés, nota agregada) desde la ficha de detalle: igdb-search solo
     // lista candidatos (AJAX), igdb-apply guarda el elegido y redirige de
     // vuelta a la ficha. Controlador propio (IgdbController), separado de
     // GameController (ver README, "Mejoras técnicas").
-    Route::get('/games/{game}/igdb-search', [IgdbController::class, 'search'])->name('web.games.igdb-search');
+    // throttle:external-search-igdb: credenciales por cuenta (ver
+    // AppServiceProvider::register()), así que el impacto de abusar de esto
+    // se queda en la propia cuota Twitch del atacante — límite más laxo que
+    // el de CEX arriba.
+    Route::get('/games/{game}/igdb-search', [IgdbController::class, 'search'])
+        ->middleware('throttle:external-search-igdb')
+        ->name('web.games.igdb-search');
     Route::post('/games/{game}/igdb-apply', [IgdbController::class, 'apply'])->name('web.games.igdb-apply');
-    Route::get('/games/{game}/igdb-artworks', [IgdbController::class, 'artworks'])->name('web.games.igdb-artworks');
+    Route::get('/games/{game}/igdb-artworks', [IgdbController::class, 'artworks'])
+        ->middleware('throttle:external-search-igdb')
+        ->name('web.games.igdb-artworks');
     Route::post('/games/{game}/igdb-background', [IgdbController::class, 'setBackground'])->name('web.games.igdb-background');
     Route::put('/games/{game}', [GameController::class, 'update'])->name('web.games.update');
     Route::post('/games/{game}/mark-sold', [SalesController::class, 'markAsSold'])->name('web.games.mark-sold');

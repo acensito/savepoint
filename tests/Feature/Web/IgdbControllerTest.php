@@ -63,6 +63,29 @@ class IgdbControllerTest extends TestCase
             ->assertJson(['results' => []]);
     }
 
+    /**
+     * Regresión (#37): las credenciales de IGDB son por cuenta (users.igdb_client_id/
+     * igdb_client_secret), así que abusar de esta ruta solo agota la cuota
+     * Twitch propia del atacante — pero seguía sin ningún freno.
+     */
+    public function test_igdb_search_is_rate_limited(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create();
+
+        $this->mock(IgdbLookupService::class, function ($mock) {
+            $mock->shouldReceive('search')->andReturn([]);
+        });
+
+        for ($i = 0; $i < 60; $i++) {
+            $this->actingAs($user)->getJson("/games/{$game->id}/igdb-search?q=test");
+        }
+
+        $response = $this->actingAs($user)->getJson("/games/{$game->id}/igdb-search?q=test");
+
+        $response->assertStatus(429);
+    }
+
     public function test_igdb_search_is_forbidden_for_another_users_game(): void
     {
         $owner = User::factory()->create();

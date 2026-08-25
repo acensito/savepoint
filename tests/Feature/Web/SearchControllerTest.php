@@ -81,6 +81,26 @@ class SearchControllerTest extends TestCase
         Http::assertNothingSent();
     }
 
+    /**
+     * Regresión (#37): CexGameLookupService usa una clave Algolia de
+     * INSTANCIA, no por cuenta — un solo usuario scripteando un bucle contra
+     * esta ruta podía agotar la cuota o hacer que CEX la bloquee para todos
+     * los usuarios de la instancia, sin ningún freno hasta ahora.
+     */
+    public function test_quick_is_rate_limited(): void
+    {
+        Http::fake();
+        $user = User::factory()->create();
+
+        for ($i = 0; $i < 30; $i++) {
+            $this->actingAs($user)->get(route('web.search.quick', ['q' => 'ho']));
+        }
+
+        $response = $this->actingAs($user)->get(route('web.search.quick', ['q' => 'ho']));
+
+        $response->assertStatus(429);
+    }
+
     public function test_quick_includes_wishlist_games_by_default(): void
     {
         $user = User::factory()->create();
