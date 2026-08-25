@@ -181,8 +181,18 @@ class GameImportController extends Controller
         return "game-import:{$importId}";
     }
 
+    /**
+     * Ver GameExportController::csvEscape() para el porqué (CWE-1236,
+     * CSV/formula injection). Aquí solo escribe las cabeceras fijas de la
+     * plantilla (nunca datos de usuario), pero se mantiene el mismo
+     * escapado por consistencia y por si en el futuro se usa para algo más.
+     */
     private function csvEscape(string $value): string
     {
+        if (preg_match('/^[=+\-@\t\r]/', $value) === 1) {
+            $value = "'".$value;
+        }
+
         if (str_contains($value, ',') || str_contains($value, '"') || str_contains($value, "\n")) {
             return '"'.str_replace('"', '""', $value).'"';
         }

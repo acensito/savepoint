@@ -106,6 +106,42 @@ class GameExportControllerTest extends TestCase
         $this->assertStringContainsString('Sin Manual', $csv);
     }
 
+    /**
+     * Regresión (#35), CWE-1236 (CSV/formula injection): un título/nota que
+     * empiece por =, +, -, @, tabulador o retorno de carro se interpretaría
+     * como fórmula al abrir el CSV en Excel/Sheets — justo el flujo que
+     * promueve esta exportación (editar y volver a importar). csvEscape()
+     * antepone un apóstrofo a esos valores para forzar que se traten como
+     * texto literal.
+     */
+    public function test_export_neutralizes_values_that_look_like_spreadsheet_formulas(): void
+    {
+        $user = User::factory()->create();
+        Game::factory()->for($user)->create([
+            'title' => '=cmd|\'/c calc\'!A1',
+            'notes' => '+SUM(A1:A10)',
+            'purchase_place' => '-2+3',
+            'region' => '@SUM(1+1)',
+        ]);
+
+        $csv = $this->actingAs($user)->get('/games/export')->getContent();
+
+        $this->assertStringContainsString("'=cmd", $csv);
+        $this->assertStringContainsString("'+SUM(A1:A10)", $csv);
+        $this->assertStringContainsString("'-2+3", $csv);
+        $this->assertStringContainsString("'@SUM(1+1)", $csv);
+
+        // Ningún campo llega al CSV empezando directamente por uno de estos
+        // caracteres (lo que dispararía la fórmula al abrirlo en una hoja de
+        // cálculo): cada línea del cuerpo (tras la cabecera) empieza por el
+        // apóstrofo protector, una comilla de campo entrecomillado, o un
+        // carácter normal.
+        $lines = explode("\r\n", trim(str_replace("\xEF\xBB\xBF", '', $csv)));
+        foreach (array_slice($lines, 1) as $line) {
+            $this->assertDoesNotMatchRegularExpression('/^[=+\-@]/', $line);
+        }
+    }
+
     public function test_export_applies_the_same_filters_as_the_collection_listing(): void
     {
         $user = User::factory()->create();
