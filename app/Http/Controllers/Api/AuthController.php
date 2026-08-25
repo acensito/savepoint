@@ -2,19 +2,18 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Concerns\SendsTwoFactorCode;
 use App\Http\Controllers\Concerns\ThrottlesLogins;
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Notifications\TwoFactorCodeNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
-use Throwable;
 
 class AuthController extends Controller
 {
-    use ThrottlesLogins;
+    use SendsTwoFactorCode, ThrottlesLogins;
 
     /**
      * Prefijo de las claves de caché que enlazan un login de API a medias
@@ -172,22 +171,26 @@ class AuthController extends Controller
         ]);
     }
 
-    private function sendTwoFactorCode(User $user): bool
+    /**
+     * Usuario (si lo hay) al que pertenece un "two_factor_token" pendiente.
+     * Público y estático para que AppServiceProvider pueda usarlo también al
+     * definir los RateLimiter de verify/resend-2fa: el límite de intentos
+     * debe ir por usuario, no por token (uno nuevo se emite en cada llamada a
+     * login() mientras la cuenta siga sin verificar el código), así que la
+     * clave del limiter necesita resolver el mismo user_id que aquí.
+     */
+    public static function pendingChallengeUserId(mixed $challengeToken): ?int
     {
-        try {
-            $user->notify(new TwoFactorCodeNotification($user->generateTwoFactorCode()));
-
-            return true;
-        } catch (Throwable $e) {
-            report($e);
-
-            return false;
+        if (! is_string($challengeToken) || $challengeToken === '') {
+            return null;
         }
+
+        return Cache::get(self::TWO_FACTOR_CACHE_PREFIX.$challengeToken);
     }
 
     private function pendingUser(string $challengeToken): ?User
     {
-        $userId = Cache::get(self::TWO_FACTOR_CACHE_PREFIX.$challengeToken);
+        $userId = self::pendingChallengeUserId($challengeToken);
 
         return $userId ? User::find($userId) : null;
     }

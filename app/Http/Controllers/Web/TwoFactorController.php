@@ -2,17 +2,16 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Http\Controllers\Concerns\SendsTwoFactorCode;
 use App\Http\Controllers\Controller;
 use App\Models\TwoFactorTrustedDevice;
 use App\Models\User;
-use App\Notifications\TwoFactorCodeNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
-use Throwable;
 
 /**
  * Desafío de 2FA compartido entre AuthController::login() y
@@ -23,6 +22,8 @@ use Throwable;
  */
 class TwoFactorController extends Controller
 {
+    use SendsTwoFactorCode;
+
     /**
      * Muestra el formulario para introducir el código, o manda de vuelta al
      * login si no hay ningún desafío pendiente en la sesión (acceso directo
@@ -96,11 +97,7 @@ class TwoFactorController extends Controller
             return redirect()->route('login');
         }
 
-        try {
-            $user->notify(new TwoFactorCodeNotification($user->generateTwoFactorCode()));
-        } catch (Throwable $e) {
-            report($e);
-
+        if (! $this->sendTwoFactorCode($user)) {
             return back()->with(
                 'error',
                 'Error. Por favor, inténtalo más tarde y, si el problema persiste, comunícaselo al administrador.'

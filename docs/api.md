@@ -14,6 +14,8 @@ automatización o clientes de escritorio).
     - [Autenticación y ciclo de vida del token](#autenticación-y-ciclo-de-vida-del-token)
 2. [Endpoints de Autenticación](#2-endpoints-de-autenticación)
     - [Iniciar sesión (`POST /api/login`)](#iniciar-sesión-post-apilogin)
+    - [Verificar el código de 2FA (`POST /api/login/verify-2fa`)](#verificar-el-código-de-2fa-post-apiloginverify-2fa)
+    - [Reenviar el código de 2FA (`POST /api/login/resend-2fa`)](#reenviar-el-código-de-2fa-post-apiloginresend-2fa)
     - [Cerrar sesión (`POST /api/logout`)](#cerrar-sesión-post-apilogout)
 3. [Usuario autenticado (`GET /api/user`)](#3-usuario-autenticado-get-apiuser)
 4. [Gestión de Juegos (`/api/games`)](#4-gestión-de-juegos-apigames)
@@ -56,12 +58,20 @@ Todas las peticiones a la API deben incluir las siguientes cabeceras HTTP:
 
 La autenticación utiliza tokens de acceso personal de **Laravel Sanctum** emitidos con el nombre `MobileApp`.
 
-- **Emisión:** Al realizar un login satisfactorio en `/api/login`.
+- **Emisión:** Al realizar un login satisfactorio en `/api/login` (o, si la cuenta tiene 2FA activo, al completar el
+  desafío en `/api/login/verify-2fa`).
 - **Expiración:** Los tokens tienen una duración configurada en `config/sanctum.php` mediante la variable de entorno
   `SANCTUM_TOKEN_EXPIRATION_MINUTES` (por defecto **30 días** / 43.200 minutos). Transcurrido este tiempo sin renovar,
   cualquier petición devolverá `401 Unauthorized`.
 - **Revocación:** Al llamar a `/api/logout`, se revoca y elimina exclusivamente el token utilizado en la petición
   actual.
+
+### Límite general de peticiones
+
+Todas las rutas `/api/*` están sujetas a un límite de **120 peticiones/minuto** (`throttle:api`, activado en
+`bootstrap/app.php`), por usuario autenticado o por IP mientras no se tenga token todavía. Superarlo devuelve
+`429 Too Many Requests`. `/api/login` y el desafío de 2FA tienen además sus propios límites, más estrictos y
+específicos (ver sus secciones).
 
 ---
 
@@ -69,7 +79,13 @@ La autenticación utiliza tokens de acceso personal de **Laravel Sanctum** emiti
 
 ### Iniciar sesión (`POST /api/login`)
 
-Autentica las credenciales de un usuario y devuelve un token de acceso Bearer. Es una ruta pública.
+Autentica las credenciales de un usuario. Es una ruta pública.
+
+- **Si la cuenta no tiene 2FA activo:** devuelve el token de acceso Bearer directamente (200 OK, ver más abajo).
+- **Si la cuenta tiene 2FA por email activo** (toda cuenta nueva lo lleva activo desde el registro): **no** emite
+  ningún token todavía. Manda un código de 6 dígitos por email y devuelve un `two_factor_token` de un solo uso (válido
+  10 minutos) que hay que canjear junto con el código en `POST /api/login/verify-2fa` para completar el login y recibir
+  el token de acceso.
 
 #### Control de intentos y protección de fuerza bruta (Rate Limiting)
 
@@ -102,13 +118,25 @@ curl -X POST http://localhost:8000/api/login \
 
 #### Respuestas
 
-##### 200 OK — Login exitoso
+##### 200 OK — Login exitoso (cuenta sin 2FA)
 
 ```json
 {
     "message": "Login exitoso",
     "access_token": "1|q6jK9x7gZ8K...plainTextToken...",
     "token_type": "Bearer"
+}
+```
+
+##### 200 OK — 2FA requerido (cuenta con 2FA activo)
+
+Sin `access_token`: hay que completar el desafío en `/api/login/verify-2fa`.
+
+```json
+{
+    "message": "Te hemos enviado un código de verificación por email.",
+    "two_factor_required": true,
+    "two_factor_token": "K9x7gZ8K...64 caracteres aleatorios..."
 }
 ```
 
@@ -148,6 +176,137 @@ Los mensajes de validación se localizan según `APP_LOCALE` (`es` por defecto e
             "Demasiados intentos de acceso. Inténtalo de nuevo en 58 segundos."
         ]
     }
+}
+```
+
+##### 503 Service Unavailable — Fallo al enviar el código de 2FA
+
+Solo si la cuenta tiene 2FA activo y el envío del email falla (SMTP caído, credenciales mal puestas...). No se devuelve
+ningún `two_factor_token`: hay que reintentar `/api/login` más tarde.
+
+```json
+{
+    "message": "Error. Por favor, inténtalo más tarde y, si el problema persiste, comunícaselo al administrador."
+}
+```
+
+---
+
+### Verificar el código de 2FA (`POST /api/login/verify-2fa`)
+
+Canjea el `two_factor_token` devuelto por `/api/login` junto con el código de 6 dígitos recibido por email, para
+completar el login y emitir el token de acceso. Es una ruta pública (todavía no hay usuario autenticado en este punto).
+
+#### Control de intentos (Rate Limiting)
+
+Máximo **5 intentos en 10 minutos**, por cuenta (no por `two_factor_token`: pedir `/api/login` otra vez no reinicia el
+contador). Superarlo devuelve `429 Too Many Requests`.
+
+#### Parámetros del cuerpo (JSON)
+
+| Campo              | Tipo     | Obligatorio | Descripción                                            |
+|:--------------------|:---------|:------------|:--------------------------------------------------------|
+| `two_factor_token`  | `string` | **Sí**      | El devuelto por `/api/login` al iniciar el desafío.      |
+| `code`              | `string` | **Sí**      | Código de 6 dígitos recibido por email.                 |
+
+#### Ejemplo de petición
+
+```bash
+curl -X POST http://localhost:8000/api/login/verify-2fa \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "two_factor_token": "K9x7gZ8K...64 caracteres aleatorios...",
+    "code": "123456"
+  }'
+```
+
+#### Respuestas
+
+##### 200 OK — Login completado
+
+Misma forma que el login exitoso sin 2FA:
+
+```json
+{
+    "message": "Login exitoso",
+    "access_token": "1|q6jK9x7gZ8K...plainTextToken...",
+    "token_type": "Bearer"
+}
+```
+
+##### 401 Unauthorized — Código incorrecto o caducado
+
+```json
+{
+    "message": "Código incorrecto o caducado."
+}
+```
+
+##### 401 Unauthorized — `two_factor_token` desconocido, caducado o ya usado
+
+```json
+{
+    "message": "La verificación ha caducado o no es válida. Vuelve a iniciar sesión."
+}
+```
+
+##### 429 Too Many Requests — Límite de intentos superado
+
+```json
+{
+    "message": "Too Many Attempts."
+}
+```
+
+---
+
+### Reenviar el código de 2FA (`POST /api/login/resend-2fa`)
+
+Genera un código nuevo (invalida el anterior) y lo reenvía, para el mismo desafío pendiente. Ruta pública.
+
+#### Control de intentos (Rate Limiting)
+
+Máximo **3 intentos en 5 minutos**, por cuenta (mismo criterio que verify-2fa).
+
+#### Parámetros del cuerpo (JSON)
+
+| Campo              | Tipo     | Obligatorio | Descripción                                       |
+|:--------------------|:---------|:------------|:----------------------------------------------------|
+| `two_factor_token`  | `string` | **Sí**      | El devuelto por `/api/login` al iniciar el desafío. |
+
+#### Ejemplo de petición
+
+```bash
+curl -X POST http://localhost:8000/api/login/resend-2fa \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json" \
+  -d '{"two_factor_token": "K9x7gZ8K...64 caracteres aleatorios..."}'
+```
+
+#### Respuestas
+
+##### 200 OK
+
+```json
+{
+    "message": "Te hemos enviado un código nuevo."
+}
+```
+
+##### 401 Unauthorized — `two_factor_token` desconocido o caducado
+
+```json
+{
+    "message": "La verificación ha caducado o no es válida. Vuelve a iniciar sesión."
+}
+```
+
+##### 429 Too Many Requests — Límite de intentos superado
+
+```json
+{
+    "message": "Too Many Attempts."
 }
 ```
 
@@ -589,8 +748,9 @@ La API utiliza los códigos de estado estándar de HTTP:
 | **`403 Forbidden`**             | Acción no autorizada  | Intento de consultar, editar o borrar un juego perteneciente a otro usuario.      |
 | **`404 Not Found`**             | Recurso no encontrado | El ID del juego no existe o ha sido eliminado (*Soft Delete*).                    |
 | **`422 Unprocessable Content`** | Error de validación   | Los datos enviados en el cuerpo no cumplen las reglas de validación.              |
-| **`429 Too Many Requests`**     | Límite de intentos    | Se ha superado el límite de intentos de login en `/api/login`.                    |
+| **`429 Too Many Requests`**     | Límite de intentos    | Límite general de la API (120/min), de intentos de login en `/api/login`, o del desafío de 2FA (`verify-2fa`/`resend-2fa`). |
 | **`500 Internal Server Error`** | Error interno         | Error no controlado en el servidor.                                               |
+| **`503 Service Unavailable`**   | Envío de email fallido | El código de 2FA no se pudo enviar (`/api/login`, `/api/login/resend-2fa`).       |
 
 ### Ejemplos de estructuras de error
 

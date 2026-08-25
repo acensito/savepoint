@@ -393,4 +393,45 @@ class AuthTest extends TestCase
 
         $response->assertStatus(429);
     }
+
+    public function test_verify_2fa_rate_limit_is_shared_across_tokens_from_repeated_logins_for_the_same_user(): void
+    {
+        // Regresión: RateLimiter::for('api-two-factor-verify') usaba el
+        // propio "two_factor_token" como clave, y /api/login emite uno nuevo
+        // (con un código nuevo) en cada llamada mientras la cuenta siga con
+        // la contraseña correcta — así que pedir login() otra vez restauraba
+        // 5 intentos frescos en vez de compartir el mismo límite de 5 cada
+        // 10 minutos por cuenta que sí respeta el flujo web (session-based).
+        $user = User::factory()->twoFactorEnabled()->create(['password' => Hash::make('password')]);
+
+        $login = fn () => $this->postJson('/api/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ])->assertOk();
+
+        $firstChallenge = $login();
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->postJson('/api/login/verify-2fa', [
+                'two_factor_token' => $firstChallenge->json('two_factor_token'),
+                'code' => '000000',
+            ]);
+        }
+
+        // Un segundo login (misma cuenta, contraseña correcta) emite un
+        // two_factor_token distinto: no debe darle 5 intentos nuevos.
+        $secondChallenge = $login();
+
+        $this->assertNotSame(
+            $firstChallenge->json('two_factor_token'),
+            $secondChallenge->json('two_factor_token'),
+        );
+
+        $response = $this->postJson('/api/login/verify-2fa', [
+            'two_factor_token' => $secondChallenge->json('two_factor_token'),
+            'code' => '000000',
+        ]);
+
+        $response->assertStatus(429);
+    }
 }

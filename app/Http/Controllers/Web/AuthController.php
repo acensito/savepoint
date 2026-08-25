@@ -2,22 +2,21 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Http\Controllers\Concerns\SendsTwoFactorCode;
 use App\Http\Controllers\Concerns\ThrottlesLogins;
 use App\Http\Controllers\Controller;
 use App\Models\AppSetting;
 use App\Models\TwoFactorTrustedDevice;
 use App\Models\User;
-use App\Notifications\TwoFactorCodeNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
-use Throwable;
 
 class AuthController extends Controller
 {
-    use ThrottlesLogins;
+    use SendsTwoFactorCode, ThrottlesLogins;
 
     /**
      * Muestra el formulario de acceso. Pasa si el registro público está
@@ -74,11 +73,7 @@ class AuthController extends Controller
         // puestas...), no se manda a la pantalla del código: ahí se quedaría
         // esperando uno que nunca llegó, sin ninguna forma de recuperarse
         // salvo "Reenviar código" fallando exactamente igual.
-        try {
-            $user->notify(new TwoFactorCodeNotification($user->generateTwoFactorCode()));
-        } catch (Throwable $e) {
-            report($e);
-
+        if (! $this->sendTwoFactorCode($user)) {
             return redirect()->route('login')->with(
                 'error',
                 'Error. Por favor, inténtalo más tarde y, si el problema persiste, comunícaselo al administrador.'

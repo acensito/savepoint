@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Http\Controllers\Api\AuthController as ApiAuthController;
 use App\Models\Game;
 use App\Models\Platform;
 use App\Observers\GameObserver;
@@ -98,15 +99,24 @@ class AppServiceProvider extends ServiceProvider
 
         // Equivalentes de arriba para el desafío de 2FA de la API
         // (Api\AuthController::verifyTwoFactor()/resendTwoFactor()): sin
-        // sesión en las rutas 'api', la clave es el propio
-        // "two_factor_token" de un solo uso (identifica el intento de login
-        // a medias tan bien como el user_id de sesión) y no la IP.
+        // sesión en las rutas 'api', hace falta resolver el user_id a partir
+        // del "two_factor_token" (vía el mismo caché que usa el propio
+        // AuthController) en vez de usar el token tal cual como clave — cada
+        // llamada a login() con la contraseña correcta emite un token nuevo,
+        // así que teclear la clave por token dejaría que un atacante se
+        // reiniciase 5 intentos nuevos sin más que volver a pedir login(), en
+        // vez de los 5 intentos por cuenta cada 10 minutos que sí consigue el
+        // límite por sesión de arriba.
         RateLimiter::for('api-two-factor-verify', function (Request $request) {
-            return Limit::perMinutes(10, 5)->by($request->input('two_factor_token', $request->ip()));
+            $userId = ApiAuthController::pendingChallengeUserId($request->input('two_factor_token'));
+
+            return Limit::perMinutes(10, 5)->by($userId ?? $request->ip());
         });
 
         RateLimiter::for('api-two-factor-resend', function (Request $request) {
-            return Limit::perMinutes(5, 3)->by($request->input('two_factor_token', $request->ip()));
+            $userId = ApiAuthController::pendingChallengeUserId($request->input('two_factor_token'));
+
+            return Limit::perMinutes(5, 3)->by($userId ?? $request->ip());
         });
     }
 }

@@ -2,19 +2,20 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Http\Controllers\Concerns\SendsTwoFactorCode;
 use App\Http\Controllers\Controller;
 use App\Models\AppSetting;
 use App\Models\User;
-use App\Notifications\TwoFactorCodeNotification;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
-use Throwable;
 
 class RegisterController extends Controller
 {
+    use SendsTwoFactorCode;
+
     /**
      * Muestra el formulario de registro de nuevo usuario, o manda a /login
      * si un admin lo ha cerrado (ver panel/users, AppSetting).
@@ -63,10 +64,7 @@ class RegisterController extends Controller
         // ningún código nunca enviado, así que jamás se podría completar el
         // login. Se borra y se avisa en vez de dejarla a medias — el usuario
         // puede simplemente volver a intentar el registro cuando se arregle.
-        try {
-            $user->notify(new TwoFactorCodeNotification($user->generateTwoFactorCode()));
-        } catch (Throwable $e) {
-            report($e);
+        if (! $this->sendTwoFactorCode($user)) {
             $user->delete();
 
             return back()->withInput($request->except('password', 'password_confirmation'))->with(
