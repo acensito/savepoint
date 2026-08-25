@@ -16,10 +16,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap"
           rel="stylesheet">
-    <!-- Subset de Material Symbols: lista = x-gicon de las vistas + Edition::FORMATS + ligaduras JS (app.js). Icono nuevo sin añadir aquí no se pinta. -->
-    <link
-        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=account_circle,add,add_circle,album,arrow_back,arrow_forward,badge,bar_chart,calendar_month,category,check_circle,checklist,chevron_left,chevron_right,close,cloud,dark_mode,delete,density_small,description,domain,download,edit,emoji_events,error,event,expand_more,factory,favorite,grid_view,group,interests,inventory_2,joystick,light_mode,local_shipping,logout,memory,menu,menu_book,paid,person,print,progress_activity,public,qr_code_scanner,schedule,search,sell,settings,shopping_cart,sports_esports,star,star_rate,sticky_note_2,storefront,tag,travel_explore,tune,upload,upload_file,view_list,wallpaper,warning&display=block"
-        rel="stylesheet">
+    @include('partials.material-symbols-link')
     <script nonce="{{ $cspNonce }}">
         (function () {
             try {
