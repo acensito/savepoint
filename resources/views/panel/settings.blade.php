@@ -102,7 +102,7 @@
 
                         <div class="flex flex-wrap gap-3">
                             @foreach(\App\Http\Controllers\Web\PanelController::NAVBAR_COLORS as $value => $hex)
-                                <label class="cursor-pointer">
+                                <label class="relative cursor-pointer">
                                     <input type="radio" name="navbar_color" value="{{ $value }}" class="sr-only peer"
                                         {{ old('navbar_color', $user->navbar_color) === $value ? 'checked' : '' }}>
                                     <span class="flex items-center justify-center w-9 h-9 rounded-full border-2 border-transparent peer-checked:border-slate-100 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-slate-900 peer-focus-visible:ring-indigo-500 transition-colors"

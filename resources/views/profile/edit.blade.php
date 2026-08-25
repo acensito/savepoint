@@ -58,7 +58,7 @@
 
                         {{-- Acciones del Avatar --}}
                         <div class="flex-1 space-y-2">
-                            <div class="flex flex-wrap items-center gap-3">
+                            <div class="relative flex flex-wrap items-center gap-3">
                                 {{-- Input de archivo accesible por teclado como hermano directo del label --}}
                                 <input type="file"
                                        name="avatar"
