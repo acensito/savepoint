@@ -64,6 +64,23 @@ class PasswordResetTest extends TestCase
         $this->assertTrue(Hash::check('brand-new-password', $user->fresh()->password));
     }
 
+    public function test_resetting_the_password_revokes_existing_api_tokens(): void
+    {
+        // Regresión (#34): ver ProfileControllerTest::test_changing_the_password_revokes_existing_api_tokens.
+        $user = User::factory()->create(['password' => Hash::make('old-password')]);
+        $user->createToken('MobileApp');
+        $token = Password::createToken($user);
+
+        $this->post('/reset-password', [
+            'token' => $token,
+            'email' => $user->email,
+            'password' => 'brand-new-password',
+            'password_confirmation' => 'brand-new-password',
+        ]);
+
+        $this->assertDatabaseCount('personal_access_tokens', 0);
+    }
+
     public function test_reset_fails_with_an_invalid_token(): void
     {
         $user = User::factory()->create(['password' => Hash::make('old-password')]);

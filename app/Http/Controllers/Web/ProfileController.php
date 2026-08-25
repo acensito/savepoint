@@ -70,6 +70,14 @@ class ProfileController extends Controller
             'password' => Hash::make($validated['password']),
         ]);
 
+        // Un token de la app móvil robado no debe seguir sirviendo tras
+        // esto: cambiar la contraseña es la respuesta estándar ante sospecha
+        // de robo, así que tiene que cortar también el acceso ya conseguido
+        // con un token filtrado, no solo bloquear logins nuevos. La sesión
+        // web (guard 'web', por cookie) no usa esta tabla, así que esto no
+        // te desloguea a ti mismo.
+        $request->user()->tokens()->delete();
+
         return redirect()->route('web.profile.edit')->with('success', 'Contraseña actualizada correctamente.');
     }
 }

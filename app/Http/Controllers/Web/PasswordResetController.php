@@ -61,6 +61,10 @@ class PasswordResetController extends Controller
                 $user->forceFill([
                     'password' => Hash::make($validated['password']),
                 ])->save();
+
+                // Ver ProfileController::updatePassword(): un token de la
+                // app móvil robado no debe seguir sirviendo tras un reset.
+                $user->tokens()->delete();
             }
         );
 

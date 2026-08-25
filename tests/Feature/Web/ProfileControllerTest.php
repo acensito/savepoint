@@ -69,6 +69,23 @@ class ProfileControllerTest extends TestCase
         $this->assertTrue(Hash::check('new-password', $user->fresh()->password));
     }
 
+    public function test_changing_the_password_revokes_existing_api_tokens(): void
+    {
+        // Regresión (#34): un token de la app móvil robado no debe seguir
+        // sirviendo tras cambiar la contraseña — la respuesta estándar ante
+        // sospecha de robo debe cortar también el acceso ya conseguido.
+        $user = User::factory()->create(['password' => Hash::make('old-password')]);
+        $user->createToken('MobileApp');
+
+        $this->actingAs($user)->put('/profile/password', [
+            'current_password' => 'old-password',
+            'password' => 'new-password',
+            'password_confirmation' => 'new-password',
+        ]);
+
+        $this->assertDatabaseCount('personal_access_tokens', 0);
+    }
+
     public function test_changing_the_password_requires_the_correct_current_password(): void
     {
         $user = User::factory()->create(['password' => Hash::make('old-password')]);

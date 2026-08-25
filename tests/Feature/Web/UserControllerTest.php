@@ -133,6 +133,37 @@ class UserControllerTest extends TestCase
         $this->assertTrue(Hash::check('nueva-password', $other->fresh()->password));
     }
 
+    public function test_admin_changing_another_users_password_revokes_their_existing_api_tokens(): void
+    {
+        // Regresión (#34): ver ProfileControllerTest::test_changing_the_password_revokes_existing_api_tokens.
+        $admin = User::factory()->admin()->create();
+        $other = User::factory()->create();
+        $other->createToken('MobileApp');
+
+        $this->actingAs($admin)->put("/panel/users/{$other->id}", [
+            'name' => $other->name,
+            'email' => $other->email,
+            'password' => 'nueva-password',
+            'password_confirmation' => 'nueva-password',
+        ]);
+
+        $this->assertDatabaseCount('personal_access_tokens', 0);
+    }
+
+    public function test_admin_leaving_the_password_blank_does_not_revoke_the_users_existing_api_tokens(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $other = User::factory()->create();
+        $other->createToken('MobileApp');
+
+        $this->actingAs($admin)->put("/panel/users/{$other->id}", [
+            'name' => $other->name,
+            'email' => $other->email,
+        ]);
+
+        $this->assertDatabaseCount('personal_access_tokens', 1);
+    }
+
     public function test_an_admin_cannot_demote_themselves(): void
     {
         $admin = User::factory()->admin()->create();

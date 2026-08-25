@@ -95,7 +95,9 @@ class UserController extends Controller
         $user->name = $validated['name'];
         $user->email = $validated['email'];
 
-        if (! empty($validated['password'])) {
+        $passwordChanged = ! empty($validated['password']);
+
+        if ($passwordChanged) {
             $user->password = Hash::make($validated['password']);
         }
 
@@ -106,6 +108,13 @@ class UserController extends Controller
         }
 
         $user->save();
+
+        if ($passwordChanged) {
+            // Ver ProfileController::updatePassword(): un admin cambiándole
+            // la contraseña a otro usuario debe cortar también sus tokens de
+            // la app móvil ya emitidos, no solo bloquear logins nuevos.
+            $user->tokens()->delete();
+        }
 
         return redirect()->route('web.panel.users.index')->with('success', 'Usuario actualizado correctamente.');
     }
