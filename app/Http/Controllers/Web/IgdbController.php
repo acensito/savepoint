@@ -122,8 +122,15 @@ class IgdbController extends Controller
     {
         Gate::authorize('update', $game);
 
+        // Los image_id de IGDB son siempre alfanuméricos en minúscula (ver
+        // ejemplos en IgdbControllerTest/IgdbLookupServiceTest, p. ej.
+        // "ar1abc"). Sin esta regex, un image_id con comilla simple se
+        // interpolaba tal cual en el atributo `style` de games/show.blade.php
+        // (Game::backgroundUrl()) y permitía inyectar CSS: Blade escapa la
+        // comilla a su entidad HTML, pero el navegador la decodifica antes
+        // de parsear `style` como CSS, así que la entidad no protege nada ahí.
         $validated = $request->validate([
-            'image_id' => 'nullable|string|max:100',
+            'image_id' => ['nullable', 'string', 'max:100', 'regex:/^[a-z0-9]+$/'],
         ]);
 
         $game->update(['igdb_background' => $validated['image_id'] ?? null]);

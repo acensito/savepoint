@@ -195,6 +195,28 @@ class IgdbControllerTest extends TestCase
         $this->assertNull($game->fresh()->igdb_background);
     }
 
+    /**
+     * Regresión (#36): image_id se interpola tal cual en el atributo `style`
+     * de games/show.blade.php (Game::backgroundUrl()). Blade escapa una
+     * comilla simple a su entidad HTML, pero el navegador la decodifica
+     * antes de parsear `style` como CSS, así que una comilla bien colocada
+     * cerraba el url('...') e inyectaba CSS arbitrario. Los image_id reales
+     * de IGDB son siempre alfanuméricos en minúscula (ver el resto de este
+     * fichero), así que cualquier otro carácter se rechaza.
+     */
+    public function test_igdb_set_background_rejects_an_image_id_with_characters_outside_igdbs_alphabet(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['igdb_background' => null]);
+
+        $response = $this->actingAs($user)->post("/games/{$game->id}/igdb-background", [
+            'image_id' => "ar1abc');background-image:url(https://evil.example/track.png",
+        ]);
+
+        $response->assertSessionHasErrors('image_id');
+        $this->assertNull($game->fresh()->igdb_background);
+    }
+
     public function test_igdb_set_background_is_forbidden_for_another_users_game(): void
     {
         $owner = User::factory()->create();
