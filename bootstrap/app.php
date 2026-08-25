@@ -26,6 +26,15 @@ return Application::configure(basePath: dirname(__DIR__))
         // Solo en 'web': una respuesta JSON de la API nunca se renderiza
         // como HTML, así que un nonce de CSP ahí no protege nada.
         $middleware->web(append: [AddContentSecurityPolicyHeader::class]);
+
+        // Sin esto, 'api' no traía ningún límite de peticiones por defecto
+        // (Laravel solo lo activa si se pide explícitamente) — /login ya
+        // tenía su propio throttle contra fuerza bruta (ThrottlesLogins),
+        // pero /games quedaba sin ningún tope: un token robado podía
+        // machacar la API sin límite. 120/min por usuario autenticado (o por
+        // IP para /login antes de tener token) es generoso de sobra para una
+        // app de colección.
+        $middleware->throttleApi();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

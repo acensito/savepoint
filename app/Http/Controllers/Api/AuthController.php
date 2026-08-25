@@ -5,15 +5,35 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Concerns\ThrottlesLogins;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Notifications\TwoFactorCodeNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
+use Throwable;
 
 class AuthController extends Controller
 {
     use ThrottlesLogins;
 
     /**
-     * Iniciar sesión y emitir Token
+     * Prefijo de las claves de caché que enlazan un login de API a medias
+     * (credenciales correctas, 2FA pendiente) con el usuario al que
+     * pertenece. Diez minutos, igual que la caducidad del código
+     * (User::generateTwoFactorCode()) — pasado eso ya no sirve para nada.
+     */
+    private const TWO_FACTOR_CACHE_PREFIX = 'api-two-factor-challenge:';
+
+    private const TWO_FACTOR_CACHE_TTL_MINUTES = 10;
+
+    /**
+     * Iniciar sesión y emitir Token.
+     *
+     * Si la cuenta tiene 2FA activo, no emite token todavía: manda el código
+     * por email y devuelve un "two_factor_token" de un solo uso que hay que
+     * canjear en verifyTwoFactor() junto con el código. Sin esto, el login de
+     * la API se saltaba el 2FA por completo (a diferencia del login web,
+     * Web\AuthController::login()) y bastaban email+contraseña para entrar.
      */
     public function login(Request $request)
     {
@@ -36,17 +56,83 @@ class AuthController extends Controller
 
         $this->clearLoginAttempts($request);
 
-        // 3. Buscar al usuario y generar su llave
+        // 3. Buscar al usuario
         $user = User::where('email', $request->email)->firstOrFail();
 
-        // Creamos un token llamado 'MobileApp' (puedes llamarlo como quieras)
-        $token = $user->createToken('MobileApp')->plainTextToken;
+        // No dejamos ninguna sesión 'web' colgada: la API es sin estado y
+        // solo debe autenticar por token.
+        Auth::guard('web')->logout();
 
-        // 4. Devolver el token a la aplicación
+        if ($user->two_factor_enabled) {
+            return $this->beginTwoFactorChallenge($user);
+        }
+
+        return $this->issueTokenResponse($user);
+    }
+
+    /**
+     * Canjea el "two_factor_token" de un login a medias junto con el código
+     * recibido por email para completar el login y emitir el token de acceso.
+     */
+    public function verifyTwoFactor(Request $request)
+    {
+        $request->validate([
+            'two_factor_token' => ['required', 'string'],
+            'code' => ['required', 'string'],
+        ]);
+
+        $user = $this->pendingUser($request->string('two_factor_token')->toString());
+
+        if (! $user) {
+            return response()->json([
+                'message' => 'La verificación ha caducado o no es válida. Vuelve a iniciar sesión.',
+            ], 401);
+        }
+
+        if (! $user->verifyTwoFactorCode($request->string('code')->trim()->toString())) {
+            return response()->json([
+                'message' => 'Código incorrecto o caducado.',
+            ], 401);
+        }
+
+        Cache::forget(self::TWO_FACTOR_CACHE_PREFIX.$request->input('two_factor_token'));
+
+        return $this->issueTokenResponse($user);
+    }
+
+    /**
+     * Genera un código nuevo (invalida el anterior) y lo reenvía, para el
+     * mismo desafío de 2FA pendiente.
+     */
+    public function resendTwoFactor(Request $request)
+    {
+        $request->validate([
+            'two_factor_token' => ['required', 'string'],
+        ]);
+
+        $user = $this->pendingUser($request->string('two_factor_token')->toString());
+
+        if (! $user) {
+            return response()->json([
+                'message' => 'La verificación ha caducado o no es válida. Vuelve a iniciar sesión.',
+            ], 401);
+        }
+
+        if (! $this->sendTwoFactorCode($user)) {
+            return response()->json([
+                'message' => 'Error. Por favor, inténtalo más tarde y, si el problema persiste, comunícaselo al administrador.',
+            ], 503);
+        }
+
+        // Refrescamos el TTL: diez minutos más desde este reenvío.
+        Cache::put(
+            self::TWO_FACTOR_CACHE_PREFIX.$request->input('two_factor_token'),
+            $user->id,
+            now()->addMinutes(self::TWO_FACTOR_CACHE_TTL_MINUTES),
+        );
+
         return response()->json([
-            'message' => 'Login exitoso',
-            'access_token' => $token,
-            'token_type' => 'Bearer',
+            'message' => 'Te hemos enviado un código nuevo.',
         ]);
     }
 
@@ -60,6 +146,61 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Sesión cerrada correctamente',
+        ]);
+    }
+
+    private function beginTwoFactorChallenge(User $user)
+    {
+        if (! $this->sendTwoFactorCode($user)) {
+            return response()->json([
+                'message' => 'Error. Por favor, inténtalo más tarde y, si el problema persiste, comunícaselo al administrador.',
+            ], 503);
+        }
+
+        $challengeToken = Str::random(64);
+
+        Cache::put(
+            self::TWO_FACTOR_CACHE_PREFIX.$challengeToken,
+            $user->id,
+            now()->addMinutes(self::TWO_FACTOR_CACHE_TTL_MINUTES),
+        );
+
+        return response()->json([
+            'message' => 'Te hemos enviado un código de verificación por email.',
+            'two_factor_required' => true,
+            'two_factor_token' => $challengeToken,
+        ]);
+    }
+
+    private function sendTwoFactorCode(User $user): bool
+    {
+        try {
+            $user->notify(new TwoFactorCodeNotification($user->generateTwoFactorCode()));
+
+            return true;
+        } catch (Throwable $e) {
+            report($e);
+
+            return false;
+        }
+    }
+
+    private function pendingUser(string $challengeToken): ?User
+    {
+        $userId = Cache::get(self::TWO_FACTOR_CACHE_PREFIX.$challengeToken);
+
+        return $userId ? User::find($userId) : null;
+    }
+
+    private function issueTokenResponse(User $user)
+    {
+        // Creamos un token llamado 'MobileApp' (puedes llamarlo como quieras)
+        $token = $user->createToken('MobileApp')->plainTextToken;
+
+        return response()->json([
+            'message' => 'Login exitoso',
+            'access_token' => $token,
+            'token_type' => 'Bearer',
         ]);
     }
 }

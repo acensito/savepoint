@@ -236,6 +236,15 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 - Tokens Sanctum con expiración global de 30 días desde su emisión (`SANCTUM_TOKEN_EXPIRATION_MINUTES` en `.env`,
   `config/sanctum.php`): pasado ese tiempo dejan de autenticar aunque no se hayan revocado a mano, así que un token
   filtrado no queda válido para siempre.
+- **Login con 2FA**: si la cuenta tiene el 2FA por email activo, `POST /api/login` no emite token — devuelve
+  `two_factor_required: true` y un `two_factor_token` de un solo uso (10 minutos), y manda el código por email igual
+  que el login web. `POST /api/login/verify-2fa` (con `two_factor_token` + `code`) completa el login y emite el token
+  Sanctum; `POST /api/login/resend-2fa` reenvía un código nuevo para el mismo desafío. Ambas rutas van sin
+  `auth:sanctum` (todavía no hay usuario autenticado) y con su propio límite de intentos
+  (`api-two-factor-verify`/`api-two-factor-resend`, `AppServiceProvider`), igual que el desafío web.
+- **Límite general de peticiones**: `throttle:api` (120/min, por usuario autenticado o por IP en `/login` antes de
+  tener token) sobre todas las rutas `/api/*`, activado en `bootstrap/app.php`. Antes solo `/login` tenía protección
+  propia contra fuerza bruta y el resto (`/games`) no tenía ningún tope.
 
 ### Estadísticas
 
@@ -294,6 +303,9 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
   email+IP (`ThrottlesLogins`), así que un atacante no puede bloquear a otros usuarios que compartan su misma IP.
   Además, un segundo límite más laxo (10 intentos / 5 minutos) solo por email frena a quien rota de IP en cada intento
   para saltarse el primero.
+- El 2FA por email (ver Cuenta más abajo) se exige también al entrar por la API, no solo por web: `POST /api/login` en
+  una cuenta con 2FA activo nunca emite un token de acceso sin pasar antes por `POST /api/login/verify-2fa` con el
+  código recibido — antes bastaban email+contraseña para saltárselo por completo entrando por la API.
 - Botón de cerrar sesión ("Salir") en la navegación.
 
 ### Interfaz
@@ -444,13 +456,23 @@ Cobertura actual:
   seguridad: que la cookie de dispositivo de confianza de una cuenta no sirve para saltarse el desafío de otra, y que
   un `user_id` colado a mano en el body de `two-factor.verify` no tiene ningún efecto (siempre sale de la sesión); y
   que un fallo al enviar el código (login o reenvío) muestra un aviso claro en vez de un 500 sin manejar.
-- `Tests\Feature\Api\AuthTest`: login/logout vía Sanctum (emisión y revocación de token), `/api/user` protegido, bloqueo
-  por fuerza bruta, expiración de token (rechazado pasado el límite configurado, aceptado justo antes).
+- `Tests\Feature\Api\AuthTest`: login/logout vía Sanctum (emisión y revocación de token), `/api/user` protegido (incluye
+  que la respuesta nunca expone campos ocultos como `password` o `igdb_client_secret`), bloqueo por fuerza bruta,
+  expiración de token (rechazado pasado el límite configurado, aceptado justo antes), token manipulado/de usuario
+  borrado rechazado, mensaje de error de login idéntico exista o no el email (sin enumeración de usuarios), email con
+  sintaxis de inyección SQL rechazado por validación sin error 500; y el desafío de 2FA completo: `/api/login` no emite
+  token en una cuenta con 2FA activo (solo `two_factor_token`), `/api/login/verify-2fa` lo completa con el código
+  correcto y lo rechaza con uno incorrecto/caducado o un `two_factor_token` desconocido, un `user_id` colado en el body
+  no tiene efecto, `/api/login/resend-2fa` invalida el código anterior, y ambas rutas tienen su propio límite de
+  intentos.
 - `Tests\Feature\SessionCookieSecurityTest`: la cookie de sesión no lleva `Secure` por HTTP plano, pero sí en cuanto la
   petición llega con `X-Forwarded-Proto: https` (simula el proxy inverso de producción).
-- `Tests\Feature\Api\GameControllerTest`: CRUD completo de la API, paginación (tamaño por defecto, `per_page` a medida y
-  con tope), filtros (`q`, `platform_id`, `play_status`, `status`), scoping por usuario y `GamePolicy` bloqueando acceso
-  a juegos ajenos (403 en view/update/delete).
+- `Tests\Feature\Api\GameControllerTest`: CRUD completo de la API, paginación (tamaño por defecto, `per_page` a medida,
+  con tope, y tratado como el valor por defecto si no es un entero positivo), filtros (`q`, `platform_id`,
+  `play_status`, `status`) incluida una búsqueda con caracteres de inyección SQL sin error ni fuga entre usuarios,
+  scoping por usuario y `GamePolicy` bloqueando acceso a juegos ajenos (403 en view/update/delete) o inexistentes
+  (404), un `user_id` colado en el payload de alta/edición sin ningún efecto (siempre manda el usuario autenticado), y
+  que `status` no admite `sold` (estado derivado, solo asignable desde `SalesController`).
 - `Tests\Feature\Web\GameControllerTest`: alta y edición de juegos con subida/reemplazo de carátula real, validación,
   aviso de EAN duplicado (con y sin confirmar), `GamePolicy` aplicada en las rutas web, la ficha de detalle, la edición
   rápida (estado/en venta) por AJAX y por formulario normal, el filtro "en venta", el fragmento que devuelve `index()`

@@ -20,6 +20,54 @@ class GameControllerTest extends TestCase
         $this->getJson('/api/games')->assertStatus(401);
         $this->getJson("/api/games/{$game->id}")->assertStatus(401);
         $this->postJson('/api/games', [])->assertStatus(401);
+        $this->putJson("/api/games/{$game->id}", ['title' => 'Hijacked'])->assertStatus(401);
+        $this->deleteJson("/api/games/{$game->id}")->assertStatus(401);
+    }
+
+    public function test_requesting_a_nonexistent_game_returns_404(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+
+        $this->getJson('/api/games/999999')->assertStatus(404);
+        $this->putJson('/api/games/999999', ['title' => 'x'])->assertStatus(404);
+        $this->deleteJson('/api/games/999999')->assertStatus(404);
+    }
+
+    public function test_index_treats_a_non_numeric_or_negative_per_page_as_the_default(): void
+    {
+        $user = User::factory()->create();
+        Game::factory()->for($user)->count(3)->create();
+
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/games?per_page=-5')
+            ->assertOk()
+            ->assertJsonPath('meta.per_page', 20);
+
+        $this->getJson('/api/games?per_page=not-a-number')
+            ->assertOk()
+            ->assertJsonPath('meta.per_page', 20);
+    }
+
+    public function test_index_search_term_with_sql_wildcard_and_quote_characters_does_not_error_or_leak_other_users_games(): void
+    {
+        $user = User::factory()->create();
+        Game::factory()->for($user)->create(['title' => 'Hollow Knight']);
+        Game::factory()->create(['title' => "Someone Else's Game"]); // otro usuario
+
+        Sanctum::actingAs($user);
+
+        foreach (["'; DROP TABLE games; --", "%' OR '1'='1", '___', '%%'] as $payload) {
+            $response = $this->getJson('/api/games?q='.urlencode($payload))->assertOk();
+
+            // Solo debe poder ver, como mucho, sus propios juegos: nunca los de otro usuario.
+            foreach ($response->json('data') as $game) {
+                $this->assertNotSame("Someone Else's Game", $game['title']);
+            }
+        }
+
+        // La tabla sigue intacta tras el intento de inyección.
+        $this->assertDatabaseCount('games', 2);
     }
 
     public function test_index_only_returns_the_authenticated_users_games(): void
@@ -166,6 +214,34 @@ class GameControllerTest extends TestCase
         ]);
     }
 
+    public function test_creating_a_game_ignores_a_spoofed_user_id_and_always_assigns_the_authenticated_user(): void
+    {
+        // Mass assignment / IDOR: si un atacante mete su propio "user_id" en
+        // el payload apuntando a otra cuenta, StoreGameRequest no lo valida
+        // (no está en las reglas) y GameController::store() lo pisa siempre
+        // con el usuario autenticado — pero lo comprobamos como regresión.
+        $attacker = User::factory()->create();
+        $victim = User::factory()->create();
+        $platform = Platform::factory()->create();
+
+        Sanctum::actingAs($attacker);
+
+        $response = $this->postJson('/api/games', [
+            'title' => 'Hollow Knight',
+            'platform_id' => $platform->id,
+            'user_id' => $victim->id,
+        ])->assertCreated();
+
+        $this->assertDatabaseHas('games', [
+            'title' => 'Hollow Knight',
+            'user_id' => $attacker->id,
+        ]);
+        $this->assertDatabaseMissing('games', [
+            'title' => 'Hollow Knight',
+            'user_id' => $victim->id,
+        ]);
+    }
+
     public function test_creating_a_game_requires_title_and_platform(): void
     {
         Sanctum::actingAs(User::factory()->create());
@@ -236,6 +312,41 @@ class GameControllerTest extends TestCase
             'play_status' => 'playing',
             'rating' => 5,
         ]);
+    }
+
+    public function test_updating_a_game_ignores_an_attempt_to_reassign_it_to_another_user(): void
+    {
+        // Mismo caso que en store(): UpdateGameRequest tampoco valida
+        // "user_id", así que update() nunca lo toca aunque venga en el payload.
+        $owner = User::factory()->create();
+        $attacker = User::factory()->create();
+        $game = Game::factory()->for($owner)->create();
+
+        Sanctum::actingAs($owner);
+
+        $this->putJson("/api/games/{$game->id}", [
+            'title' => 'Still mine',
+            'user_id' => $attacker->id,
+        ])->assertOk();
+
+        $this->assertDatabaseHas('games', ['id' => $game->id, 'user_id' => $owner->id]);
+    }
+
+    public function test_updating_a_game_cannot_set_status_to_sold_which_is_a_derived_state(): void
+    {
+        // Ver Game::STATUSES: 'sold' se marca solo desde
+        // SalesController::markAsSold() (venta con precio/fecha), nunca
+        // asignable directamente ni desde el formulario web ni desde la API.
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['status' => 'owned']);
+
+        Sanctum::actingAs($user);
+
+        $this->putJson("/api/games/{$game->id}", ['status' => 'sold'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('status');
+
+        $this->assertDatabaseHas('games', ['id' => $game->id, 'status' => 'owned']);
     }
 
     public function test_updating_a_game_rejects_a_rating_outside_the_webs_1_to_5_range(): void

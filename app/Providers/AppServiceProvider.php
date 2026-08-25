@@ -73,6 +73,16 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(5)->by($request->ip());
         });
 
+        // Límite general de la API (activado en bootstrap/app.php vía
+        // throttleApi()): antes solo /login tenía protección propia
+        // (ThrottlesLogins) y el resto (/games) no tenía ningún tope. Por
+        // usuario autenticado cuando hay token; por IP en /login antes de
+        // conseguirlo (ahí manda igualmente el throttle de fuerza bruta, más
+        // estricto).
+        RateLimiter::for('api', function (Request $request) {
+            return Limit::perMinute(120)->by($request->user()?->id ?: $request->ip());
+        });
+
         // Claves por usuario pendiente de verificar (guardado en sesión al
         // entrar al desafío, ver TwoFactorController), no por IP: dos
         // cuentas distintas desde la misma IP no deben compartir límite, y
@@ -84,6 +94,19 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('two-factor-resend', function (Request $request) {
             return Limit::perMinutes(5, 3)->by($request->session()->get('two_factor.user_id', $request->ip()));
+        });
+
+        // Equivalentes de arriba para el desafío de 2FA de la API
+        // (Api\AuthController::verifyTwoFactor()/resendTwoFactor()): sin
+        // sesión en las rutas 'api', la clave es el propio
+        // "two_factor_token" de un solo uso (identifica el intento de login
+        // a medias tan bien como el user_id de sesión) y no la IP.
+        RateLimiter::for('api-two-factor-verify', function (Request $request) {
+            return Limit::perMinutes(10, 5)->by($request->input('two_factor_token', $request->ip()));
+        });
+
+        RateLimiter::for('api-two-factor-resend', function (Request $request) {
+            return Limit::perMinutes(5, 3)->by($request->input('two_factor_token', $request->ip()));
         });
     }
 }
