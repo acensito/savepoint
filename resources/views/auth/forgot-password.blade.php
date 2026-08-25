@@ -27,8 +27,7 @@
                 if (localStorage.getItem('sp:theme') === 'light') {
                     document.documentElement.classList.add('light');
                 }
-            } catch (e) {
-            }
+            } catch (e) {}
         })();
     </script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
