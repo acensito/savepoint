@@ -26,6 +26,9 @@
             <input type="password" name="password" id="password" autocomplete="new-password"
                 placeholder="{{ $user ? 'Dejar en blanco para no cambiarla' : '' }}" {{ $user ? '' : 'required' }}
                 class="{{ $input }}">
+            <p class="text-xs text-slate-500 mt-1">
+                Mínimo 8 caracteres, con al menos una mayúscula, una minúscula, un número y un símbolo.
+            </p>
             @error('password') <span class="{{ $error }}">{{ $message }}</span> @enderror
         </div>
         <div>

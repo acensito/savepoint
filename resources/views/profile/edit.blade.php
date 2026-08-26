@@ -155,6 +155,9 @@
                         <label for="password" class="{{ $label }}">Nueva contraseña</label>
                         <input type="password" name="password" id="password"
                                required class="{{ $input }}">
+                        <p class="text-xs text-slate-500 mt-1">
+                            Mínimo 8 caracteres, con al menos una mayúscula, una minúscula, un número y un símbolo.
+                        </p>
                         @error('password') <span class="{{ $error }}">{{ $message }}</span> @enderror
                     </div>
                     <div>
