@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 use Laravel\Sanctum\HasApiTokens;
 
 #[Fillable([
@@ -50,6 +51,24 @@ class User extends Authenticatable
             'two_factor_enabled' => 'boolean',
             'two_factor_code_expires_at' => 'datetime',
         ];
+    }
+
+    // ==========================================
+    // VALIDACIÓN
+    // ==========================================
+
+    /**
+     * Única fuente de verdad para la complejidad de contraseña, exigida en
+     * todos los sitios que crean o cambian una (RegisterController,
+     * UserController::store()/update(), ProfileController::updatePassword(),
+     * PasswordResetController) — antes solo la aplicaba el registro público,
+     * así que un admin dando de alta un usuario a mano, un reseteo por
+     * email o un cambio de contraseña propio/ajeno se conformaban con
+     * min:8, sin exigir nada de complejidad (ver issue #51).
+     */
+    public static function passwordComplexityRule(): Password
+    {
+        return Password::min(8)->letters()->numbers()->symbols()->mixedCase();
     }
 
     // ==========================================

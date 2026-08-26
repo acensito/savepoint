@@ -9,7 +9,6 @@ use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 
 class RegisterController extends Controller
@@ -48,7 +47,7 @@ class RegisterController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', Password::min(8)->letters()->numbers()->symbols()->mixedCase(), 'confirmed'],
+            'password' => ['required', 'string', User::passwordComplexityRule(), 'confirmed'],
         ]);
 
         $user = User::create([

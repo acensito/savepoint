@@ -56,12 +56,12 @@ class PasswordResetTest extends TestCase
         $response = $this->post('/reset-password', [
             'token' => $token,
             'email' => $user->email,
-            'password' => 'brand-new-password',
-            'password_confirmation' => 'brand-new-password',
+            'password' => 'Brand-New-Password1',
+            'password_confirmation' => 'Brand-New-Password1',
         ]);
 
         $response->assertRedirect(route('login'));
-        $this->assertTrue(Hash::check('brand-new-password', $user->fresh()->password));
+        $this->assertTrue(Hash::check('Brand-New-Password1', $user->fresh()->password));
     }
 
     public function test_resetting_the_password_revokes_existing_api_tokens(): void
@@ -74,11 +74,33 @@ class PasswordResetTest extends TestCase
         $this->post('/reset-password', [
             'token' => $token,
             'email' => $user->email,
-            'password' => 'brand-new-password',
-            'password_confirmation' => 'brand-new-password',
+            'password' => 'Brand-New-Password1',
+            'password_confirmation' => 'Brand-New-Password1',
         ]);
 
         $this->assertDatabaseCount('personal_access_tokens', 0);
+    }
+
+    /**
+     * Regresión (#51): antes solo el registro público exigía complejidad de
+     * contraseña — el reseteo por email se conformaba con min:8, así que
+     * "password1" (sin mayúscula ni símbolo) colaba aquí aunque no lo
+     * hiciera en /register.
+     */
+    public function test_reset_requires_the_password_to_be_complex(): void
+    {
+        $user = User::factory()->create(['password' => Hash::make('old-password')]);
+        $token = Password::createToken($user);
+
+        $response = $this->post('/reset-password', [
+            'token' => $token,
+            'email' => $user->email,
+            'password' => 'password1',
+            'password_confirmation' => 'password1',
+        ]);
+
+        $response->assertSessionHasErrors('password');
+        $this->assertTrue(Hash::check('old-password', $user->fresh()->password));
     }
 
     public function test_reset_fails_with_an_invalid_token(): void
@@ -88,8 +110,8 @@ class PasswordResetTest extends TestCase
         $response = $this->post('/reset-password', [
             'token' => 'not-the-real-token',
             'email' => $user->email,
-            'password' => 'brand-new-password',
-            'password_confirmation' => 'brand-new-password',
+            'password' => 'Brand-New-Password1',
+            'password_confirmation' => 'Brand-New-Password1',
         ]);
 
         $response->assertSessionHasErrors('email');

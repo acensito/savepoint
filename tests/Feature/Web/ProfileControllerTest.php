@@ -62,12 +62,12 @@ class ProfileControllerTest extends TestCase
 
         $response = $this->actingAs($user)->put('/profile/password', [
             'current_password' => 'old-password',
-            'password' => 'new-password',
-            'password_confirmation' => 'new-password',
+            'password' => 'New-Password1',
+            'password_confirmation' => 'New-Password1',
         ]);
 
         $response->assertRedirect(route('web.profile.edit'));
-        $this->assertTrue(Hash::check('new-password', $user->fresh()->password));
+        $this->assertTrue(Hash::check('New-Password1', $user->fresh()->password));
     }
 
     public function test_changing_the_password_revokes_existing_api_tokens(): void
@@ -80,8 +80,8 @@ class ProfileControllerTest extends TestCase
 
         $this->actingAs($user)->put('/profile/password', [
             'current_password' => 'old-password',
-            'password' => 'new-password',
-            'password_confirmation' => 'new-password',
+            'password' => 'New-Password1',
+            'password_confirmation' => 'New-Password1',
         ]);
 
         $this->assertDatabaseCount('personal_access_tokens', 0);
@@ -97,6 +97,26 @@ class ProfileControllerTest extends TestCase
             'password_confirmation' => 'new-password',
         ])->assertSessionHasErrors('current_password');
 
+        $this->assertTrue(Hash::check('old-password', $user->fresh()->password));
+    }
+
+    /**
+     * Regresión (#51): antes solo el registro público exigía complejidad de
+     * contraseña — cambiar la propia desde /profile se conformaba con
+     * min:8, así que "password1" (sin mayúscula ni símbolo) colaba aquí
+     * aunque no lo hiciera en /register.
+     */
+    public function test_changing_the_password_requires_it_to_be_complex(): void
+    {
+        $user = User::factory()->create(['password' => Hash::make('old-password')]);
+
+        $response = $this->actingAs($user)->put('/profile/password', [
+            'current_password' => 'old-password',
+            'password' => 'password1',
+            'password_confirmation' => 'password1',
+        ]);
+
+        $response->assertSessionHasErrors('password');
         $this->assertTrue(Hash::check('old-password', $user->fresh()->password));
     }
 

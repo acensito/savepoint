@@ -64,8 +64,8 @@ class UserControllerTest extends TestCase
         $response = $this->actingAs($admin)->post('/panel/users', [
             'name' => 'Nuevo Usuario',
             'email' => 'nuevo@example.com',
-            'password' => 'password123',
-            'password_confirmation' => 'password123',
+            'password' => 'Password123!',
+            'password_confirmation' => 'Password123!',
             'is_admin' => '1',
         ]);
 
@@ -74,7 +74,7 @@ class UserControllerTest extends TestCase
         $created = User::where('email', 'nuevo@example.com')->firstOrFail();
         $this->assertSame('Nuevo Usuario', $created->name);
         $this->assertTrue($created->is_admin);
-        $this->assertTrue(Hash::check('password123', $created->password));
+        $this->assertTrue(Hash::check('Password123!', $created->password));
     }
 
     public function test_creating_a_user_requires_a_unique_email_and_a_confirmed_password(): void
@@ -90,6 +90,27 @@ class UserControllerTest extends TestCase
         ]);
 
         $response->assertSessionHasErrors(['email', 'password']);
+    }
+
+    /**
+     * Regresión (#51): antes solo el registro público (RegisterController)
+     * exigía complejidad de contraseña — un admin dando de alta un usuario a
+     * mano se conformaba con min:8, así que "password1" (sin mayúscula ni
+     * símbolo) colaba aquí aunque no lo hiciera en /register.
+     */
+    public function test_creating_a_user_requires_a_complex_password(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $response = $this->actingAs($admin)->post('/panel/users', [
+            'name' => 'Alguien',
+            'email' => 'alguien@example.com',
+            'password' => 'password1',
+            'password_confirmation' => 'password1',
+        ]);
+
+        $response->assertSessionHasErrors('password');
+        $this->assertDatabaseMissing('users', ['email' => 'alguien@example.com']);
     }
 
     public function test_admin_can_edit_another_users_name_email_and_role(): void
@@ -127,10 +148,30 @@ class UserControllerTest extends TestCase
         $this->actingAs($admin)->put("/panel/users/{$other->id}", [
             'name' => $other->name,
             'email' => $other->email,
-            'password' => 'nueva-password',
-            'password_confirmation' => 'nueva-password',
+            'password' => 'Nueva-Password1',
+            'password_confirmation' => 'Nueva-Password1',
         ]);
-        $this->assertTrue(Hash::check('nueva-password', $other->fresh()->password));
+        $this->assertTrue(Hash::check('Nueva-Password1', $other->fresh()->password));
+    }
+
+    /**
+     * Regresión (#51): ver test_creating_a_user_requires_a_complex_password.
+     */
+    public function test_admin_changing_another_users_password_requires_it_to_be_complex(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $other = User::factory()->create();
+        $originalHash = $other->password;
+
+        $response = $this->actingAs($admin)->put("/panel/users/{$other->id}", [
+            'name' => $other->name,
+            'email' => $other->email,
+            'password' => 'password1',
+            'password_confirmation' => 'password1',
+        ]);
+
+        $response->assertSessionHasErrors('password');
+        $this->assertSame($originalHash, $other->fresh()->password);
     }
 
     public function test_admin_changing_another_users_password_revokes_their_existing_api_tokens(): void
@@ -143,8 +184,8 @@ class UserControllerTest extends TestCase
         $this->actingAs($admin)->put("/panel/users/{$other->id}", [
             'name' => $other->name,
             'email' => $other->email,
-            'password' => 'nueva-password',
-            'password_confirmation' => 'nueva-password',
+            'password' => 'Nueva-Password1',
+            'password_confirmation' => 'Nueva-Password1',
         ]);
 
         $this->assertDatabaseCount('personal_access_tokens', 0);
