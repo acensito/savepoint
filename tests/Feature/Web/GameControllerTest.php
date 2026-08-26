@@ -547,6 +547,7 @@ class GameControllerTest extends TestCase
                     rating: 87.65,
                 )]);
             $mock->shouldReceive('artworks')->once()->with(305)->andReturn(['ar1abc', 'ar2def']);
+            $mock->shouldReceive('timeToBeat')->once()->with(305)->andReturn(['normally' => 64800, 'count' => 150]);
         });
 
         $response = $this->actingAs($user)->post('/games', [
@@ -569,6 +570,7 @@ class GameControllerTest extends TestCase
         $this->mock(IgdbLookupService::class, function ($mock) {
             $mock->shouldNotReceive('search');
             $mock->shouldNotReceive('artworks');
+            $mock->shouldNotReceive('timeToBeat');
         });
 
         $response = $this->actingAs($user)->post('/games', [
@@ -590,6 +592,7 @@ class GameControllerTest extends TestCase
         $this->mock(IgdbLookupService::class, function ($mock) {
             $mock->shouldReceive('search')->once()->andReturn([]);
             $mock->shouldNotReceive('artworks');
+            $mock->shouldNotReceive('timeToBeat');
         });
 
         $response = $this->actingAs($user)->post('/games', [
@@ -620,6 +623,7 @@ class GameControllerTest extends TestCase
                 rating: null,
             )]);
             $mock->shouldReceive('artworks')->once()->with(42)->andReturn([]);
+            $mock->shouldReceive('timeToBeat')->once()->with(42)->andReturn(null);
         });
 
         $response = $this->actingAs($user)->post('/games', [
@@ -802,6 +806,7 @@ class GameControllerTest extends TestCase
                 'name' => 'Celeste',
                 'involved_companies' => [['developer' => true, 'company' => ['name' => 'Maddy Makes Games']]],
             ]], 200),
+            'api.igdb.com/v4/game_time_to_beats' => Http::response([], 200),
         ]);
 
         $this->actingAs($user)->get("/games/{$game->id}")->assertOk();

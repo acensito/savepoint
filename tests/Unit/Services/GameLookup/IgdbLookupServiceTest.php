@@ -266,4 +266,55 @@ class IgdbLookupServiceTest extends TestCase
 
         $this->assertSame([], $this->makeService()->artworks(305));
     }
+
+    public function test_time_to_beat_returns_the_durations_for_the_given_igdb_id(): void
+    {
+        $this->fakeToken();
+        Http::fake([
+            'api.igdb.com/v4/game_time_to_beats' => Http::response([
+                ['hastily' => 36000, 'normally' => 64800, 'completely' => 115200, 'count' => 150],
+            ], 200),
+        ]);
+
+        $this->assertSame(
+            ['hastily' => 36000, 'normally' => 64800, 'completely' => 115200, 'count' => 150],
+            $this->makeService()->timeToBeat(305),
+        );
+
+        Http::assertSent(fn ($request) => $request->url() === 'https://api.igdb.com/v4/game_time_to_beats'
+            && str_contains($request->body(), 'where game_id = 305'));
+    }
+
+    public function test_time_to_beat_omits_tiers_the_response_does_not_have(): void
+    {
+        $this->fakeToken();
+        Http::fake([
+            'api.igdb.com/v4/game_time_to_beats' => Http::response([
+                ['normally' => 64800, 'count' => 3],
+            ], 200),
+        ]);
+
+        $this->assertSame(['normally' => 64800, 'count' => 3], $this->makeService()->timeToBeat(305));
+    }
+
+    public function test_time_to_beat_returns_null_when_igdb_has_no_entry_for_the_game(): void
+    {
+        $this->fakeToken();
+        Http::fake(['api.igdb.com/v4/game_time_to_beats' => Http::response([], 200)]);
+
+        $this->assertNull($this->makeService()->timeToBeat(305));
+    }
+
+    public function test_time_to_beat_returns_null_without_credentials(): void
+    {
+        $this->assertNull($this->makeService(clientId: '', clientSecret: '')->timeToBeat(305));
+    }
+
+    public function test_time_to_beat_returns_null_when_the_request_fails(): void
+    {
+        $this->fakeToken();
+        Http::fake(['api.igdb.com/v4/game_time_to_beats' => Http::response('', 500)]);
+
+        $this->assertNull($this->makeService()->timeToBeat(305));
+    }
 }

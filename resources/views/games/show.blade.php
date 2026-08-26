@@ -10,6 +10,9 @@
         ['icon' => 'badge', 'label' => 'Clasificación por edad', 'value' => $game->age_rating],
     ];
 
+    $timeToBeat = $game->igdbTimeToBeatHours();
+    $timeToBeatLabels = ['hastily' => 'Rápido', 'normally' => 'Normal', 'completely' => 'Completista'];
+
     $purchase = [
         ['icon' => 'menu_book', 'label' => 'Manual', 'value' => ['included' => 'Con manual', 'missing' => 'Sin manual', 'booklet' => 'Folleto'][$game->manual_status] ?? null],
         ['icon' => 'storefront', 'label' => 'Lugar de compra', 'value' => $game->purchase_place],
@@ -148,7 +151,7 @@
                         </button>
                     </div>
 
-                    @if($game->igdb_genres || $game->igdb_rating !== null)
+                    @if($game->igdb_genres || $game->igdb_rating !== null || $timeToBeat)
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             @if($game->igdb_genres)
                                 <div class="flex items-start gap-2.5 bg-slate-800/40 border border-slate-800 rounded-lg p-3">
@@ -165,6 +168,20 @@
                                     <div class="min-w-0">
                                         <div class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Nota IGDB</div>
                                         <div class="text-sm text-slate-200 mt-0.5">{{ number_format((float) $game->igdb_rating, 0) }}/100</div>
+                                    </div>
+                                </div>
+                            @endif
+                            @if($timeToBeat)
+                                <div class="flex items-start gap-2.5 bg-slate-800/40 border border-slate-800 rounded-lg p-3 sm:col-span-2">
+                                    <x-gicon name="hourglass_top" class="text-[18px] text-slate-500 mt-0.5 shrink-0" />
+                                    <div class="min-w-0">
+                                        <div class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Duración media (IGDB)</div>
+                                        <div class="text-sm text-slate-200 mt-0.5">
+                                            {{ collect($timeToBeatLabels)->only(array_keys($timeToBeat))->map(fn ($label, $key) => "{$label}: ~{$timeToBeat[$key]}h")->implode(' · ') }}
+                                        </div>
+                                        @if(isset($timeToBeat['count']))
+                                            <div class="text-xs text-slate-500 mt-0.5">Basado en {{ $timeToBeat['count'] }} partidas</div>
+                                        @endif
                                     </div>
                                 </div>
                             @endif

@@ -47,6 +47,7 @@ class Game extends Model
         'igdb_id',
         'igdb_genres',
         'igdb_rating',
+        'igdb_time_to_beat',
         'igdb_matched_at',
         'igdb_background',
     ];
@@ -69,6 +70,7 @@ class Game extends Model
             'wishlist_estimated_price' => 'decimal:2',
             'igdb_genres' => 'array',
             'igdb_rating' => 'decimal:2',
+            'igdb_time_to_beat' => 'array',
             'igdb_matched_at' => 'datetime',
         ];
     }
@@ -173,6 +175,24 @@ class Game extends Model
             ->implode('');
 
         return $initials !== '' ? $initials : '?';
+    }
+
+    /**
+     * igdb_time_to_beat en horas enteras en vez de segundos (formato crudo de
+     * la API), para pintarlo en la ficha (ver games/show.blade.php). null si
+     * no hay dato todavía (sin match, o el juego no tiene tiempos en IGDB).
+     *
+     * @return array{hastily?: int, normally?: int, completely?: int, count?: int}|null
+     */
+    public function igdbTimeToBeatHours(): ?array
+    {
+        if (! $this->igdb_time_to_beat) {
+            return null;
+        }
+
+        return collect($this->igdb_time_to_beat)
+            ->map(fn (int $value, string $key) => $key === 'count' ? $value : (int) round($value / 3600))
+            ->all();
     }
 
     /**

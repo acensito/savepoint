@@ -21,9 +21,10 @@ class IgdbGameMatcher
     /**
      * developer/release_date solo se rellenan si estaban vacíos (nunca pisan
      * lo que ya haya escrito el usuario a mano); igdb_genres/igdb_rating/
-     * igdb_id se sobrescriben siempre porque son campos exclusivos de IGDB,
-     * sin equivalente manual que proteger. Se marca igdb_matched_at haya
-     * habido match o no, para no repetir la búsqueda automática después.
+     * igdb_time_to_beat/igdb_id se sobrescriben siempre porque son campos
+     * exclusivos de IGDB, sin equivalente manual que proteger. Se marca
+     * igdb_matched_at haya habido match o no, para no repetir la búsqueda
+     * automática después.
      */
     public function matchIfNeeded(Game $game): void
     {
@@ -36,12 +37,17 @@ class IgdbGameMatcher
         // así que hace falta margen para que esa prioridad sirva de algo.
         $match = $this->igdbLookup->search($game->title, $game->platform?->name, limit: 10)[0] ?? null;
 
+        // Petición aparte (ver IgdbLookupService::timeToBeat()): solo tiene
+        // sentido pedirla si ya se sabe el id de IGDB del juego.
+        $timeToBeat = $match !== null ? $this->igdbLookup->timeToBeat($match->igdbId) : null;
+
         $game->fill([
             'developer' => $game->developer ?: $match?->developer,
             'release_date' => $game->release_date ?: $match?->releaseDate,
             'igdb_id' => $match?->igdbId,
             'igdb_genres' => $match?->genres,
             'igdb_rating' => $match?->rating,
+            'igdb_time_to_beat' => $timeToBeat,
             'igdb_matched_at' => now(),
         ]);
 

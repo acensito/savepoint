@@ -37,6 +37,9 @@ class MatchGameWithIgdbTest extends TestCase
                 'name' => 'Celeste',
                 'involved_companies' => [['developer' => true, 'company' => ['name' => 'Maddy Makes Games']]],
             ]], 200),
+            'api.igdb.com/v4/game_time_to_beats' => Http::response([
+                ['hastily' => 36000, 'normally' => 64800, 'completely' => 115200, 'count' => 150],
+            ], 200),
         ]);
 
         // Sin actingAs(): simula el worker de cola de verdad, no una
@@ -44,6 +47,10 @@ class MatchGameWithIgdbTest extends TestCase
         (new MatchGameWithIgdb($game->id))->handle();
 
         $this->assertSame('Maddy Makes Games', $game->fresh()->developer);
+        $this->assertSame(
+            ['hastily' => 36000, 'normally' => 64800, 'completely' => 115200, 'count' => 150],
+            $game->fresh()->igdb_time_to_beat,
+        );
         Http::assertSent(fn ($request) => $request->hasHeader('Client-ID', 'owner-client-id'));
     }
 

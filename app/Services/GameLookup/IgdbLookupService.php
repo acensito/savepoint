@@ -179,6 +179,63 @@ class IgdbLookupService
             ->all();
     }
 
+    /**
+     * Duración media para completar un juego ya identificado en IGDB por su
+     * id, sacada originalmente de HowLongToBeat (sin API oficial propia —
+     * IGDB la agrega en un endpoint aparte, no viene incluida en search()).
+     * Los tres tramos son opcionales de forma independiente (un juego puede
+     * tener solo alguno con datos suficientes); count es el número de
+     * partidas detrás de la media, para poder desconfiar si es muy bajo.
+     *
+     * @return array{hastily?: int, normally?: int, completely?: int, count?: int}|null
+     */
+    public function timeToBeat(int $igdbId): ?array
+    {
+        if (! $this->isConfigured()) {
+            return null;
+        }
+
+        $token = $this->accessToken();
+        if ($token === null) {
+            return null;
+        }
+
+        try {
+            $response = Http::timeout(self::TIMEOUT_SECONDS)
+                ->withHeaders([
+                    'Client-ID' => $this->clientId,
+                    'Authorization' => "Bearer {$token}",
+                ])
+                ->withBody(
+                    "fields hastily,normally,completely,count; where game_id = {$igdbId}; limit 1;",
+                    'text/plain',
+                )
+                ->post('https://api.igdb.com/v4/game_time_to_beats');
+        } catch (Throwable $e) {
+            Log::warning('IGDB time to beat lookup failed', ['message' => $e->getMessage()]);
+
+            return null;
+        }
+
+        if ($response->failed()) {
+            Log::warning('IGDB time to beat lookup returned an error status', ['status' => $response->status()]);
+
+            return null;
+        }
+
+        $entry = collect($response->json() ?? [])->first();
+        if ($entry === null) {
+            return null;
+        }
+
+        $times = collect($entry)
+            ->only(['hastily', 'normally', 'completely', 'count'])
+            ->filter(fn ($value) => $value !== null)
+            ->all();
+
+        return $times !== [] ? $times : null;
+    }
+
     private function matchScore(IgdbGameMatch $match, string $query, ?string $platformName): int
     {
         $score = 0;

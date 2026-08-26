@@ -15,7 +15,7 @@ class IgdbGameMatcherTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_match_if_needed_fills_developer_release_date_genres_rating_and_igdb_id(): void
+    public function test_match_if_needed_fills_developer_release_date_genres_rating_time_to_beat_and_igdb_id(): void
     {
         $platform = Platform::factory()->create(['name' => 'Nintendo Switch']);
         $game = Game::factory()->create([
@@ -38,6 +38,10 @@ class IgdbGameMatcherTest extends TestCase
                 genres: ['Platform', 'Indie'],
                 rating: 87.65,
             )]);
+        $igdbLookup->shouldReceive('timeToBeat')
+            ->once()
+            ->with(305)
+            ->andReturn(['hastily' => 36000, 'normally' => 64800, 'completely' => 115200, 'count' => 150]);
 
         (new IgdbGameMatcher($igdbLookup))->matchIfNeeded($game);
 
@@ -46,6 +50,7 @@ class IgdbGameMatcherTest extends TestCase
         $this->assertSame(305, $game->igdb_id);
         $this->assertSame(['Platform', 'Indie'], $game->igdb_genres);
         $this->assertSame('87.65', $game->igdb_rating);
+        $this->assertSame(['hastily' => 36000, 'normally' => 64800, 'completely' => 115200, 'count' => 150], $game->igdb_time_to_beat);
         $this->assertNotNull($game->igdb_matched_at);
     }
 
@@ -55,6 +60,7 @@ class IgdbGameMatcherTest extends TestCase
 
         $igdbLookup = Mockery::mock(IgdbLookupService::class);
         $igdbLookup->shouldNotReceive('search');
+        $igdbLookup->shouldNotReceive('timeToBeat');
 
         (new IgdbGameMatcher($igdbLookup))->matchIfNeeded($game);
     }
@@ -65,11 +71,13 @@ class IgdbGameMatcherTest extends TestCase
 
         $igdbLookup = Mockery::mock(IgdbLookupService::class);
         $igdbLookup->shouldReceive('search')->once()->andReturn([]);
+        $igdbLookup->shouldNotReceive('timeToBeat');
 
         (new IgdbGameMatcher($igdbLookup))->matchIfNeeded($game);
 
         $this->assertNotNull($game->igdb_matched_at);
         $this->assertNull($game->igdb_id);
+        $this->assertNull($game->igdb_time_to_beat);
     }
 
     public function test_match_if_needed_never_overwrites_an_existing_developer_or_release_date(): void
@@ -86,6 +94,7 @@ class IgdbGameMatcherTest extends TestCase
             genres: null,
             rating: null,
         )]);
+        $igdbLookup->shouldReceive('timeToBeat')->once()->with(1)->andReturn(null);
 
         (new IgdbGameMatcher($igdbLookup))->matchIfNeeded($game);
 
