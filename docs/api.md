@@ -70,8 +70,8 @@ La autenticación utiliza tokens de acceso personal de **Laravel Sanctum** emiti
 
 Todas las rutas `/api/*` están sujetas a un límite de **120 peticiones/minuto** (`throttle:api`, activado en
 `bootstrap/app.php`), por usuario autenticado o por IP mientras no se tenga token todavía. Superarlo devuelve
-`429 Too Many Requests`. `/api/login` y el desafío de 2FA tienen además sus propios límites, más estrictos y
-específicos (ver sus secciones).
+`429 Too Many Requests`. `/api/login` y el desafío de 2FA tienen además sus propios límites, más estrictos y específicos
+(ver sus secciones).
 
 ---
 
@@ -82,10 +82,10 @@ específicos (ver sus secciones).
 Autentica las credenciales de un usuario. Es una ruta pública.
 
 - **Si la cuenta no tiene 2FA activo:** devuelve el token de acceso Bearer directamente (200 OK, ver más abajo).
-- **Si la cuenta tiene 2FA por email activo** (toda cuenta nueva lo lleva activo desde el registro): **no** emite
-  ningún token todavía. Manda un código de 6 dígitos por email y devuelve un `two_factor_token` de un solo uso (válido
-  10 minutos) que hay que canjear junto con el código en `POST /api/login/verify-2fa` para completar el login y recibir
-  el token de acceso.
+- **Si la cuenta tiene 2FA por email activo** (toda cuenta nueva lo lleva activo desde el registro): **no** emite ningún
+  token todavía. Manda un código de 6 dígitos por email y devuelve un `two_factor_token` de un solo uso (válido 10
+  minutos) que hay que canjear junto con el código en `POST /api/login/verify-2fa` para completar el login y recibir el
+  token de acceso.
 
 #### Control de intentos y protección de fuerza bruta (Rate Limiting)
 
@@ -154,7 +154,7 @@ Los mensajes de validación se localizan según `APP_LOCALE` (`es` por defecto e
 
 ```json
 {
-    "message": "El campo email es obligatorio. (and 1 more error)",
+    "message": "Los datos proporcionados no son válidos.",
     "errors": {
         "email": [
             "El campo email es obligatorio."
@@ -204,10 +204,10 @@ contador). Superarlo devuelve `429 Too Many Requests`.
 
 #### Parámetros del cuerpo (JSON)
 
-| Campo              | Tipo     | Obligatorio | Descripción                                            |
-|:--------------------|:---------|:------------|:--------------------------------------------------------|
-| `two_factor_token`  | `string` | **Sí**      | El devuelto por `/api/login` al iniciar el desafío.      |
-| `code`              | `string` | **Sí**      | Código de 6 dígitos recibido por email.                 |
+| Campo              | Tipo     | Obligatorio | Descripción                                         |
+|:-------------------|:---------|:------------|:----------------------------------------------------|
+| `two_factor_token` | `string` | **Sí**      | El devuelto por `/api/login` al iniciar el desafío. |
+| `code`             | `string` | **Sí**      | Código de 6 dígitos recibido por email.             |
 
 #### Ejemplo de petición
 
@@ -271,9 +271,9 @@ Máximo **3 intentos en 5 minutos**, por cuenta (mismo criterio que verify-2fa).
 
 #### Parámetros del cuerpo (JSON)
 
-| Campo              | Tipo     | Obligatorio | Descripción                                       |
-|:--------------------|:---------|:------------|:----------------------------------------------------|
-| `two_factor_token`  | `string` | **Sí**      | El devuelto por `/api/login` al iniciar el desafío. |
+| Campo              | Tipo     | Obligatorio | Descripción                                         |
+|:-------------------|:---------|:------------|:----------------------------------------------------|
+| `two_factor_token` | `string` | **Sí**      | El devuelto por `/api/login` al iniciar el desafío. |
 
 #### Ejemplo de petición
 
@@ -339,7 +339,7 @@ curl -X POST http://localhost:8000/api/logout \
 
 ```json
 {
-    "message": "Unauthenticated."
+    "message": "No autenticado."
 }
 ```
 
@@ -502,7 +502,7 @@ Obtiene el detalle de un juego concreto. Carga la relación con `platform`.
 #### Autorización y control de acceso
 
 - **Propietario:** Puede consultar el juego (200 OK).
-- **Otro usuario:** Devuelve `403 Forbidden` (`This action is unauthorized.`).
+- **Otro usuario:** Devuelve `403 Forbidden` (`No autorizado para realizar esta acción.`).
 - **Inexistente o eliminado (Soft Delete):** Devuelve `404 Not Found`.
 
 #### Ejemplo de petición
@@ -606,7 +606,7 @@ curl -X POST http://localhost:8000/api/games \
 
 ```json
 {
-    "message": "El título del juego es obligatorio. (and 1 more error)",
+    "message": "Los datos proporcionados no son válidos.",
     "errors": {
         "title": [
             "El título del juego es obligatorio."
@@ -628,7 +628,7 @@ modifican).
 #### Autorización y control de acceso
 
 - **Propietario:** Puede modificar el juego.
-- **Otro usuario:** Devuelve `403 Forbidden` (`This action is unauthorized.`).
+- **Otro usuario:** Devuelve `403 Forbidden` (`No autorizado para realizar esta acción.`).
 - **Inexistente o eliminado:** Devuelve `404 Not Found`.
 
 #### Parámetros del cuerpo (JSON — Validados por `UpdateGameRequest`)
@@ -695,7 +695,7 @@ físicamente de la base de datos PostgreSQL, pero deja de ser accesible en todas
 #### Autorización y control de acceso
 
 - **Propietario:** Puede eliminar el juego.
-- **Otro usuario:** Devuelve `403 Forbidden` (`This action is unauthorized.`).
+- **Otro usuario:** Devuelve `403 Forbidden` (`No autorizado para realizar esta acción.`).
 - **Inexistente o ya eliminado:** Devuelve `404 Not Found`.
 
 #### Ejemplo de petición
@@ -740,17 +740,17 @@ El objeto `GameResource` transforma el modelo `Game` en la representación JSON 
 
 La API utiliza los códigos de estado estándar de HTTP:
 
-| Código                          | Significado           | Causa común                                                                       |
-|:--------------------------------|:----------------------|:----------------------------------------------------------------------------------|
-| **`200 OK`**                    | Petición exitosa      | Lectura, actualización o eliminación completada con éxito.                        |
-| **`201 Created`**               | Recurso creado        | Alta de un nuevo juego mediante `POST /api/games`.                                |
-| **`401 Unauthorized`**          | No autenticado        | Token ausente, revocado, caducado (>30 días) o credenciales incorrectas en login. |
-| **`403 Forbidden`**             | Acción no autorizada  | Intento de consultar, editar o borrar un juego perteneciente a otro usuario.      |
-| **`404 Not Found`**             | Recurso no encontrado | El ID del juego no existe o ha sido eliminado (*Soft Delete*).                    |
-| **`422 Unprocessable Content`** | Error de validación   | Los datos enviados en el cuerpo no cumplen las reglas de validación.              |
-| **`429 Too Many Requests`**     | Límite de intentos    | Límite general de la API (120/min), de intentos de login en `/api/login`, o del desafío de 2FA (`verify-2fa`/`resend-2fa`). |
-| **`500 Internal Server Error`** | Error interno         | Error no controlado en el servidor.                                               |
-| **`503 Service Unavailable`**   | Envío de email fallido | El código de 2FA no se pudo enviar (`/api/login`, `/api/login/resend-2fa`).       |
+| Código                          | Significado            | Causa común                                                                                                                 |
+|:--------------------------------|:-----------------------|:----------------------------------------------------------------------------------------------------------------------------|
+| **`200 OK`**                    | Petición exitosa       | Lectura, actualización o eliminación completada con éxito.                                                                  |
+| **`201 Created`**               | Recurso creado         | Alta de un nuevo juego mediante `POST /api/games`.                                                                          |
+| **`401 Unauthorized`**          | No autenticado         | Token ausente, revocado, caducado (>30 días) o credenciales incorrectas en login.                                           |
+| **`403 Forbidden`**             | Acción no autorizada   | Intento de consultar, editar o borrar un juego perteneciente a otro usuario.                                                |
+| **`404 Not Found`**             | Recurso no encontrado  | El ID del juego no existe o ha sido eliminado (*Soft Delete*).                                                              |
+| **`422 Unprocessable Content`** | Error de validación    | Los datos enviados en el cuerpo no cumplen las reglas de validación.                                                        |
+| **`429 Too Many Requests`**     | Límite de intentos     | Límite general de la API (120/min), de intentos de login en `/api/login`, o del desafío de 2FA (`verify-2fa`/`resend-2fa`). |
+| **`500 Internal Server Error`** | Error interno          | Error no controlado en el servidor.                                                                                         |
+| **`503 Service Unavailable`**   | Envío de email fallido | El código de 2FA no se pudo enviar (`/api/login`, `/api/login/resend-2fa`).                                                 |
 
 ### Ejemplos de estructuras de error
 
@@ -758,7 +758,7 @@ La API utiliza los códigos de estado estándar de HTTP:
 
 ```json
 {
-    "message": "Unauthenticated."
+    "message": "No autenticado."
 }
 ```
 
@@ -766,7 +766,7 @@ La API utiliza los códigos de estado estándar de HTTP:
 
 ```json
 {
-    "message": "This action is unauthorized."
+    "message": "No autorizado para realizar esta acción."
 }
 ```
 
@@ -774,7 +774,7 @@ La API utiliza los códigos de estado estándar de HTTP:
 
 ```json
 {
-    "message": "Not Found"
+    "message": "Recurso no encontrado."
 }
 ```
 
@@ -782,7 +782,7 @@ La API utiliza los códigos de estado estándar de HTTP:
 
 ```json
 {
-    "message": "El título del juego es obligatorio. (and 1 more error)",
+    "message": "Los datos proporcionados no son válidos.",
     "errors": {
         "title": [
             "El título del juego es obligatorio."
@@ -818,5 +818,6 @@ La API utiliza los códigos de estado estándar de HTTP:
    posterior a dicho `id` devolverá automáticamente `404 Not Found`.
 
 4. **Idioma de los mensajes de respuesta:**
-   La API emite sus mensajes en español, localizados mediante `APP_LOCALE` (`es` por defecto en `.env.example`), el mapa
-   de atributos de `lang/es/validation.php` y los mensajes propios de controladores y requests.
+   La API emite sus mensajes en español, localizados mediante `APP_LOCALE` (`es` por defecto en `.env.example`), los
+   callbacks de renderizado de excepciones en `bootstrap/app.php`, el mapa de atributos de `lang/es/validation.php`
+   y los mensajes propios de controladores y requests.
