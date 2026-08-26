@@ -2,7 +2,7 @@
 
 @section('content')
     @php
-        $input = 'w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500 outline-none';
+        $input = 'w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden';
         $label = 'block font-medium text-sm text-slate-300 mb-1';
         $error = 'text-red-400 text-sm mt-1 block';
     @endphp
@@ -30,7 +30,7 @@
 
                     <div class="flex items-center gap-6">
                         {{-- Avatar circular grande --}}
-                        <div class="flex-shrink-0" style="width: 96px; height: 96px;">
+                        <div class="shrink-0" style="width: 96px; height: 96px;">
                             @if($user->avatarUrl())
                                 <img id="avatar-preview-img"
                                      src="{{ $user->avatarUrl() }}"
@@ -70,7 +70,7 @@
                                        tabindex="0"
                                        role="button"
                                        aria-label="Cambiar imagen de avatar"
-                                       class="cursor-pointer inline-flex items-center gap-2 bg-[var(--color-navbar)] hover:bg-[var(--color-navbar-hover)] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-300">
+                                       class="cursor-pointer inline-flex items-center gap-2 bg-(--color-navbar) hover:bg-(--color-navbar-hover) text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-xs focus:outline-hidden focus:ring-2 focus:ring-indigo-300 peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-300">
                                     <x-gicon name="upload" class="text-[18px]" />
                                     <span>Cambiar avatar</span>
                                 </label>
@@ -78,7 +78,7 @@
                                 @if($user->avatarUrl())
                                     <button type="button"
                                             id="remove-avatar-btn"
-                                            class="inline-flex items-center gap-1.5 text-sm font-medium text-red-400 hover:text-red-300 px-3 py-2 rounded-lg hover:bg-red-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-red-400">
+                                            class="inline-flex items-center gap-1.5 text-sm font-medium text-red-400 hover:text-red-300 px-3 py-2 rounded-lg hover:bg-red-500/10 transition-colors focus:outline-hidden focus:ring-2 focus:ring-red-400">
                                         <x-gicon name="delete" class="text-[18px]" />
                                         <span>Eliminar avatar</span>
                                     </button>
@@ -128,7 +128,7 @@
 
                 <div class="flex items-center justify-end pt-2">
                     <button type="submit"
-                            class="bg-[var(--color-navbar)] text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-[var(--color-navbar-hover)] transition-colors">
+                            class="bg-(--color-navbar) text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-(--color-navbar-hover) transition-colors">
                         Guardar cambios
                     </button>
                 </div>
@@ -166,7 +166,7 @@
 
                 <div class="flex items-center justify-end pt-2">
                     <button type="submit"
-                            class="bg-[var(--color-navbar)] text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-[var(--color-navbar-hover)] transition-colors">
+                            class="bg-(--color-navbar) text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-(--color-navbar-hover) transition-colors">
                         Actualizar contraseña
                     </button>
                 </div>

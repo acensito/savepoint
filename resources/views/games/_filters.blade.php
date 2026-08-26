@@ -12,14 +12,14 @@
     <div class="flex gap-2">
         <button type="button" class="js-quick-search-trigger flex-1 min-w-0 flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-left hover:border-indigo-500 transition-colors"
             data-prefill-query="{{ $query ?? '' }}">
-            <x-gicon name="search" class="text-[18px] text-slate-500 flex-shrink-0" />
+            <x-gicon name="search" class="text-[18px] text-slate-500 shrink-0" />
             <span class="flex-1 min-w-0 truncate text-base {{ ($query ?? '') !== '' ? 'text-slate-100' : 'text-slate-500' }}">
                 {{ ($query ?? '') !== '' ? $query : 'Buscar por título o EAN…' }}
             </span>
-            <kbd class="hidden sm:inline-flex flex-shrink-0 text-[10px] font-semibold text-slate-500 border border-slate-700 rounded px-1.5 py-0.5">Ctrl K</kbd>
+            <kbd class="hidden sm:inline-flex shrink-0 text-[10px] font-semibold text-slate-500 border border-slate-700 rounded px-1.5 py-0.5">Ctrl K</kbd>
         </button>
 
-        <button type="button" class="js-advanced-toggle relative flex-shrink-0 inline-flex items-center justify-center px-4 py-3 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 border border-slate-700 transition-colors"
+        <button type="button" class="js-advanced-toggle relative shrink-0 inline-flex items-center justify-center px-4 py-3 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 border border-slate-700 transition-colors"
             aria-label="Filtros avanzados" title="Filtros avanzados">
             <x-gicon name="tune" class="text-[18px]" />
             @if($hasAdvancedFilters)
@@ -34,7 +34,7 @@
          (salvo orden/paginación) también existen en versión compacta dentro
          del buscador rápido, ver quick-search-dialog en layouts/app.blade.php. -->
     <div class="js-advanced-panel {{ $hasAdvancedFilters ? '' : 'hidden' }} flex flex-wrap gap-3 mt-3 pt-3 border-t border-slate-800">
-        <select name="platform_id" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-none text-sm">
+        <select name="platform_id" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden text-sm">
             <option value="">Todas las plataformas</option>
             @foreach($platforms as $platform)
                 <option value="{{ $platform->id }}" {{ (string) $platformId === (string) $platform->id ? 'selected' : '' }}>
@@ -44,24 +44,24 @@
             <option value="none" {{ $platformId === 'none' ? 'selected' : '' }}>Sin plataforma</option>
         </select>
 
-        <select name="play_status" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-none text-sm">
+        <select name="play_status" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden text-sm">
             <option value="">Cualquier estado de juego</option>
             <option value="pending" {{ $playStatus === 'pending' ? 'selected' : '' }}>Pendiente</option>
             <option value="playing" {{ $playStatus === 'playing' ? 'selected' : '' }}>Jugando</option>
             <option value="finished" {{ $playStatus === 'finished' ? 'selected' : '' }}>Terminado</option>
         </select>
 
-        <select name="status" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-none text-sm">
+        <select name="status" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden text-sm">
             <option value="">Cualquier propiedad</option>
             <option value="owned" {{ $status === 'owned' ? 'selected' : '' }}>En colección</option>
         </select>
 
-        <select name="for_sale" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-none text-sm">
+        <select name="for_sale" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden text-sm">
             <option value="">En venta o no</option>
             <option value="1" {{ ($forSale ?? '') === '1' ? 'selected' : '' }}>Solo en venta</option>
         </select>
 
-        <select name="sort" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-none text-sm">
+        <select name="sort" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden text-sm">
             <option value="">Más recientes primero</option>
             <option value="title" {{ $sort === 'title' ? 'selected' : '' }}>Título</option>
             <option value="price_paid" {{ $sort === 'price_paid' ? 'selected' : '' }}>Precio</option>
@@ -69,12 +69,12 @@
             <option value="purchase_date" {{ $sort === 'purchase_date' ? 'selected' : '' }}>Fecha de compra</option>
         </select>
 
-        <select name="dir" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-none text-sm">
+        <select name="dir" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden text-sm">
             <option value="desc" {{ $dir === 'desc' ? 'selected' : '' }}>Descendente</option>
             <option value="asc" {{ $dir === 'asc' ? 'selected' : '' }}>Ascendente</option>
         </select>
 
-        <select name="per_page" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-none text-sm">
+        <select name="per_page" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden text-sm">
             <option value="10" {{ $perPage === 10 ? 'selected' : '' }}>10 por página</option>
             <option value="20" {{ $perPage === 20 ? 'selected' : '' }}>20 por página</option>
             <option value="50" {{ $perPage === 50 ? 'selected' : '' }}>50 por página</option>

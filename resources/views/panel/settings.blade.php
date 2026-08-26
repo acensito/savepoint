@@ -2,7 +2,7 @@
 
 @section('content')
     @php
-        $input = 'w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500 outline-none';
+        $input = 'w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden';
         $label = 'block font-medium text-sm text-slate-300 mb-1';
     @endphp
 
@@ -213,7 +213,7 @@
             </div>
 
             <div class="flex items-center justify-end">
-                <button type="submit" class="bg-[var(--color-navbar)] text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-[var(--color-navbar-hover)] transition-colors">
+                <button type="submit" class="bg-(--color-navbar) text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-(--color-navbar-hover) transition-colors">
                     Guardar ajustes
                 </button>
             </div>

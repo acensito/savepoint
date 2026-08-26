@@ -26,7 +26,7 @@
 
             <div class="flex items-center gap-2">
                 <a href="{{ route('web.games.edit', $game->id) }}"
-                    class="flex items-center gap-1.5 bg-[var(--color-navbar)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-navbar-hover)] transition-colors">
+                    class="flex items-center gap-1.5 bg-(--color-navbar) text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-(--color-navbar-hover) transition-colors">
                     <x-gicon name="edit" class="text-[16px]" />
                     Editar
                 </a>
@@ -55,7 +55,7 @@
                 @endif
 
                 <div class="relative flex flex-col sm:flex-row sm:items-center gap-6">
-                    <x-game-cover :game="$game" size="lg" class="!w-36 !rounded-2xl !text-4xl mx-auto sm:mx-0 flex-shrink-0 shadow-lg shadow-black/30" />
+                    <x-game-cover :game="$game" size="lg" class="!w-36 !rounded-2xl !text-4xl mx-auto sm:mx-0 shrink-0 shadow-lg shadow-black/30" />
 
                     <div class="flex-1 min-w-0 flex flex-col justify-center">
                         <h1 class="text-2xl font-bold text-slate-100 tracking-tight">{{ $game->title }}</h1>
@@ -111,7 +111,7 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                         @foreach($details as $field)
                             <div class="flex items-start gap-2.5 bg-slate-800/40 border border-slate-800 rounded-lg p-3">
-                                <x-gicon name="{{ $field['icon'] }}" class="text-[18px] text-slate-500 mt-0.5 flex-shrink-0" />
+                                <x-gicon name="{{ $field['icon'] }}" class="text-[18px] text-slate-500 mt-0.5 shrink-0" />
                                 <div class="min-w-0">
                                     <div class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">{{ $field['label'] }}</div>
                                     <div class="text-sm text-slate-200 mt-0.5 break-words">{{ $field['value'] ?? '—' }}</div>
@@ -126,7 +126,7 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                         @foreach($purchase as $field)
                             <div class="flex items-start gap-2.5 bg-slate-800/40 border border-slate-800 rounded-lg p-3">
-                                <x-gicon name="{{ $field['icon'] }}" class="text-[18px] text-slate-500 mt-0.5 flex-shrink-0" />
+                                <x-gicon name="{{ $field['icon'] }}" class="text-[18px] text-slate-500 mt-0.5 shrink-0" />
                                 <div class="min-w-0">
                                     <div class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">{{ $field['label'] }}</div>
                                     <div class="text-sm text-slate-200 mt-0.5 break-words">{{ $field['value'] ?? '—' }}</div>
@@ -152,7 +152,7 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             @if($game->igdb_genres)
                                 <div class="flex items-start gap-2.5 bg-slate-800/40 border border-slate-800 rounded-lg p-3">
-                                    <x-gicon name="category" class="text-[18px] text-slate-500 mt-0.5 flex-shrink-0" />
+                                    <x-gicon name="category" class="text-[18px] text-slate-500 mt-0.5 shrink-0" />
                                     <div class="min-w-0">
                                         <div class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Géneros (IGDB)</div>
                                         <div class="text-sm text-slate-200 mt-0.5 break-words">{{ implode(', ', $game->igdb_genres) }}</div>
@@ -161,7 +161,7 @@
                             @endif
                             @if($game->igdb_rating !== null)
                                 <div class="flex items-start gap-2.5 bg-slate-800/40 border border-slate-800 rounded-lg p-3">
-                                    <x-gicon name="star_rate" class="text-[18px] text-slate-500 mt-0.5 flex-shrink-0" />
+                                    <x-gicon name="star_rate" class="text-[18px] text-slate-500 mt-0.5 shrink-0" />
                                     <div class="min-w-0">
                                         <div class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Nota IGDB</div>
                                         <div class="text-sm text-slate-200 mt-0.5">{{ number_format((float) $game->igdb_rating, 0) }}/100</div>
@@ -179,9 +179,9 @@
 
                     <div id="igdb-search-box" class="hidden mt-2 flex gap-1.5">
                         <input type="text" id="igdb-search-input" placeholder="Buscar otro título…" value="{{ $game->title }}"
-                            class="flex-1 min-w-0 rounded-lg border border-slate-700 bg-slate-800 text-slate-100 text-xs px-2.5 py-1.5 focus:border-indigo-500 focus:ring-indigo-500 outline-none">
+                            class="flex-1 min-w-0 rounded-lg border border-slate-700 bg-slate-800 text-slate-100 text-xs px-2.5 py-1.5 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden">
                         <button type="button" id="igdb-search-btn"
-                            class="flex-shrink-0 text-xs font-medium text-indigo-400 hover:text-indigo-300 px-2">Buscar</button>
+                            class="shrink-0 text-xs font-medium text-indigo-400 hover:text-indigo-300 px-2">Buscar</button>
                     </div>
 
                     <ul id="igdb-search-results" class="hidden mt-1.5 space-y-1 max-h-56 overflow-y-auto rounded-lg border border-slate-700 bg-slate-800/50 p-1.5"></ul>
@@ -274,20 +274,20 @@
                                     <div>
                                         <label for="sale_price" class="block text-xs font-medium text-slate-400 mb-1">Precio de venta</label>
                                         <input type="number" step="0.01" min="0" name="sale_price" id="sale_price" value="{{ old('sale_price') }}" required
-                                            class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500 outline-none">
+                                            class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500 outline-hidden">
                                         @error('sale_price') <span class="text-xs text-red-400">{{ $message }}</span> @enderror
                                     </div>
                                     <div>
                                         <label for="sold_at" class="block text-xs font-medium text-slate-400 mb-1">Fecha de venta</label>
                                         <input type="date" name="sold_at" id="sold_at" value="{{ old('sold_at', now()->toDateString()) }}" required
-                                            class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500 outline-none">
+                                            class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500 outline-hidden">
                                         @error('sold_at') <span class="text-xs text-red-400">{{ $message }}</span> @enderror
                                     </div>
                                 </div>
                                 <div>
                                     <label for="sale_notes" class="block text-xs font-medium text-slate-400 mb-1">Notas</label>
                                     <textarea name="notes" id="sale_notes" rows="2"
-                                        class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500 outline-none">{{ old('notes', $game->notes) }}</textarea>
+                                        class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500 outline-hidden">{{ old('notes', $game->notes) }}</textarea>
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">

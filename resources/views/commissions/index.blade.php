@@ -7,7 +7,7 @@
             <p class="text-slate-400 mt-1">Juegos que te compran/envían amigos, o que tú compras/envías a alguien.</p>
         </div>
 
-        <a href="{{ route('web.commissions.create') }}" class="bg-[var(--color-navbar)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-navbar-hover)] transition-colors whitespace-nowrap">
+        <a href="{{ route('web.commissions.create') }}" class="bg-(--color-navbar) text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-(--color-navbar-hover) transition-colors whitespace-nowrap">
             + Añadir encargo
         </a>
     </div>
@@ -91,7 +91,7 @@
                                                     {{ $commission->direction === 'owed_by_me' ? 'Fecha de envío' : 'Fecha de recepción' }}
                                                 </label>
                                                 <input type="date" name="resolved_at" value="{{ now()->toDateString() }}"
-                                                    class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-3 py-1.5 text-sm focus:border-indigo-500 focus:ring-indigo-500 outline-none">
+                                                    class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-3 py-1.5 text-sm focus:border-indigo-500 focus:ring-indigo-500 outline-hidden">
                                             </div>
                                             <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap">
                                                 Confirmar

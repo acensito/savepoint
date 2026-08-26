@@ -50,26 +50,26 @@
     </script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="bg-[var(--color-navbar)] text-slate-300 antialiased">
+<body class="bg-(--color-navbar) text-slate-300 antialiased">
 
 <div class="h-screen flex flex-col overflow-hidden">
 
     <!-- Navbar: ancho completo, fina -->
-    <header class="h-12 flex-shrink-0 flex items-center justify-between gap-3 px-5">
+    <header class="h-12 shrink-0 flex items-center justify-between gap-3 px-5">
         <div class="flex items-center gap-2 min-w-0">
             <button type="button" id="sidebar-mobile-toggle"
-                    class="md:hidden flex items-center justify-center w-8 h-8 -ml-1.5 rounded-lg text-indigo-100 hover:bg-white/10 transition-colors flex-shrink-0"
+                    class="md:hidden flex items-center justify-center w-8 h-8 -ml-1.5 rounded-lg text-indigo-100 hover:bg-white/10 transition-colors shrink-0"
                     aria-expanded="false" aria-controls="sidebar" aria-label="Abrir menú">
                 <x-gicon name="menu" class="text-[22px]"/>
             </button>
 
             <a href="{{ route('web.games.index') }}" class="flex items-center gap-2 text-white min-w-0">
-                <x-gicon name="joystick" class="text-[22px] flex-shrink-0"/>
+                <x-gicon name="joystick" class="text-[22px] shrink-0"/>
                 <span class="text-base font-bold tracking-tight truncate">SavePoint</span>
             </a>
         </div>
 
-        <div class="flex items-center gap-4 flex-shrink-0">
+        <div class="flex items-center gap-4 shrink-0">
             <button type="button" id="quick-search-trigger"
                     class="js-quick-search-trigger flex items-center justify-center w-8 h-8 rounded-lg text-indigo-100 hover:bg-white/10 hover:text-white transition-colors"
                     aria-label="Buscar (Ctrl+K)" title="Buscar (Ctrl+K)">
@@ -93,10 +93,10 @@
                     @if(auth()->user()->avatarUrl())
                         <img src="{{ auth()->user()->avatarUrl() }}"
                              alt="Avatar"
-                             class="w-6 h-6 rounded-full object-cover flex-shrink-0">
+                             class="w-6 h-6 rounded-full object-cover shrink-0">
                     @else
                         <div
-                            class="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                            class="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center shrink-0 overflow-hidden">
                             <x-gicon name="person" :filled="true" class="text-[16px] text-white"/>
                         </div>
                     @endif
@@ -137,7 +137,7 @@
         <div id="sidebar-backdrop"></div>
 
         <aside id="sidebar"
-               class="sidebar flex-shrink-0 bg-slate-900 border-r border-slate-800 flex flex-col overflow-y-auto overscroll-contain transition-[width] duration-200 ease-in-out">
+               class="sidebar shrink-0 bg-slate-900 border-r border-slate-800 flex flex-col overflow-y-auto overscroll-contain transition-[width] duration-200 ease-in-out">
             <div class="flex items-center justify-between px-3 py-2">
                 <span class="md:hidden pl-1 text-sm font-semibold text-slate-200">Menú</span>
 
@@ -232,7 +232,7 @@
                 </a>
 
                 <a href="{{ route('web.games.create') }}" title="Añadir Juego"
-                   class="flex items-center justify-center gap-2 w-full bg-[var(--color-navbar)] hover:bg-[var(--color-navbar-hover)] text-white px-3 py-2.5 rounded-lg text-sm font-medium transition-colors mt-2">
+                   class="flex items-center justify-center gap-2 w-full bg-(--color-navbar) hover:bg-(--color-navbar-hover) text-white px-3 py-2.5 rounded-lg text-sm font-medium transition-colors mt-2">
                     <x-gicon name="add_circle" class="text-[18px]"/>
                     <span class="sidebar-label">Añadir Juego</span>
                 </a>
@@ -272,7 +272,7 @@
         class="rounded-xl border border-slate-800 bg-slate-900 text-slate-100 p-0 backdrop:bg-black/60 w-full max-w-sm">
     <div class="p-5">
         <div class="flex items-start gap-3">
-            <div class="flex-shrink-0 w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center">
+            <div class="shrink-0 w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center">
                 <x-gicon name="warning" class="text-[22px] text-red-400"/>
             </div>
             <div class="flex-1 min-w-0 pt-1.5">
@@ -303,17 +303,17 @@
 <dialog id="quick-search-dialog" data-url="{{ route('web.search.quick') }}"
         class="rounded-xl border border-slate-800 bg-slate-900 text-slate-100 p-0 backdrop:bg-black/60 w-full max-w-lg">
     <div class="flex items-center gap-3 px-4 py-3 border-b border-slate-800">
-        <x-gicon name="search" class="text-[20px] text-slate-500 flex-shrink-0"/>
+        <x-gicon name="search" class="text-[20px] text-slate-500 shrink-0"/>
         <input type="text" id="quick-search-input" autocomplete="off" spellcheck="false"
-               class="flex-1 min-w-0 bg-transparent text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none"
+               class="flex-1 min-w-0 bg-transparent text-sm text-slate-100 placeholder:text-slate-500 focus:outline-hidden"
                placeholder="Buscar por título o EAN…">
         <button type="button" id="barcode-scan-trigger"
-                class="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-lg text-slate-500 hover:bg-slate-800 hover:text-slate-100 transition-colors"
+                class="shrink-0 flex items-center justify-center w-7 h-7 rounded-lg text-slate-500 hover:bg-slate-800 hover:text-slate-100 transition-colors"
                 aria-label="Escanear código de barras" title="Escanear código de barras">
             <x-gicon name="qr_code_scanner" class="text-[18px]"/>
         </button>
         <kbd
-            class="flex-shrink-0 text-[10px] font-semibold text-slate-500 border border-slate-700 rounded px-1.5 py-0.5">Esc</kbd>
+            class="shrink-0 text-[10px] font-semibold text-slate-500 border border-slate-700 rounded px-1.5 py-0.5">Esc</kbd>
     </div>
 
     <!-- Filtros compactos: mismos campos que el panel "Avanzado" de la
@@ -323,7 +323,7 @@
          búsqueda y en cada 'change'. -->
     <div class="flex items-center gap-2 px-4 py-2 border-b border-slate-800 overflow-x-auto">
         <select id="quick-search-platform"
-                class="flex-shrink-0 rounded-lg border border-slate-700 bg-slate-800 text-slate-300 px-2 py-1.5 text-xs focus:border-indigo-500 focus:ring-indigo-500 outline-none">
+                class="shrink-0 rounded-lg border border-slate-700 bg-slate-800 text-slate-300 px-2 py-1.5 text-xs focus:border-indigo-500 focus:ring-indigo-500 outline-hidden">
             <option value="">Cualquier plataforma</option>
             @foreach($quickSearchPlatforms as $platform)
                 <option value="{{ $platform->id }}">{{ $platform->name }}</option>
@@ -331,7 +331,7 @@
         </select>
 
         <select id="quick-search-play-status"
-                class="flex-shrink-0 rounded-lg border border-slate-700 bg-slate-800 text-slate-300 px-2 py-1.5 text-xs focus:border-indigo-500 focus:ring-indigo-500 outline-none">
+                class="shrink-0 rounded-lg border border-slate-700 bg-slate-800 text-slate-300 px-2 py-1.5 text-xs focus:border-indigo-500 focus:ring-indigo-500 outline-hidden">
             <option value="">Cualquier estado</option>
             <option value="pending">Pendiente</option>
             <option value="playing">Jugando</option>
@@ -339,7 +339,7 @@
         </select>
 
         <select id="quick-search-status"
-                class="flex-shrink-0 rounded-lg border border-slate-700 bg-slate-800 text-slate-300 px-2 py-1.5 text-xs focus:border-indigo-500 focus:ring-indigo-500 outline-none">
+                class="shrink-0 rounded-lg border border-slate-700 bg-slate-800 text-slate-300 px-2 py-1.5 text-xs focus:border-indigo-500 focus:ring-indigo-500 outline-hidden">
             <option value="">Cualquier propiedad</option>
             <option value="owned">En colección</option>
             <option value="sold">Vendido</option>

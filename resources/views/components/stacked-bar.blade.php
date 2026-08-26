@@ -15,7 +15,7 @@
         @foreach($segments as $segment)
             @if($segment['total'] > 0)
                 <div class="flex items-center gap-2 text-sm">
-                    <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background-color: {{ $segment['color'] }}"></span>
+                    <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: {{ $segment['color'] }}"></span>
                     <span class="text-slate-300">{{ $segment['label'] }}</span>
                     <span class="text-slate-500 tabular-nums">{{ $segment['total'] }} ({{ $segment['percent'] }}%)</span>
                 </div>

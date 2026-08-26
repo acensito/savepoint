@@ -8,7 +8,7 @@
         </div>
 
         <div class="flex gap-2">
-            <a href="{{ route('web.editions.create') }}" class="bg-[var(--color-navbar)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-navbar-hover)] transition-colors">
+            <a href="{{ route('web.editions.create') }}" class="bg-(--color-navbar) text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-(--color-navbar-hover) transition-colors">
                 + Nueva Edición
             </a>
         </div>
@@ -25,11 +25,11 @@
                             {{ $edition->name }}
                         </h3>
                         <p class="text-xs text-slate-500 mt-0.5">
-                            {{ $edition->formatLabel() }} · {{ $edition->games_count }} {{ \Illuminate\Support\Str::plural('juego', $edition->games_count) }}
+                            {{ $edition->formatLabel() }} · {{ $edition->games_count }} {{ Str::plural('juego', $edition->games_count) }}
                         </p>
                     </div>
 
-                    <div class="flex items-center gap-1 flex-shrink-0">
+                    <div class="flex items-center gap-1 shrink-0">
                         <a href="{{ route('web.editions.edit', $edition->id) }}"
                             class="flex items-center justify-center w-8 h-8 rounded-full text-slate-400 hover:bg-slate-800 hover:text-indigo-400 active:bg-slate-800 transition-colors"
                             aria-label="Editar {{ $edition->name }}">

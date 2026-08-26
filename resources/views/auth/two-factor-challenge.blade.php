@@ -76,7 +76,7 @@
                 <input type="text" name="code" id="code" inputmode="numeric" pattern="[0-9]*"
                        autocomplete="one-time-code"
                        maxlength="6" required autofocus
-                       class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 tracking-[0.5em] text-center text-lg focus:border-indigo-500 focus:ring-indigo-500 outline-none">
+                       class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 tracking-[0.5em] text-center text-lg focus:border-indigo-500 focus:ring-indigo-500 outline-hidden">
             </div>
 
             <label class="flex items-center gap-2 text-sm text-slate-400">

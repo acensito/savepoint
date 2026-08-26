@@ -11,7 +11,7 @@
             <a href="{{ route('web.platforms.index') }}" class="text-sm font-medium text-slate-400 hover:text-slate-100 self-center">
                 Ver plataformas →
             </a>
-            <a href="{{ route('web.manufacturers.create') }}" class="bg-[var(--color-navbar)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-navbar-hover)] transition-colors">
+            <a href="{{ route('web.manufacturers.create') }}" class="bg-(--color-navbar) text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-(--color-navbar-hover) transition-colors">
                 + Nuevo Fabricante
             </a>
         </div>
@@ -27,7 +27,7 @@
                         {{ $manufacturer->name }}
                     </span>
 
-                    <div class="flex items-center gap-1 flex-shrink-0">
+                    <div class="flex items-center gap-1 shrink-0">
                         <a href="{{ route('web.manufacturers.edit', $manufacturer->id) }}"
                             class="flex items-center justify-center w-8 h-8 rounded-full text-slate-400 hover:bg-slate-800 hover:text-indigo-400 active:bg-slate-800 transition-colors"
                             aria-label="Editar {{ $manufacturer->name }}">
@@ -49,7 +49,7 @@
                 </div>
 
                 <p class="text-sm text-slate-400 mt-2">
-                    {{ $manufacturer->platforms_count }} {{ \Illuminate\Support\Str::plural('plataforma', $manufacturer->platforms_count) }}
+                    {{ $manufacturer->platforms_count }} {{ Str::plural('plataforma', $manufacturer->platforms_count) }}
                 </p>
             </div>
         @empty

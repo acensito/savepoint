@@ -12,9 +12,9 @@
 
 @if($game?->cover)
     <img src="{{ $game->coverUrl() }}" alt="{{ $game->title }}"
-        {{ $attributes->merge(['class' => "$width h-auto $rounded border border-slate-700 flex-shrink-0"]) }}>
+        {{ $attributes->merge(['class' => "$width h-auto $rounded border border-slate-700 shrink-0"]) }}>
 @else
-    <div {{ $attributes->merge(['class' => "$width aspect-square $textSize $rounded flex items-center justify-center bg-slate-800 border border-slate-700 text-slate-400 font-bold flex-shrink-0"]) }}>
+    <div {{ $attributes->merge(['class' => "$width aspect-square $textSize $rounded flex items-center justify-center bg-slate-800 border border-slate-700 text-slate-400 font-bold shrink-0"]) }}>
         {{ $game?->coverInitials() ?? '?' }}
     </div>
 @endif
