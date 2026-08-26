@@ -11,7 +11,7 @@
             <a href="{{ route('web.manufacturers.index') }}" class="text-sm font-medium text-slate-400 hover:text-slate-100 self-center">
                 Ver fabricantes →
             </a>
-            <a href="{{ route('web.platforms.create') }}" class="bg-[var(--color-navbar)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-navbar-hover)] transition-colors">
+            <a href="{{ route('web.platforms.create') }}" class="bg-(--color-navbar) text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-(--color-navbar-hover) transition-colors">
                 + Nueva Plataforma
             </a>
         </div>
@@ -24,7 +24,7 @@
                 <div class="flex items-start justify-between gap-3">
                     <x-platform-chip :platform="$platform" />
 
-                    <div class="flex items-center gap-1 flex-shrink-0">
+                    <div class="flex items-center gap-1 shrink-0">
                         <a href="{{ route('web.platforms.edit', $platform->id) }}"
                             class="flex items-center justify-center w-8 h-8 rounded-full text-slate-400 hover:bg-slate-800 hover:text-indigo-400 active:bg-slate-800 transition-colors"
                             aria-label="Editar {{ $platform->name }}">

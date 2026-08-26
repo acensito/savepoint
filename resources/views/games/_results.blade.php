@@ -16,10 +16,10 @@
         <!-- Tarjetas: listado en pantallas estrechas, sin scroll horizontal -->
         <div class="md:hidden space-y-2.5">
             @forelse($games as $game)
-                <div class="js-game-card bg-slate-900 border border-slate-800 rounded-2xl p-3.5 flex items-center gap-3 shadow-sm shadow-black/10 active:border-slate-700 transition-colors cursor-pointer"
+                <div class="js-game-card bg-slate-900 border border-slate-800 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs shadow-black/10 active:border-slate-700 transition-colors cursor-pointer"
                     data-href="{{ route('web.games.show', $game->id) }}">
                     <input type="checkbox" form="bulk-form" name="game_ids[]" value="{{ $game->id }}"
-                        class="js-bulk-checkbox self-start mt-1 w-4 h-4 flex-shrink-0 rounded border-slate-600 bg-slate-800 text-indigo-600 focus:ring-indigo-500"
+                        class="js-bulk-checkbox self-start mt-1 w-4 h-4 shrink-0 rounded border-slate-600 bg-slate-800 text-indigo-600 focus:ring-indigo-500"
                         aria-label="Seleccionar {{ $game->title }}">
 
                     <!-- Carátula, título+plataforma y fecha+precio son <a> reales (no solo
@@ -29,8 +29,8 @@
                          un segundo para disparar el click, así que la mayor parte visual de la
                          tarjeta respondía mal al primer tap. Los enlaces reales no tienen ese
                          problema. -->
-                    <a href="{{ route('web.games.show', $game->id) }}" class="relative flex-shrink-0">
-                        <x-game-cover :game="$game" size="lg" class="!w-16 !rounded-xl !text-xl shadow-sm shadow-black/20" />
+                    <a href="{{ route('web.games.show', $game->id) }}" class="relative shrink-0">
+                        <x-game-cover :game="$game" size="lg" class="!w-16 !rounded-xl !text-xl shadow-xs shadow-black/20" />
                         @if($game->play_status === 'finished')
                             <span class="absolute -top-1.5 -right-1.5 flex items-center justify-center w-5 h-5 rounded-full bg-yellow-500 text-slate-950 ring-2 ring-slate-900" title="Terminado">
                                 <x-gicon name="emoji_events" :filled="true" class="text-[13px]" />
@@ -41,7 +41,7 @@
                     <div class="flex-1 min-w-0">
                         <a href="{{ route('web.games.show', $game->id) }}" class="flex items-start justify-between gap-2">
                             <span class="min-w-0 text-[15px] font-bold text-slate-100 line-clamp-2 leading-snug">{{ $game->title }}</span>
-                            <x-platform-chip :platform="$game->platform" class="!px-2 !py-0.5 !text-[10px] flex-shrink-0" />
+                            <x-platform-chip :platform="$game->platform" class="!px-2 !py-0.5 !text-[10px] shrink-0" />
                         </a>
 
                         <!-- Conservación de solo lectura aquí (se cambia desde la ficha de

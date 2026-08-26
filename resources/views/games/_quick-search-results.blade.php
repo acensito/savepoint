@@ -24,9 +24,9 @@
                     <button type="button" class="js-cex-result w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-800 transition-colors text-left"
                         data-title="{{ $result->title }}" data-ean="{{ $result->ean }}" data-cover="{{ $result->coverUrl }}" data-platform="{{ $result->platform }}">
                         @if($result->coverUrl)
-                            <img src="{{ $result->coverUrl }}" alt="" class="w-10 h-10 object-cover rounded-lg border border-slate-700 flex-shrink-0">
+                            <img src="{{ $result->coverUrl }}" alt="" class="w-10 h-10 object-cover rounded-lg border border-slate-700 shrink-0">
                         @else
-                            <div class="w-10 h-10 rounded-lg bg-slate-800 border border-slate-700 flex-shrink-0"></div>
+                            <div class="w-10 h-10 rounded-lg bg-slate-800 border border-slate-700 shrink-0"></div>
                         @endif
                         <div class="flex-1 min-w-0">
                             <div class="text-sm font-medium text-slate-100 truncate">{{ $result->title }}</div>
@@ -39,7 +39,7 @@
                                 @endif
                             </div>
                         </div>
-                        <x-gicon name="chevron_right" class="text-[16px] text-slate-600 flex-shrink-0" />
+                        <x-gicon name="chevron_right" class="text-[16px] text-slate-600 shrink-0" />
                     </button>
                 </li>
             @endforeach
@@ -54,7 +54,7 @@
                 Volver a los resultados
             </button>
             <div class="flex items-start gap-4">
-                <img id="cex-preview-cover" src="" alt="" class="hidden w-20 h-auto rounded-xl border border-slate-700 flex-shrink-0">
+                <img id="cex-preview-cover" src="" alt="" class="hidden w-20 h-auto rounded-xl border border-slate-700 shrink-0">
                 <div class="flex-1 min-w-0">
                     <div id="cex-preview-title" class="text-base font-semibold text-slate-100"></div>
                     <div class="flex items-center gap-2 mt-1">
@@ -64,7 +64,7 @@
                     <p class="text-xs text-slate-500 mt-2">Comprueba que los datos coinciden antes de darlo de alta: la búsqueda es de CEX, no de tu colección.</p>
                 </div>
             </div>
-            <a id="cex-preview-add-link" href="#" class="mt-4 inline-flex items-center gap-1.5 bg-[var(--color-navbar)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-navbar-hover)] transition-colors">
+            <a id="cex-preview-add-link" href="#" class="mt-4 inline-flex items-center gap-1.5 bg-(--color-navbar) text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-(--color-navbar-hover) transition-colors">
                 <x-gicon name="add_circle" class="text-[16px]" />
                 Dar de alta
             </a>
@@ -101,7 +101,7 @@
                         </div>
                     </div>
 
-                    <x-star-rating :rating="$game->rating" size="text-[12px]" class="flex-shrink-0" />
+                    <x-star-rating :rating="$game->rating" size="text-[12px]" class="shrink-0" />
                 </a>
             </li>
         @endforeach

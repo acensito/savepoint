@@ -1,6 +1,7 @@
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').catch(() => {});
+        navigator.serviceWorker.register('/sw.js').catch(() => {
+        });
     });
 }
 
@@ -26,7 +27,8 @@ function initSidebarToggle() {
 
         try {
             localStorage.setItem(SIDEBAR_STORAGE_KEY, collapsed ? '1' : '0');
-        } catch (e) {}
+        } catch (e) {
+        }
     });
 }
 
@@ -43,15 +45,11 @@ function saveDisplayPreference(payload) {
     const token = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 
     fetch('/panel/settings/display', {
-        method: 'PATCH',
-        credentials: 'same-origin',
-        headers: {
-            'X-CSRF-TOKEN': token,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-        },
-        body: JSON.stringify(payload),
-    }).catch(() => {});
+        method: 'PATCH', credentials: 'same-origin', headers: {
+            'X-CSRF-TOKEN': token, 'Content-Type': 'application/json', 'Accept': 'application/json',
+        }, body: JSON.stringify(payload),
+    }).catch(() => {
+    });
 }
 
 /**
@@ -77,7 +75,7 @@ function initThemeToggle() {
 
             document.documentElement.classList.toggle('light', isLight);
             syncIcon(isLight);
-            saveDisplayPreference({ theme: isLight ? 'light' : 'dark' });
+            saveDisplayPreference({theme: isLight ? 'light' : 'dark'});
         });
     });
 }
@@ -166,7 +164,9 @@ function initBulkActions() {
         if (e.target.matches('.js-bulk-checkbox')) {
             sync();
         } else if (e.target.id === 'bulk-select-all') {
-            visibleCheckboxes().forEach((cb) => { cb.checked = e.target.checked; });
+            visibleCheckboxes().forEach((cb) => {
+                cb.checked = e.target.checked;
+            });
             sync();
         }
     });
@@ -180,7 +180,7 @@ function initBulkActions() {
 
 initBulkActions();
 
-const GAMES_VIEW_CLASSES = { compact: 'games-compact-view', grid: 'games-grid-view' };
+const GAMES_VIEW_CLASSES = {compact: 'games-compact-view', grid: 'games-grid-view'};
 
 /**
  * Alterna la colección entre tres vistas: la habitual (tarjetas en móvil,
@@ -209,11 +209,7 @@ function initGamesViewToggle() {
         });
     };
 
-    let currentMode = document.documentElement.classList.contains('games-grid-view')
-        ? 'grid'
-        : document.documentElement.classList.contains('games-compact-view')
-            ? 'compact'
-            : 'list';
+    let currentMode = document.documentElement.classList.contains('games-grid-view') ? 'grid' : document.documentElement.classList.contains('games-compact-view') ? 'compact' : 'list';
 
     const setMode = (mode) => {
         currentMode = mode;
@@ -222,7 +218,7 @@ function initGamesViewToggle() {
             document.documentElement.classList.add(GAMES_VIEW_CLASSES[mode]);
         }
         syncButtons(mode);
-        saveDisplayPreference({ games_view: mode });
+        saveDisplayPreference({games_view: mode});
     };
 
     syncButtons(currentMode);
@@ -268,7 +264,9 @@ function initSelectionMode() {
             // Se busca en vivo (no una lista capturada al iniciar) porque el
             // contenido de #games-results puede haberse reemplazado (edición
             // rápida) desde entonces.
-            results.querySelectorAll('.js-bulk-checkbox').forEach((cb) => { cb.checked = false; });
+            results.querySelectorAll('.js-bulk-checkbox').forEach((cb) => {
+                cb.checked = false;
+            });
             window.__syncBulkActions?.();
         }
     };
@@ -311,13 +309,11 @@ async function refreshGamesResults(url) {
 
     try {
         const response = await fetch(url, {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' },
-            credentials: 'same-origin',
+            headers: {'X-Requested-With': 'XMLHttpRequest'}, credentials: 'same-origin',
         });
         if (!response.ok) return;
 
-        const html = await response.text();
-        results.innerHTML = html;
+        results.innerHTML = await response.text();
 
         window.__syncBulkActions?.();
 
@@ -390,7 +386,7 @@ function initImportPreview() {
             const response = await fetch(previewUrl, {
                 method: 'POST',
                 credentials: 'same-origin',
-                headers: { 'X-CSRF-TOKEN': token, 'Accept': 'application/json' },
+                headers: {'X-CSRF-TOKEN': token, 'Accept': 'application/json'},
                 body: formData,
             });
 
@@ -403,9 +399,7 @@ function initImportPreview() {
                 return;
             }
 
-            columnsEl.textContent = data.matchedColumns.length
-                ? `Columnas reconocidas: ${data.matchedColumns.join(', ')}.`
-                : 'No se ha reconocido ninguna columna conocida.';
+            columnsEl.textContent = data.matchedColumns.length ? `Columnas reconocidas: ${data.matchedColumns.join(', ')}.` : 'No se ha reconocido ninguna columna conocida.';
 
             rowsEl.innerHTML = '';
             data.rows.forEach((row) => {
@@ -459,9 +453,7 @@ function initImportStatusPolling() {
         if (data.createdPlatforms || data.createdEditions) {
             const created = document.createElement('p');
             created.className = 'text-sm text-slate-400 mt-2';
-            created.textContent = `Creadas sobre la marcha: ${data.createdPlatforms} `
-                + (data.createdPlatforms === 1 ? 'plataforma' : 'plataformas')
-                + ` y ${data.createdEditions} ` + (data.createdEditions === 1 ? 'edición' : 'ediciones') + '.';
+            created.textContent = `Creadas sobre la marcha: ${data.createdPlatforms} ` + (data.createdPlatforms === 1 ? 'plataforma' : 'plataformas') + ` y ${data.createdEditions} ` + (data.createdEditions === 1 ? 'edición' : 'ediciones') + '.';
             resultEl.appendChild(created);
         }
 
@@ -489,7 +481,7 @@ function initImportStatusPolling() {
 
     async function poll() {
         try {
-            const response = await fetch(statusUrl, { headers: { 'Accept': 'application/json' } });
+            const response = await fetch(statusUrl, {headers: {'Accept': 'application/json'}});
 
             if (!response.ok) {
                 pendingEl.textContent = 'No se ha podido consultar el estado de la importación.';
@@ -509,7 +501,7 @@ function initImportStatusPolling() {
         }
     }
 
-    poll();
+    poll().then(r => r);
 }
 
 initImportStatusPolling();
@@ -571,11 +563,8 @@ async function undoAction(url, button) {
         const token = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 
         const response = await fetch(url, {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: {
-                'X-CSRF-TOKEN': token,
-                'Accept': 'text/html',
+            method: 'POST', credentials: 'same-origin', headers: {
+                'X-CSRF-TOKEN': token, 'Accept': 'text/html',
             },
         });
 
@@ -588,7 +577,7 @@ async function undoAction(url, button) {
     }
 
     button.disabled = false;
-};
+}
 
 window.showToast = function (message, type = 'success', undoUrl = null) {
     const container = createToastContainer();
@@ -597,20 +586,14 @@ window.showToast = function (message, type = 'success', undoUrl = null) {
     // Fondo sólido (no bg-*-500/10) a propósito: el toast flota sobre contenido
     // de la propia página (título, tarjetas...) y con fondo translúcido ese
     // contenido se transparentaba a través del aviso, volviéndolo ilegible.
-    const palette = type === 'error'
-        ? ['bg-slate-900', 'border-red-500/30', 'text-red-400']
-        : ['bg-slate-900', 'border-emerald-500/30', 'text-emerald-400'];
+    const palette = type === 'error' ? ['bg-slate-900', 'border-red-500/30', 'text-red-400'] : ['bg-slate-900', 'border-emerald-500/30', 'text-emerald-400'];
 
     const toast = document.createElement('div');
-    toast.className = [
-        'flex items-center gap-2 border rounded-lg px-4 py-2.5 text-sm shadow-lg shadow-black/30',
-        'opacity-0 -translate-y-1 transition-all duration-200 pointer-events-auto',
-        ...palette,
-    ].join(' ');
+    toast.className = ['flex items-center gap-2 border rounded-lg px-4 py-2.5 text-sm shadow-lg shadow-black/30', 'opacity-0 -translate-y-1 transition-all duration-200 pointer-events-auto', ...palette,].join(' ');
     toast.setAttribute('role', 'status');
 
     const icon = document.createElement('span');
-    icon.className = 'material-symbols-outlined text-[18px] flex-shrink-0';
+    icon.className = 'material-symbols-outlined text-[18px] shrink-0';
     icon.textContent = type === 'error' ? 'error' : 'check_circle';
 
     // textContent (no innerHTML): el mensaje puede incluir un título de
@@ -625,7 +608,7 @@ window.showToast = function (message, type = 'success', undoUrl = null) {
     if (undoUrl) {
         const undoBtn = document.createElement('button');
         undoBtn.type = 'button';
-        undoBtn.className = 'flex-shrink-0 font-semibold underline hover:no-underline';
+        undoBtn.className = 'shrink-0 font-semibold underline hover:no-underline';
         undoBtn.textContent = 'Deshacer';
         undoBtn.addEventListener('click', () => undoAction(undoUrl, undoBtn));
         toast.append(undoBtn);
@@ -719,7 +702,7 @@ const QUICK_SEARCH_DEBOUNCE_MS = 200;
 function quickSearchSkeleton() {
     const row = `
         <li class="flex items-center gap-3 px-4 py-2.5">
-            <div class="w-10 h-10 rounded-lg bg-slate-800 flex-shrink-0"></div>
+            <div class="w-10 h-10 rounded-lg bg-slate-800 shrink-0"></div>
             <div class="flex-1 min-w-0 space-y-2">
                 <div class="h-3 w-3/5 rounded bg-slate-800"></div>
                 <div class="h-2.5 w-2/5 rounded bg-slate-800"></div>
@@ -756,7 +739,7 @@ function initQuickSearch() {
     let debounceTimer = null;
 
     const runSearch = async () => {
-        const params = new URLSearchParams({ q: input.value.trim() });
+        const params = new URLSearchParams({q: input.value.trim()});
         if (platformFilter?.value) params.set('platform_id', platformFilter.value);
         if (playStatusFilter?.value) params.set('play_status', playStatusFilter.value);
         if (statusFilter?.value) params.set('status', statusFilter.value);
@@ -765,8 +748,7 @@ function initQuickSearch() {
 
         try {
             const response = await fetch(`${url}?${params.toString()}`, {
-                headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                credentials: 'same-origin',
+                headers: {'X-Requested-With': 'XMLHttpRequest'}, credentials: 'same-origin',
             });
             if (!response.ok) return;
 
@@ -812,9 +794,7 @@ function initQuickSearch() {
         if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
 
         const active = document.activeElement;
-        const isTyping = active && (
-            active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT' || active.isContentEditable
-        );
+        const isTyping = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT' || active.isContentEditable);
         if (isTyping) return;
 
         e.preventDefault();
@@ -869,7 +849,7 @@ function initExternalResultPreview() {
             const preview = document.getElementById('cex-preview');
             if (!preview) return;
 
-            const { title, ean, cover, platform } = resultBtn.dataset;
+            const {title, ean, cover, platform} = resultBtn.dataset;
 
             preview.querySelector('#cex-preview-title').textContent = title || '';
             preview.querySelector('#cex-preview-ean').textContent = ean ? `EAN ${ean}` : '';
@@ -944,7 +924,7 @@ function initBarcodeScanner() {
         dialog.showModal();
 
         try {
-            const { BrowserMultiFormatReader } = await import('@zxing/library');
+            const {BrowserMultiFormatReader} = await import('@zxing/library');
             reader = new BrowserMultiFormatReader();
 
             await reader.decodeFromVideoDevice(undefined, video, (result) => {

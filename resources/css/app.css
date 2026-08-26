@@ -19,7 +19,15 @@
    (bg-slate-800/50, hover:bg-slate-800/40...), que Tailwind calcula a
    partir de la misma variable con color-mix().
    Sin la clase 'light' (por defecto) no cambia nada: se sigue viendo
-   exactamente el tema oscuro de siempre. */
+   exactamente el tema oscuro de siempre.
+
+   Pares de clases que el IntelliSense de Tailwind marca como "en conflicto"
+   pero son overrides de cascada intencionales y NO deben corregirse:
+   - border-slate-700 + focus:border-indigo-500 en inputs: borde en reposo
+     vs estado focus.
+   - bg-slate-900 + backdrop:bg-black/60 en diálogos: panel vs ::backdrop.
+   - text-slate-100 + placeholder:text-slate-500 en inputs: elemento vs
+     pseudo-elemento. */
 :root {
     color-scheme: dark;
 }

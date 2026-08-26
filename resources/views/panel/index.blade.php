@@ -1,3 +1,4 @@
+@php use Illuminate\Support\Str; @endphp
 @extends('layouts.app')
 
 @php
@@ -30,7 +31,7 @@
                 'icon' => 'delete',
                 'title' => 'Papelera de reciclaje',
                 'description' => $trashedCount > 0
-                    ? $trashedCount . ' ' . \Illuminate\Support\Str::plural('juego', $trashedCount) . ' en la papelera.'
+                    ? $trashedCount . ' ' . Str::plural('juego', $trashedCount) . ' en la papelera.'
                     : 'Vacía por ahora.',
             ],
         ],
@@ -74,10 +75,12 @@
                 <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">{{ $groupName }}</h2>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     @foreach($cards as $card)
-                        <a href="{{ $card['route'] }}" @if(isset($card['target'])) target="{{ $card['target'] }}" rel="noopener" @endif
-                            class="group flex items-start gap-4 bg-slate-900 border border-slate-800 rounded-xl p-6 hover:border-indigo-500/50 transition-colors">
-                            <div class="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center flex-shrink-0">
-                                <x-gicon name="{{ $card['icon'] }}" class="text-[20px] text-indigo-400" />
+                        <a href="{{ $card['route'] }}" @if(isset($card['target'])) target="{{ $card['target'] }}"
+                           rel="noopener" @endif
+                           class="group flex items-start gap-4 bg-slate-900 border border-slate-800 rounded-xl p-6 hover:border-indigo-500/50 transition-colors">
+                            <div
+                                class="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center shrink-0">
+                                <x-gicon name="{{ $card['icon'] }}" class="text-[20px] text-indigo-400"/>
                             </div>
                             <div class="min-w-0">
                                 <h3 class="text-sm font-semibold text-slate-100 group-hover:text-indigo-300 transition-colors">{{ $card['title'] }}</h3>

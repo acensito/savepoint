@@ -17,7 +17,7 @@
         </div>
 
         <a href="{{ route('web.wishlist.create') }}"
-            class="inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 bg-[var(--color-navbar)] text-white text-sm font-medium hover:bg-[var(--color-navbar-hover)] transition-colors whitespace-nowrap">
+            class="inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 bg-(--color-navbar) text-white text-sm font-medium hover:bg-(--color-navbar-hover) transition-colors whitespace-nowrap">
             <x-gicon name="add" class="text-[18px]" />
             Añadir Juego
         </a>
@@ -25,15 +25,15 @@
 
     <form action="{{ route('web.wishlist.index') }}" method="GET" class="flex flex-wrap gap-3 mb-6">
         <input type="text" name="q" value="{{ $query ?? '' }}" placeholder="Buscar por título o EAN..."
-            class="flex-1 min-w-[200px] rounded-lg border border-slate-700 bg-slate-800 text-slate-100 placeholder:text-slate-500 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-none text-sm">
+            class="flex-1 min-w-[200px] rounded-lg border border-slate-700 bg-slate-800 text-slate-100 placeholder:text-slate-500 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden text-sm">
 
-        <select name="sort" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-none text-sm">
+        <select name="sort" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden text-sm">
             <option value="wishlist_priority" {{ $sort === 'wishlist_priority' || $sort === '' ? 'selected' : '' }}>Prioridad</option>
             <option value="title" {{ $sort === 'title' ? 'selected' : '' }}>Título</option>
             <option value="wishlist_estimated_price" {{ $sort === 'wishlist_estimated_price' ? 'selected' : '' }}>Precio estimado</option>
         </select>
 
-        <select name="dir" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-none text-sm">
+        <select name="dir" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden text-sm">
             <option value="asc" {{ $dir === 'asc' ? 'selected' : '' }}>Ascendente</option>
             <option value="desc" {{ $dir === 'desc' ? 'selected' : '' }}>Descendente</option>
         </select>
@@ -51,8 +51,8 @@
     <!-- Tarjetas: listado en pantallas estrechas, sin scroll horizontal -->
     <div class="md:hidden space-y-2.5">
         @forelse($games as $game)
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 flex items-start gap-3 shadow-sm shadow-black/10">
-                <x-game-cover :game="$game" size="lg" class="!w-16 !rounded-xl !text-xl shadow-sm shadow-black/20" />
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 flex items-start gap-3 shadow-xs shadow-black/10">
+                <x-game-cover :game="$game" size="lg" class="!w-16 !rounded-xl !text-xl shadow-xs shadow-black/20" />
 
                 <div class="flex-1 min-w-0">
                     <a href="{{ route('web.games.show', $game->id) }}" class="block text-[15px] font-bold text-slate-100 truncate leading-snug">{{ $game->title }}</a>
@@ -76,7 +76,7 @@
                     </div>
                 </div>
 
-                <div class="flex flex-col items-center gap-1 flex-shrink-0 border-l border-slate-800 pl-2 -my-1 py-1">
+                <div class="flex flex-col items-center gap-1 shrink-0 border-l border-slate-800 pl-2 -my-1 py-1">
                     <a href="{{ route('web.games.edit', ['game' => $game->id, 'convert_to_owned' => 1]) }}"
                         class="flex items-center justify-center w-8 h-8 rounded-full text-slate-400 hover:bg-slate-800 hover:text-emerald-400 transition-colors"
                         aria-label="Pasar «{{ $game->title }}» a la colección">

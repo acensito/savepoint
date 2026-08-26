@@ -6,16 +6,16 @@
     <label for="name" class="block font-medium text-sm text-slate-300 mb-1">Nombre</label>
     <input type="text" name="name" id="name" value="{{ old('name', $edition?->name ?? '') }}" required autofocus
         placeholder="Edición Coleccionista"
-        class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500 outline-none">
+        class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden">
     @error('name') <span class="text-red-400 text-sm mt-1 block">{{ $message }}</span> @enderror
 </div>
 
 <div>
     <label for="format" class="block font-medium text-sm text-slate-300 mb-1">Formato</label>
     <select name="format" id="format"
-        class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500 outline-none">
+        class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden">
         @foreach(\App\Models\Edition::FORMATS as $value => $meta)
-            <option value="{{ $value }}" {{ old('format', $edition?->format ?? \App\Models\Edition::FORMAT_PHYSICAL) == $value ? 'selected' : '' }}>
+            <option value="{{ $value }}" {{ old('format', $edition?->format ?? Edition::FORMAT_PHYSICAL) == $value ? 'selected' : '' }}>
                 {{ $meta['label'] }}
             </option>
         @endforeach

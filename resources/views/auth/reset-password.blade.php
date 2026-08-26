@@ -61,13 +61,13 @@
             <div>
                 <label for="email" class="block font-medium text-sm text-slate-300 mb-1">Email</label>
                 <input type="email" name="email" id="email" value="{{ old('email', $email) }}" required autofocus
-                       class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500 outline-none">
+                       class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden">
             </div>
 
             <div>
                 <label for="password" class="block font-medium text-sm text-slate-300 mb-1">Nueva contraseña</label>
                 <input type="password" name="password" id="password" required minlength="8"
-                       class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500 outline-none">
+                       class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden">
                 @error('password') <span class="text-red-400 text-sm mt-1 block">{{ $message }}</span> @enderror
             </div>
 
@@ -75,7 +75,7 @@
                 <label for="password_confirmation" class="block font-medium text-sm text-slate-300 mb-1">Confirmar
                     contraseña</label>
                 <input type="password" name="password_confirmation" id="password_confirmation" required minlength="8"
-                       class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500 outline-none">
+                       class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden">
             </div>
 
             <button type="submit"

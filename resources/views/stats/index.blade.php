@@ -35,7 +35,7 @@
                 <div class="space-y-3">
                     @foreach($byPlatform as $row)
                         <div class="flex items-center gap-4">
-                            <div class="w-40 flex-shrink-0">
+                            <div class="w-40 shrink-0">
                                 <x-platform-chip :platform="$row['platform']" class="max-w-full" />
                             </div>
                             <div class="flex-1 h-3 rounded-full bg-slate-800 overflow-hidden">
@@ -43,7 +43,7 @@
                                     style="width: {{ max($row['percent'], 3) }}%"
                                     title="{{ $row['platform']?->name ?? 'Sin plataforma' }}: {{ $row['total'] }} juego(s)"></div>
                             </div>
-                            <div class="w-8 flex-shrink-0 text-right text-sm font-medium text-slate-300 tabular-nums">{{ $row['total'] }}</div>
+                            <div class="w-8 shrink-0 text-right text-sm font-medium text-slate-300 tabular-nums">{{ $row['total'] }}</div>
                         </div>
                     @endforeach
                 </div>
@@ -137,11 +137,11 @@
                 <div class="space-y-3">
                     @foreach($topGenres as $row)
                         <div class="flex items-center gap-4">
-                            <div class="w-24 flex-shrink-0 text-sm text-slate-300 truncate">{{ $row['genre'] }}</div>
+                            <div class="w-24 shrink-0 text-sm text-slate-300 truncate">{{ $row['genre'] }}</div>
                             <div class="flex-1 h-3 rounded-full bg-slate-800 overflow-hidden">
                                 <div class="h-full bg-indigo-500 rounded-r-[4px]" style="width: {{ max($row['percent'], 3) }}%"></div>
                             </div>
-                            <div class="w-8 flex-shrink-0 text-right text-sm font-medium text-slate-300 tabular-nums">{{ $row['total'] }}</div>
+                            <div class="w-8 shrink-0 text-right text-sm font-medium text-slate-300 tabular-nums">{{ $row['total'] }}</div>
                         </div>
                     @endforeach
                 </div>
@@ -158,11 +158,11 @@
                 <div class="space-y-3">
                     @foreach($byDecade as $row)
                         <div class="flex items-center gap-4">
-                            <div class="w-24 flex-shrink-0 text-sm text-slate-300 truncate">{{ $row['decade'] }}</div>
+                            <div class="w-24 shrink-0 text-sm text-slate-300 truncate">{{ $row['decade'] }}</div>
                             <div class="flex-1 h-3 rounded-full bg-slate-800 overflow-hidden">
                                 <div class="h-full bg-indigo-500 rounded-r-[4px]" style="width: {{ max($row['percent'], 3) }}%"></div>
                             </div>
-                            <div class="w-8 flex-shrink-0 text-right text-sm font-medium text-slate-300 tabular-nums">{{ $row['total'] }}</div>
+                            <div class="w-8 shrink-0 text-right text-sm font-medium text-slate-300 tabular-nums">{{ $row['total'] }}</div>
                         </div>
                     @endforeach
                 </div>
@@ -185,7 +185,7 @@
                                 <p class="text-xs text-slate-500">Más caro</p>
                                 <p class="text-sm font-medium text-slate-200 truncate">{{ $mostExpensive->title }}</p>
                             </div>
-                            <span class="text-sm font-semibold text-emerald-400 flex-shrink-0 tabular-nums">{{ number_format($mostExpensive->price_paid, 2, ',', '.') }} €</span>
+                            <span class="text-sm font-semibold text-emerald-400 shrink-0 tabular-nums">{{ number_format($mostExpensive->price_paid, 2, ',', '.') }} €</span>
                         </a>
                     @endif
 
@@ -197,7 +197,7 @@
                                 <p class="text-xs text-slate-500">Mejor valorado</p>
                                 <p class="text-sm font-medium text-slate-200 truncate">{{ $topRated->title }}</p>
                             </div>
-                            <x-star-rating :rating="$topRated->rating" size="text-[12px]" class="flex-shrink-0" />
+                            <x-star-rating :rating="$topRated->rating" size="text-[12px]" class="shrink-0" />
                         </a>
                     @endif
                 </div>

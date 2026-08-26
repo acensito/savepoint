@@ -4,14 +4,14 @@
     <div class="mb-5 sm:mb-8 flex items-center justify-between gap-3">
         <div class="min-w-0 flex items-baseline gap-2">
             <h1 class="text-xl sm:text-3xl font-bold text-slate-100 tracking-tight truncate min-w-0">Mi Colección</h1>
-            <span class="js-games-total text-xs sm:text-base text-slate-400 whitespace-nowrap flex-shrink-0">
+            <span class="js-games-total text-xs sm:text-base text-slate-400 whitespace-nowrap shrink-0">
                 {{ $games->total() }} {{ \Illuminate\Support\Str::plural('juego', $games->total()) }} {{ \Illuminate\Support\Str::plural('registrado', $games->total()) }}.
             </span>
         </div>
 
-        <div class="flex-shrink-0 flex items-center gap-2">
+        <div class="shrink-0 flex items-center gap-2">
             <a href="{{ route('web.games.create') }}" aria-label="Añadir juego"
-                class="hidden sm:flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 bg-[var(--color-navbar)] text-white text-sm font-medium hover:bg-[var(--color-navbar-hover)] transition-colors">
+                class="hidden sm:flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 bg-(--color-navbar) text-white text-sm font-medium hover:bg-(--color-navbar-hover) transition-colors">
                 <x-gicon name="add" class="text-[18px]" />
                 Añadir Juego
             </a>
@@ -23,7 +23,7 @@
          que volver arriba a por el icono del header. En sm: y superior ya
          hay un botón normal en el header, así que este se oculta. -->
     <a href="{{ route('web.games.create') }}" aria-label="Añadir juego"
-        class="sm:hidden fixed bottom-5 right-5 z-30 flex items-center justify-center w-14 h-14 rounded-full bg-[var(--color-navbar)] text-white shadow-lg shadow-black/30 hover:bg-[var(--color-navbar-hover)] transition-colors">
+        class="sm:hidden fixed bottom-5 right-5 z-30 flex items-center justify-center w-14 h-14 rounded-full bg-(--color-navbar) text-white shadow-lg shadow-black/30 hover:bg-(--color-navbar-hover) transition-colors">
         <x-gicon name="add" class="text-[26px]" />
     </a>
 
@@ -38,7 +38,7 @@
     <div id="bulk-bar" class="hidden flex items-center gap-3 flex-wrap bg-indigo-500/10 border border-indigo-500/30 rounded-xl px-4 py-3 mb-4">
         <span id="bulk-count" class="text-sm font-medium text-indigo-200 flex-1 min-w-[140px]">0 juegos seleccionados</span>
 
-        <select name="play_status" form="bulk-form" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500 outline-none">
+        <select name="play_status" form="bulk-form" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500 outline-hidden">
             <option value="pending">Marcar como pendiente</option>
             <option value="playing">Marcar como jugando</option>
             <option value="finished">Marcar como terminado</option>
@@ -116,7 +116,7 @@
          se define en app.css junto a las reglas del propio sidebar, ya que depende
          de si está colapsado o en modo drawer móvil igual que él. -->
     <div id="games-status-bar" class="bg-slate-950/95 backdrop-blur-sm border-t border-slate-800 text-xs text-slate-500 flex items-center justify-center gap-3 px-4 md:px-8 py-2">
-        <span>{{ number_format($collectionTotals['count']) }} {{ \Illuminate\Support\Str::plural('juego', $collectionTotals['count']) }} en tu colección</span>
+        <span>{{ number_format($collectionTotals['count']) }} {{ Str::plural('juego', $collectionTotals['count']) }} en tu colección</span>
         @if($collectionTotals['spent'] > 0)
             <span class="text-slate-700">·</span>
             <span>{{ number_format($collectionTotals['spent'], 2, ',', '.') }} € invertidos</span>

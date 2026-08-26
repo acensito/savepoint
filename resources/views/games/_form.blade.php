@@ -1,5 +1,5 @@
 @php
-    $input = 'w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500 outline-none';
+    $input = 'w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden';
     $label = 'block font-medium text-sm text-slate-300 mb-1';
     $error = 'text-red-400 text-sm mt-1 block';
 
@@ -49,7 +49,7 @@
 
 <!-- Carátula -->
 <div class="flex items-start gap-6">
-    <div id="cover-wrapper" class="w-24 flex-shrink-0">
+    <div id="cover-wrapper" class="w-24 shrink-0">
         @if($game?->cover)
             <img id="cover-preview-img" src="{{ $game->coverUrl() }}" alt="Carátula" class="w-24 h-auto rounded-xl border border-slate-700">
         @elseif($externalCoverUrl)
@@ -109,9 +109,9 @@
     <div id="cex-cover-manual" class="hidden mt-1.5 flex gap-1.5">
         <input type="text" id="cex-cover-manual-input" placeholder="Buscar con otras palabras…"
             autocomplete="off" autocorrect="off" spellcheck="false"
-            class="flex-1 min-w-0 rounded-lg border border-slate-700 bg-slate-800 text-slate-100 text-xs px-2.5 py-1.5 focus:border-indigo-500 focus:ring-indigo-500 outline-none">
+            class="flex-1 min-w-0 rounded-lg border border-slate-700 bg-slate-800 text-slate-100 text-xs px-2.5 py-1.5 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden">
         <button type="button" id="cex-cover-manual-btn"
-            class="flex-shrink-0 text-xs font-medium text-indigo-400 hover:text-indigo-300 px-2">Buscar</button>
+            class="shrink-0 text-xs font-medium text-indigo-400 hover:text-indigo-300 px-2">Buscar</button>
     </div>
 </div>
 
@@ -171,7 +171,7 @@
                     @endforeach
                 </select>
                 <button type="button" id="quick-add-edition-btn"
-                    class="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-lg border border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
+                    class="shrink-0 flex items-center justify-center w-10 h-10 rounded-lg border border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
                     aria-label="Crear una edición nueva">
                     <x-gicon name="add" class="text-[20px]" />
                 </button>
@@ -192,7 +192,7 @@
 
                     <div class="flex items-center justify-end gap-3 mt-5">
                         <button type="button" id="quick-add-edition-cancel" class="text-slate-400 hover:text-slate-100 text-sm font-medium px-4 py-2">Cancelar</button>
-                        <button type="button" id="quick-add-edition-submit" class="bg-[var(--color-navbar)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-navbar-hover)] transition-colors">Crear edición</button>
+                        <button type="button" id="quick-add-edition-submit" class="bg-(--color-navbar) text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-(--color-navbar-hover) transition-colors">Crear edición</button>
                     </div>
                 </div>
             </dialog>
@@ -542,13 +542,13 @@
                     <li>
                         <button type="button" class="js-cex-cover-pick w-full flex items-center gap-2 p-1.5 rounded-lg hover:bg-slate-700 text-left" data-index="${i}">
                             ${r.cover_url
-                                ? `<img src="${r.cover_url}" alt="" class="w-8 h-8 object-cover rounded border border-slate-700 flex-shrink-0">`
-                                : `<div class="w-8 h-8 rounded bg-slate-800 border border-slate-700 flex-shrink-0"></div>`}
+                                ? `<img src="${r.cover_url}" alt="" class="w-8 h-8 object-cover rounded border border-slate-700 shrink-0">`
+                                : `<div class="w-8 h-8 rounded bg-slate-800 border border-slate-700 shrink-0"></div>`}
                             <span class="flex-1 min-w-0">
                                 <span class="block text-xs text-slate-200 truncate">${r.title}</span>
                                 ${r.ean ? `<span class="block text-[10px] text-slate-500">EAN ${r.ean}</span>` : ''}
                             </span>
-                            ${r.platform ? `<span class="text-[9px] font-semibold uppercase text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 rounded px-1 py-0.5 flex-shrink-0">${r.platform}</span>` : ''}
+                            ${r.platform ? `<span class="text-[9px] font-semibold uppercase text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 rounded px-1 py-0.5 shrink-0">${r.platform}</span>` : ''}
                         </button>
                     </li>
                 `).join('');

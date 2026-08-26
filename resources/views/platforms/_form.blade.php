@@ -9,7 +9,7 @@
     <label for="name" class="block font-medium text-sm text-slate-300 mb-1">Nombre</label>
     <input type="text" name="name" id="name" value="{{ old('name', $platform?->name ?? '') }}" required autofocus
         placeholder="PlayStation 5"
-        class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500 outline-none">
+        class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden">
     @error('name') <span class="text-red-400 text-sm mt-1 block">{{ $message }}</span> @enderror
 </div>
 
@@ -17,7 +17,7 @@
     <label for="label" class="block font-medium text-sm text-slate-300 mb-1">Etiqueta abreviada (chip)</label>
     <input type="text" name="label" id="label" value="{{ old('label', $platform?->label ?? '') }}"
         placeholder="PS5" maxlength="20"
-        class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500 outline-none">
+        class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden">
     <p class="text-xs text-slate-500 mt-1">Si la dejas vacía, el chip muestra el nombre completo.</p>
     @error('label') <span class="text-red-400 text-sm mt-1 block">{{ $message }}</span> @enderror
 </div>
@@ -25,7 +25,7 @@
 <div>
     <label for="manufacturer_id" class="block font-medium text-sm text-slate-300 mb-1">Fabricante</label>
     <select name="manufacturer_id" id="manufacturer_id"
-        class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500 outline-none">
+        class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden">
         <option value="">Sin fabricante</option>
         @foreach($manufacturers as $manufacturer)
             <option value="{{ $manufacturer->id }}" {{ old('manufacturer_id', $platform?->manufacturer_id) == $manufacturer->id ? 'selected' : '' }}>
