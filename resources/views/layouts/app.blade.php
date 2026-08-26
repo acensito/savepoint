@@ -19,7 +19,12 @@
 <html lang="es" class="{{ $htmlClasses }}">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {{-- viewport-fit=cover: sin esto los navegadores móviles (iOS/Safari en
+         particular) ni siquiera activan env(safe-area-inset-*) en el CSS (ver
+         app.css), así que el contenido pegado al borde inferior queda tapado
+         por el "home indicator"/gestos del sistema en pantallas sin bordes
+         (issue #39). --}}
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>SavePoint - Mi Colección</title>
     <link rel="manifest" href="/manifest.json">
@@ -48,12 +53,56 @@
             } catch (e) {
             }
         })();
+
+        // --app-height (issue #33): h-dvh (100dvh) no basta por sí solo en PWA
+        // instalada con navegación por gestos en Android — se ha visto el
+        // contenido cortado incluso recién cargado, sin que un reload lo
+        // arregle, así que no es solo un problema de recálculo diferido: es
+        // que 100dvh no siempre refleja la altura realmente visible en esta
+        // combinación de navegador/WebView. window.visualViewport es más
+        // fiable ahí (es justo para lo que existe), así que se usa para
+        // corregir la altura del layout vía una custom property, actualizada
+        // en cada resize (la barra/pastilla de gestos aparece y desaparece
+        // sin disparar un cambio de orientación). 100dvh se mantiene en
+        // app.css como valor de --app-height por defecto: cubre el primer
+        // pintado antes de que corra este script, y sirve de red de
+        // seguridad si el navegador no soporta visualViewport.
+        (function () {
+            try {
+                var setAppHeight = function () {
+                    var height = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+                    document.documentElement.style.setProperty('--app-height', height + 'px');
+                };
+
+                setAppHeight();
+                window.addEventListener('resize', setAppHeight);
+
+                if (window.visualViewport) {
+                    window.visualViewport.addEventListener('resize', setAppHeight);
+                }
+            } catch (e) {
+            }
+        })();
     </script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-(--color-navbar) text-slate-300 antialiased">
 
-<div class="h-screen flex flex-col overflow-hidden">
+<!-- .app-shell, no h-screen/h-dvh (issue #33): 100vh es un valor estático,
+     calculado una vez con el chrome del navegador/PWA en un estado dado. En
+     móvil, cuando ese chrome cambia de tamaño (la barra de estado/gestos se
+     asienta) sin que se dispare un resize que recalcule el layout, el
+     contenido queda dimensionado para una altura distinta a la realmente
+     visible — de ahí que hiciera falta un segundo scroll para que se viera
+     bien, y que el padding de zona segura (env(safe-area-inset-bottom), ver
+     #39 y app.css) no sirviera de nada dentro de esta caja: por mucho
+     padding que se le meta, si la caja entera está mal medida, esa parte
+     queda fuera de la pantalla real igualmente. h-dvh por sí solo no basta
+     en todos los casos (visto en real en PWA instalada con gestos en
+     Android), así que .app-shell usa la custom property --app-height que
+     fija el script de arriba con window.visualViewport, con 100dvh como
+     valor por defecto en app.css antes de que corra el script. -->
+<div class="app-shell flex flex-col overflow-hidden">
 
     <!-- Navbar: ancho completo, fina -->
     <header class="h-12 shrink-0 flex items-center justify-between gap-3 px-5">
@@ -225,7 +274,7 @@
                 </a>
             </nav>
 
-            <div class="px-3 py-4 border-t border-slate-800 space-y-1">
+            <div id="sidebar-footer" class="px-3 py-4 border-t border-slate-800 space-y-1">
                 <a href="{{ route('web.panel.index') }}" title="Panel de control"
                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('web.panel.*', 'web.games.import*', 'web.games.trash') ? 'bg-indigo-500/10 text-indigo-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' }}">
                     <x-gicon name="settings" class="text-[20px]"/>
@@ -251,7 +300,7 @@
              el bug es de scroll, no del selector: ya pasaba con el indigo
              fijo de antes, solo que al ser siempre el mismo color no se
              notaba tanto como con presets distintos. -->
-        <main class="flex-1 overflow-y-auto overscroll-contain bg-slate-950 px-4 py-6 md:px-8 md:py-8">
+        <main id="app-main" class="flex-1 overflow-y-auto overscroll-contain bg-slate-950 px-4 py-6 md:px-8 md:py-8">
             @yield('content')
         </main>
 
