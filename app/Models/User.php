@@ -19,6 +19,7 @@ use Laravel\Sanctum\HasApiTokens;
     'default_region', 'default_edition_id', 'quick_search_exclude_wishlist',
     'igdb_enabled', 'igdb_client_id', 'igdb_client_secret',
     'hide_for_sale_from_collection', 'avatar_path', 'two_factor_enabled',
+    'created_at',
 ])]
 #[Hidden(['password', 'remember_token', 'igdb_client_secret', 'two_factor_code'])]
 class User extends Authenticatable

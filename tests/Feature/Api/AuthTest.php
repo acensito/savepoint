@@ -44,7 +44,9 @@ class AuthTest extends TestCase
 
     public function test_guest_cannot_access_protected_routes(): void
     {
-        $this->getJson('/api/user')->assertStatus(401);
+        $this->getJson('/api/user')
+            ->assertStatus(401)
+            ->assertJson(['message' => 'No autenticado.']);
     }
 
     public function test_authenticated_user_can_fetch_their_own_user(): void
@@ -167,7 +169,9 @@ class AuthTest extends TestCase
 
         // Debe fallar la validación del formato de email (422), nunca colarse
         // como consulta o devolver un 500.
-        $response->assertStatus(422)->assertJsonValidationErrors('email');
+        $response->assertStatus(422)
+            ->assertJson(['message' => 'Los datos proporcionados no son válidos.'])
+            ->assertJsonValidationErrors('email');
     }
 
     public function test_malformed_bearer_token_is_rejected(): void

@@ -17,20 +17,43 @@ class GameControllerTest extends TestCase
     {
         $game = Game::factory()->create();
 
-        $this->getJson('/api/games')->assertStatus(401);
-        $this->getJson("/api/games/{$game->id}")->assertStatus(401);
-        $this->postJson('/api/games', [])->assertStatus(401);
-        $this->putJson("/api/games/{$game->id}", ['title' => 'Hijacked'])->assertStatus(401);
-        $this->deleteJson("/api/games/{$game->id}")->assertStatus(401);
+        $this->getJson('/api/games')
+            ->assertStatus(401)
+            ->assertJson(['message' => 'No autenticado.']);
+        $this->getJson("/api/games/{$game->id}")
+            ->assertStatus(401)
+            ->assertJson(['message' => 'No autenticado.']);
+        $this->postJson('/api/games', [])
+            ->assertStatus(401)
+            ->assertJson(['message' => 'No autenticado.']);
+        $this->putJson("/api/games/{$game->id}", ['title' => 'Hijacked'])
+            ->assertStatus(401)
+            ->assertJson(['message' => 'No autenticado.']);
+        $this->deleteJson("/api/games/{$game->id}")
+            ->assertStatus(401)
+            ->assertJson(['message' => 'No autenticado.']);
     }
 
     public function test_requesting_a_nonexistent_game_returns_404(): void
     {
         Sanctum::actingAs(User::factory()->create());
 
-        $this->getJson('/api/games/999999')->assertStatus(404);
-        $this->putJson('/api/games/999999', ['title' => 'x'])->assertStatus(404);
-        $this->deleteJson('/api/games/999999')->assertStatus(404);
+        $this->getJson('/api/games/999999')
+            ->assertStatus(404)
+            ->assertJson(['message' => 'Recurso no encontrado.']);
+        $this->putJson('/api/games/999999', ['title' => 'x'])
+            ->assertStatus(404)
+            ->assertJson(['message' => 'Recurso no encontrado.']);
+        $this->deleteJson('/api/games/999999')
+            ->assertStatus(404)
+            ->assertJson(['message' => 'Recurso no encontrado.']);
+    }
+
+    public function test_requesting_an_unknown_api_route_returns_404(): void
+    {
+        $this->getJson('/api/nonexistent-route')
+            ->assertStatus(404)
+            ->assertJson(['message' => 'Recurso no encontrado.']);
     }
 
     public function test_index_treats_a_non_numeric_or_negative_per_page_as_the_default(): void
@@ -49,8 +72,8 @@ class GameControllerTest extends TestCase
             ->assertJsonPath('meta.per_page', 20);
     }
 
-    public function test_index_search_term_with_sql_wildcard_and_quote_characters_does_not_error_or_leak_other_users_games(): void
-    {
+    public function test_index_search_term_with_sql_wildcard_and_quote_characters_does_not_error_or_leak_other_users_games(
+    ): void {
         $user = User::factory()->create();
         Game::factory()->for($user)->create(['title' => 'Hollow Knight']);
         Game::factory()->create(['title' => "Someone Else's Game"]); // otro usuario
@@ -191,7 +214,9 @@ class GameControllerTest extends TestCase
 
         Sanctum::actingAs(User::factory()->create());
 
-        $this->getJson("/api/games/{$game->id}")->assertStatus(403);
+        $this->getJson("/api/games/{$game->id}")
+            ->assertStatus(403)
+            ->assertJson(['message' => 'No autorizado para realizar esta acción.']);
     }
 
     public function test_user_can_create_a_game(): void
@@ -248,6 +273,7 @@ class GameControllerTest extends TestCase
 
         $this->postJson('/api/games', [])
             ->assertStatus(422)
+            ->assertJson(['message' => 'Los datos proporcionados no son válidos.'])
             ->assertJsonValidationErrors(['title', 'platform_id']);
     }
 
@@ -383,7 +409,8 @@ class GameControllerTest extends TestCase
         Sanctum::actingAs(User::factory()->create());
 
         $this->putJson("/api/games/{$game->id}", ['title' => 'Hijacked'])
-            ->assertStatus(403);
+            ->assertStatus(403)
+            ->assertJson(['message' => 'No autorizado para realizar esta acción.']);
 
         $this->assertDatabaseHas('games', ['id' => $game->id, 'title' => 'Untouched']);
     }
@@ -407,7 +434,9 @@ class GameControllerTest extends TestCase
 
         Sanctum::actingAs(User::factory()->create());
 
-        $this->deleteJson("/api/games/{$game->id}")->assertStatus(403);
+        $this->deleteJson("/api/games/{$game->id}")
+            ->assertStatus(403)
+            ->assertJson(['message' => 'No autorizado para realizar esta acción.']);
 
         $this->assertDatabaseHas('games', ['id' => $game->id, 'deleted_at' => null]);
     }
