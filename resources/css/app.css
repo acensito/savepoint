@@ -15,6 +15,20 @@
     }
 }
 
+/* Altura del layout principal (issue #33): 100dvh como valor por defecto
+   (cubre el primer pintado, antes de que corra el script de
+   layouts/app.blade.php, y sirve de red de seguridad sin JS), corregido en
+   cuanto se puede con window.visualViewport — más fiable que dvh en PWA
+   instalada con navegación por gestos en Android, donde se ha visto 100dvh
+   no reflejar la altura realmente visible ni siquiera recién cargada. */
+:root {
+    --app-height: 100dvh;
+}
+
+.app-shell {
+    height: var(--app-height);
+}
+
 /* Tema claro/oscuro: la app se diseñó en oscuro, así que las clases de cada
    vista (bg-slate-900, text-slate-400, border-slate-800...) siguen siendo
    las mismas en los dos temas. Lo que cambia es a qué color apunta cada

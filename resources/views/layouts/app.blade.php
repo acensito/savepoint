@@ -53,23 +53,56 @@
             } catch (e) {
             }
         })();
+
+        // --app-height (issue #33): h-dvh (100dvh) no basta por sí solo en PWA
+        // instalada con navegación por gestos en Android — se ha visto el
+        // contenido cortado incluso recién cargado, sin que un reload lo
+        // arregle, así que no es solo un problema de recálculo diferido: es
+        // que 100dvh no siempre refleja la altura realmente visible en esta
+        // combinación de navegador/WebView. window.visualViewport es más
+        // fiable ahí (es justo para lo que existe), así que se usa para
+        // corregir la altura del layout vía una custom property, actualizada
+        // en cada resize (la barra/pastilla de gestos aparece y desaparece
+        // sin disparar un cambio de orientación). 100dvh se mantiene en
+        // app.css como valor de --app-height por defecto: cubre el primer
+        // pintado antes de que corra este script, y sirve de red de
+        // seguridad si el navegador no soporta visualViewport.
+        (function () {
+            try {
+                var setAppHeight = function () {
+                    var height = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+                    document.documentElement.style.setProperty('--app-height', height + 'px');
+                };
+
+                setAppHeight();
+                window.addEventListener('resize', setAppHeight);
+
+                if (window.visualViewport) {
+                    window.visualViewport.addEventListener('resize', setAppHeight);
+                }
+            } catch (e) {
+            }
+        })();
     </script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-(--color-navbar) text-slate-300 antialiased">
 
-<!-- h-dvh, no h-screen (issue #33): 100vh es un valor estático, calculado una
-     vez con el chrome del navegador/PWA en un estado dado. En móvil, cuando
-     ese chrome cambia de tamaño (la barra de estado/gestos se asienta) sin
-     que se dispare un resize que recalcule el layout, el contenido queda
-     dimensionado para una altura distinta a la realmente visible — de ahí
-     que hiciera falta un segundo scroll para que se viera bien, y que el
-     padding de zona segura (env(safe-area-inset-bottom), ver #39 y
-     app.css) no sirviera de nada dentro de esta caja: por mucho padding
-     que se le meta, si la caja entera está mal medida, esa parte queda
-     fuera de la pantalla real igualmente. h-dvh se recalcula con la altura
-     dinámica del viewport en vez de quedarse con el valor inicial. -->
-<div class="h-dvh flex flex-col overflow-hidden">
+<!-- .app-shell, no h-screen/h-dvh (issue #33): 100vh es un valor estático,
+     calculado una vez con el chrome del navegador/PWA en un estado dado. En
+     móvil, cuando ese chrome cambia de tamaño (la barra de estado/gestos se
+     asienta) sin que se dispare un resize que recalcule el layout, el
+     contenido queda dimensionado para una altura distinta a la realmente
+     visible — de ahí que hiciera falta un segundo scroll para que se viera
+     bien, y que el padding de zona segura (env(safe-area-inset-bottom), ver
+     #39 y app.css) no sirviera de nada dentro de esta caja: por mucho
+     padding que se le meta, si la caja entera está mal medida, esa parte
+     queda fuera de la pantalla real igualmente. h-dvh por sí solo no basta
+     en todos los casos (visto en real en PWA instalada con gestos en
+     Android), así que .app-shell usa la custom property --app-height que
+     fija el script de arriba con window.visualViewport, con 100dvh como
+     valor por defecto en app.css antes de que corra el script. -->
+<div class="app-shell flex flex-col overflow-hidden">
 
     <!-- Navbar: ancho completo, fina -->
     <header class="h-12 shrink-0 flex items-center justify-between gap-3 px-5">
