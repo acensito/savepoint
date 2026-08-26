@@ -221,4 +221,5 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('web.profile.edit');
     Route::put('/profile', [ProfileController::class, 'updateInfo'])->name('web.profile.update');
     Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('web.profile.password');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('web.profile.destroy');
 });

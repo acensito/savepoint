@@ -172,6 +172,43 @@
                 </div>
             </form>
         </div>
+
+        <!-- Borrar cuenta: acción irreversible, aparte de las anteriores y con
+             acento rojo para que no se confunda con un ajuste más. La
+             "confirmación reforzada" real es la contraseña actual, validada en
+             el servidor (ver ProfileController::destroy()) — el diálogo de
+             .js-confirm-delete de encima es solo la primera capa, la misma que
+             ya usa el resto de acciones destructivas de la app. -->
+        <div class="bg-slate-900 border border-red-900/40 rounded-xl p-8 mt-6">
+            <h2 class="text-lg font-semibold text-red-400 mb-2">Borrar cuenta</h2>
+            <p class="text-sm text-slate-400 mb-6">
+                Se borrará tu cuenta, toda tu colección (incluidas las carátulas) y tu avatar de forma permanente.
+                Esta acción no se puede deshacer.
+            </p>
+
+            <form action="{{ route('web.profile.destroy') }}" method="POST" class="js-confirm-delete space-y-4"
+                  data-confirm-title="Borrar tu cuenta"
+                  data-confirm-message="Se borrará tu cuenta, toda tu colección (incluidas las carátulas) y no podrás deshacerlo. ¿Seguro que quieres continuar?"
+                  data-confirm-accept="Borrar mi cuenta">
+                @csrf
+                @method('DELETE')
+
+                <div class="max-w-xs">
+                    <label for="delete_current_password" class="{{ $label }}">Contraseña actual</label>
+                    <input type="password" name="current_password" id="delete_current_password"
+                           required class="{{ $input }}">
+                    @error('current_password') <span class="{{ $error }}">{{ $message }}</span> @enderror
+                </div>
+
+                <div class="flex items-center justify-end pt-2">
+                    <button type="submit"
+                            class="flex items-center gap-1.5 bg-red-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-red-500 transition-colors">
+                        <x-gicon name="delete" class="text-[18px]" />
+                        Borrar mi cuenta
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <script nonce="{{ $cspNonce }}">

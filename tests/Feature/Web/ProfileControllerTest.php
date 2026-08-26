@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Web;
 
+use App\Models\Game;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -174,5 +175,63 @@ class ProfileControllerTest extends TestCase
 
         $this->assertNull($user->avatar_path);
         Storage::disk('public')->assertMissing($path);
+    }
+
+    public function test_user_can_delete_their_own_account_with_all_their_data(): void
+    {
+        Storage::fake('public');
+
+        $avatarPath = 'avatars/1/photo.jpg';
+        Storage::disk('public')->put($avatarPath, 'dummy');
+
+        $user = User::factory()->create(['password' => Hash::make('current-password'), 'avatar_path' => $avatarPath]);
+        $user->createToken('MobileApp');
+
+        $coverPath = 'covers/owned.jpg';
+        Storage::disk('public')->put($coverPath, 'dummy');
+        $ownedGame = Game::factory()->for($user)->create(['cover' => $coverPath]);
+
+        // También los que ya estaban en la papelera: no deben quedar
+        // huérfanos (ni ellos ni su carátula) tras borrar la cuenta.
+        $trashedCoverPath = 'covers/trashed.jpg';
+        Storage::disk('public')->put($trashedCoverPath, 'dummy');
+        $trashedGame = Game::factory()->for($user)->create(['cover' => $trashedCoverPath]);
+        $trashedGame->delete();
+
+        $response = $this->actingAs($user)->delete('/profile', [
+            'current_password' => 'current-password',
+        ]);
+
+        $response->assertRedirect(route('login'));
+        $this->assertGuest();
+
+        $this->assertDatabaseMissing('users', ['id' => $user->id]);
+        $this->assertDatabaseMissing('games', ['id' => $ownedGame->id]);
+        $this->assertDatabaseMissing('games', ['id' => $trashedGame->id]);
+        Storage::disk('public')->assertMissing($coverPath);
+        Storage::disk('public')->assertMissing($trashedCoverPath);
+        Storage::disk('public')->assertMissing($avatarPath);
+        $this->assertDatabaseCount('personal_access_tokens', 0);
+    }
+
+    public function test_deleting_the_account_requires_the_correct_current_password(): void
+    {
+        $user = User::factory()->create(['password' => Hash::make('current-password')]);
+        $game = Game::factory()->for($user)->create();
+
+        $response = $this->actingAs($user)->delete('/profile', [
+            'current_password' => 'wrong-password',
+        ]);
+
+        $response->assertSessionHasErrors('current_password');
+        $this->assertAuthenticatedAs($user);
+        $this->assertDatabaseHas('users', ['id' => $user->id]);
+        $this->assertDatabaseHas('games', ['id' => $game->id]);
+    }
+
+    public function test_guest_cannot_delete_an_account(): void
+    {
+        $this->delete('/profile', ['current_password' => 'whatever'])
+            ->assertRedirect('/login');
     }
 }

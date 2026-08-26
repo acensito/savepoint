@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\Game;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -79,5 +81,55 @@ class ProfileController extends Controller
         $request->user()->tokens()->delete();
 
         return redirect()->route('web.profile.edit')->with('success', 'Contraseña actualizada correctamente.');
+    }
+
+    /**
+     * Borra la cuenta del usuario autenticado con todos sus datos —
+     * incluidas las carátulas subidas, no solo las filas de la base de
+     * datos. A diferencia de UserController::destroy() (borrado de otra
+     * cuenta por un admin, que bloquea si el usuario todavía tiene
+     * juegos): aquí el propio dueño de los datos decide borrarlos, así
+     * que en vez de bloquear se borra todo en cascada — juegos (incluidos
+     * los ya en la papelera), sus carátulas, el avatar y los tokens de la
+     * app móvil. games.user_id tiene ON DELETE CASCADE a nivel de base de
+     * datos, pero eso solo borraría las filas: los ficheros de carátula
+     * en disco quedarían huérfanos para siempre si no se limpian aquí
+     * antes de borrar al usuario.
+     */
+    public function destroy(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+
+        $request->validate([
+            'current_password' => ['required', 'current_password'],
+        ]);
+
+        // Cerrar sesión ANTES de borrar, no después: Auth::logout() refresca
+        // el remember_token guardando el modelo del usuario ($user->save()),
+        // y si esa fila ya no existe Eloquent lo trata como "no existe
+        // todavía" y hace un INSERT en vez de un UPDATE — resucitando la
+        // cuenta justo después de borrarla. $user sigue siendo un objeto
+        // PHP válido tras esto, así que las operaciones de abajo funcionan
+        // igual.
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        Game::withTrashed()->where('user_id', $user->id)->get()->each(function (Game $game) {
+            if ($game->cover) {
+                Storage::disk('public')->delete($game->cover);
+            }
+
+            $game->forceDelete();
+        });
+
+        if ($user->avatar_path) {
+            Storage::disk('public')->delete($user->avatar_path);
+        }
+
+        $user->tokens()->delete();
+        $user->delete();
+
+        return redirect()->route('login')->with('success', 'Tu cuenta y todos tus datos se han eliminado correctamente.');
     }
 }
