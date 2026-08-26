@@ -156,17 +156,45 @@ html.sidebar-collapsed #sidebar-toggle-icon {
    eso 'position: fixed' y no 'sticky', que solo se activa una vez el
    contenido anterior se ha desplazado). 'left' reproduce el ancho del
    sidebar para no quedar debajo de él, con las mismas reglas de colapsado y
-   drawer móvil que .sidebar. */
+   drawer móvil que .sidebar.
+
+   padding-bottom: al estar pegada al borde inferior real de la pantalla (no
+   solo del contenido), es el elemento con más riesgo de quedar tapado por el
+   "home indicator"/gestos del sistema en móviles sin bordes (issue #39). Se
+   suma env(safe-area-inset-bottom) al py-2 (0.5rem) que ya trae de Tailwind
+   en el HTML — con fallback a 0px para navegadores sin soporte, y sin efecto
+   en dispositivos sin muesca/gestos (ahí env() resuelve a 0). Requiere
+   viewport-fit=cover en el <meta viewport> (ver layouts/app.blade.php): sin
+   eso el navegador ni siquiera activa env(safe-area-inset-*). */
 #games-status-bar {
     position: fixed;
     left: 15rem;
     right: 0;
     bottom: 0;
     z-index: 20;
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
 }
 
 html.sidebar-collapsed #games-status-bar {
     left: 4.5rem;
+}
+
+/* Zona segura inferior (issue #39): el resto de contenido pegado al final de
+   una página (botones de acción, footers de formulario, paginación) también
+   puede quedar parcialmente tapado por el "home indicator"/gestos del
+   sistema, aunque no esté fijo como #games-status-bar. Se suma
+   env(safe-area-inset-bottom) al padding-bottom que ya trae #app-main por
+   Tailwind (py-6/md:py-8 en el HTML, valores repetidos aquí a propósito para
+   poder sumarles el extra sin pisar el padding-top, que sí debe quedar
+   intacto). */
+#app-main {
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 768px) {
+    #app-main {
+        padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
+    }
 }
 
 /* Drawer del sidebar en pantallas estrechas: por debajo del breakpoint `md`
@@ -199,6 +227,15 @@ html.sidebar-collapsed #games-status-bar {
 
     html.mobile-drawer-open body {
         overflow: hidden;
+    }
+
+    /* Botón "Añadir Juego" del drawer móvil (issue #39): al ser el sidebar un
+       panel fixed a pantalla completa en este breakpoint (regla .sidebar de
+       arriba), este bloque queda pegado al borde inferior real de la
+       pantalla mientras el drawer está abierto — mismo riesgo que
+       #games-status-bar de quedar tapado por el "home indicator". */
+    #sidebar-footer {
+        padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
     }
 
     /* En móvil el sidebar no ocupa espacio en el layout (es un drawer

@@ -19,7 +19,12 @@
 <html lang="es" class="{{ $htmlClasses }}">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {{-- viewport-fit=cover: sin esto los navegadores móviles (iOS/Safari en
+         particular) ni siquiera activan env(safe-area-inset-*) en el CSS (ver
+         app.css), así que el contenido pegado al borde inferior queda tapado
+         por el "home indicator"/gestos del sistema en pantallas sin bordes
+         (issue #39). --}}
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>SavePoint - Mi Colección</title>
     <link rel="manifest" href="/manifest.json">
@@ -225,7 +230,7 @@
                 </a>
             </nav>
 
-            <div class="px-3 py-4 border-t border-slate-800 space-y-1">
+            <div id="sidebar-footer" class="px-3 py-4 border-t border-slate-800 space-y-1">
                 <a href="{{ route('web.panel.index') }}" title="Panel de control"
                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('web.panel.*', 'web.games.import*', 'web.games.trash') ? 'bg-indigo-500/10 text-indigo-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' }}">
                     <x-gicon name="settings" class="text-[20px]"/>
@@ -251,7 +256,7 @@
              el bug es de scroll, no del selector: ya pasaba con el indigo
              fijo de antes, solo que al ser siempre el mismo color no se
              notaba tanto como con presets distintos. -->
-        <main class="flex-1 overflow-y-auto overscroll-contain bg-slate-950 px-4 py-6 md:px-8 md:py-8">
+        <main id="app-main" class="flex-1 overflow-y-auto overscroll-contain bg-slate-950 px-4 py-6 md:px-8 md:py-8">
             @yield('content')
         </main>
 
