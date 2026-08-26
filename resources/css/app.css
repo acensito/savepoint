@@ -7,6 +7,13 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+    
+@layer base {
+    button:not(:disabled),
+    [role="button"]:not(:disabled) {
+        cursor: pointer;
+    }
+}
 
 /* Tema claro/oscuro: la app se diseñó en oscuro, así que las clases de cada
    vista (bg-slate-900, text-slate-400, border-slate-800...) siguen siendo
