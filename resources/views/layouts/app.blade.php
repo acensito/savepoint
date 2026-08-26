@@ -4,6 +4,7 @@
     // PanelController), no de localStorage: se pintan aquí directamente para
     // que lleguen correctos en el primer HTML, sin depender de un script
     // bloqueante ni arriesgar un parpadeo al cargar.
+    use App\Http\Controllers\Web\PanelController;
     $htmlClasses = collect([
         auth()->user()->theme === 'light' ? 'light' : null,
         match (auth()->user()->games_view) {
@@ -13,7 +14,7 @@
         },
         'navbar-' . auth()->user()->navbar_color,
     ])->filter()->implode(' ');
-    $navbarThemeColor = \App\Http\Controllers\Web\PanelController::NAVBAR_COLORS[auth()->user()->navbar_color] ?? '#4f46e5';
+    $navbarThemeColor = PanelController::NAVBAR_COLORS[auth()->user()->navbar_color] ?? '#4f46e5';
 @endphp
 <html lang="es" class="{{ $htmlClasses }}">
 <head>
@@ -283,7 +284,7 @@
 
         <div class="flex items-center justify-end gap-3 mt-5">
             <button type="button" id="confirm-dialog-cancel"
-                    class="text-slate-400 hover:text-slate-100 text-sm font-medium px-4 py-2">Cancelar
+                    class="text-slate-400 hover:text-slate-100 text-sm font-medium px-4 py-2 transition-colors">Cancelar
             </button>
             <button type="button" id="confirm-dialog-accept"
                     class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-500 transition-colors">

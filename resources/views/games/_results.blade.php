@@ -16,7 +16,7 @@
         <!-- Tarjetas: listado en pantallas estrechas, sin scroll horizontal -->
         <div class="md:hidden space-y-2.5">
             @forelse($games as $game)
-                <div class="js-game-card bg-slate-900 border border-slate-800 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs shadow-black/10 active:border-slate-700 transition-colors cursor-pointer"
+                <div class="js-game-card bg-slate-900 border border-slate-800 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs shadow-black/10 hover:bg-slate-800/40 active:border-slate-700 transition-colors cursor-pointer"
                     data-href="{{ route('web.games.show', $game->id) }}">
                     <input type="checkbox" form="bulk-form" name="game_ids[]" value="{{ $game->id }}"
                         class="js-bulk-checkbox self-start mt-1 w-4 h-4 shrink-0 rounded border-slate-600 bg-slate-800 text-indigo-600 focus:ring-indigo-500"

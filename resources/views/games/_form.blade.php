@@ -191,7 +191,7 @@
                     </div>
 
                     <div class="flex items-center justify-end gap-3 mt-5">
-                        <button type="button" id="quick-add-edition-cancel" class="text-slate-400 hover:text-slate-100 text-sm font-medium px-4 py-2">Cancelar</button>
+                        <button type="button" id="quick-add-edition-cancel" class="text-slate-400 hover:text-slate-100 text-sm font-medium px-4 py-2 transition-colors">Cancelar</button>
                         <button type="button" id="quick-add-edition-submit" class="bg-(--color-navbar) text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-(--color-navbar-hover) transition-colors">Crear edición</button>
                     </div>
                 </div>
