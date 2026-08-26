@@ -58,7 +58,18 @@
 </head>
 <body class="bg-(--color-navbar) text-slate-300 antialiased">
 
-<div class="h-screen flex flex-col overflow-hidden">
+<!-- h-dvh, no h-screen (issue #33): 100vh es un valor estático, calculado una
+     vez con el chrome del navegador/PWA en un estado dado. En móvil, cuando
+     ese chrome cambia de tamaño (la barra de estado/gestos se asienta) sin
+     que se dispare un resize que recalcule el layout, el contenido queda
+     dimensionado para una altura distinta a la realmente visible — de ahí
+     que hiciera falta un segundo scroll para que se viera bien, y que el
+     padding de zona segura (env(safe-area-inset-bottom), ver #39 y
+     app.css) no sirviera de nada dentro de esta caja: por mucho padding
+     que se le meta, si la caja entera está mal medida, esa parte queda
+     fuera de la pantalla real igualmente. h-dvh se recalcula con la altura
+     dinámica del viewport en vez de quedarse con el valor inicial. -->
+<div class="h-dvh flex flex-col overflow-hidden">
 
     <!-- Navbar: ancho completo, fina -->
     <header class="h-12 shrink-0 flex items-center justify-between gap-3 px-5">
