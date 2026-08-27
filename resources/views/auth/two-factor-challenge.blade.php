@@ -68,8 +68,9 @@
         </div>
         @enderror
 
-        <form action="{{ route('two-factor.verify') }}" method="POST" class="space-y-5">
+        <form action="{{ route('two-factor.verify') }}" method="POST" class="js-theme-boundary-form space-y-5">
             @csrf
+            <input type="hidden" name="pending_theme" value="">
 
             <div>
                 <label for="code" class="block font-medium text-sm text-slate-300 mb-1">Código</label>

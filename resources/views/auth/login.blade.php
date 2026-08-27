@@ -60,8 +60,9 @@
         </div>
         @enderror
 
-        <form action="{{ route('web.login.attempt') }}" method="POST" class="space-y-5">
+        <form action="{{ route('web.login.attempt') }}" method="POST" class="js-theme-boundary-form space-y-5">
             @csrf
+            <input type="hidden" name="pending_theme" value="">
 
             <div>
                 <label for="email" class="block font-medium text-sm text-slate-300 mb-1">Email</label>

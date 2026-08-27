@@ -112,6 +112,41 @@ class RegisterTest extends TestCase
     /**
      * Requirement: Successful Registration & Persistence (2FA always active on new accounts)
      */
+    public function test_registration_form_carries_an_explicit_guest_theme_selection(): void
+    {
+        $this->get(route('register'))
+            ->assertSee('name="pending_theme"', false)
+            ->assertSee('class="js-theme-boundary-form', false);
+    }
+
+    public function test_explicit_pending_theme_is_persisted_on_registration(): void
+    {
+        Notification::fake();
+
+        $this->post(route('web.register.attempt'), [
+            'name' => 'Player Theme',
+            'email' => 'playertheme@example.com',
+            'password' => 'Secret123!',
+            'password_confirmation' => 'Secret123!',
+            'pending_theme' => 'light',
+        ])->assertRedirect(route('two-factor.challenge'));
+
+        $this->assertSame('light', User::where('email', 'playertheme@example.com')->firstOrFail()->theme);
+    }
+
+    public function test_invalid_pending_theme_is_rejected_without_creating_an_account(): void
+    {
+        $this->post(route('web.register.attempt'), [
+            'name' => 'Invalid Theme',
+            'email' => 'invalidtheme@example.com',
+            'password' => 'Secret123!',
+            'password_confirmation' => 'Secret123!',
+            'pending_theme' => 'blue',
+        ])->assertSessionHasErrors('pending_theme');
+
+        $this->assertDatabaseMissing('users', ['email' => 'invalidtheme@example.com']);
+    }
+
     public function test_user_can_register_with_valid_data(): void
     {
         Notification::fake();
@@ -181,11 +216,12 @@ class RegisterTest extends TestCase
         $this->assertGuest();
 
         $code = null;
-        Notification::assertSentTo($user, TwoFactorCodeNotification::class, function (TwoFactorCodeNotification $notification) use (&$code) {
-            $code = $notification->code;
+        Notification::assertSentTo($user, TwoFactorCodeNotification::class,
+            function (TwoFactorCodeNotification $notification) use (&$code) {
+                $code = $notification->code;
 
-            return true;
-        });
+                return true;
+            });
 
         $response = $this->post(route('two-factor.verify'), ['code' => $code]);
 
@@ -429,11 +465,12 @@ class RegisterTest extends TestCase
         $user = User::where('email', 'intended@example.com')->firstOrFail();
 
         $code = null;
-        Notification::assertSentTo($user, TwoFactorCodeNotification::class, function (TwoFactorCodeNotification $notification) use (&$code) {
-            $code = $notification->code;
+        Notification::assertSentTo($user, TwoFactorCodeNotification::class,
+            function (TwoFactorCodeNotification $notification) use (&$code) {
+                $code = $notification->code;
 
-            return true;
-        });
+                return true;
+            });
 
         $response = $this->post(route('two-factor.verify'), ['code' => $code]);
 
@@ -483,11 +520,12 @@ class RegisterTest extends TestCase
         $user = User::where('email', 'playeroptsout@example.com')->firstOrFail();
 
         $code = null;
-        Notification::assertSentTo($user, TwoFactorCodeNotification::class, function (TwoFactorCodeNotification $notification) use (&$code) {
-            $code = $notification->code;
+        Notification::assertSentTo($user, TwoFactorCodeNotification::class,
+            function (TwoFactorCodeNotification $notification) use (&$code) {
+                $code = $notification->code;
 
-            return true;
-        });
+                return true;
+            });
         $this->post(route('two-factor.verify'), ['code' => $code]);
 
         $this->put('/panel/settings', []);

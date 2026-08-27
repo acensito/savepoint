@@ -37,6 +37,56 @@ class WebAuthTest extends TestCase
         $response->assertDontSee('Regístrate');
     }
 
+    public function test_login_form_carries_an_explicit_guest_theme_selection(): void
+    {
+        $this->get('/login')
+            ->assertSee('name="pending_theme"', false)
+            ->assertSee('class="js-theme-boundary-form', false);
+    }
+
+    public function test_explicit_pending_theme_is_persisted_on_login(): void
+    {
+        $user = User::factory()->create(['theme' => 'dark', 'password' => Hash::make('password')]);
+
+        $response = $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'password',
+            'pending_theme' => 'light',
+        ]);
+
+        $response->assertRedirect(route('web.games.index'));
+        $this->assertSame('light', $user->fresh()->theme);
+    }
+
+    public function test_login_without_pending_theme_keeps_the_account_theme_and_mirrors_it(): void
+    {
+        $user = User::factory()->create(['theme' => 'light', 'password' => Hash::make('password')]);
+
+        $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ])->assertRedirect(route('web.games.index'));
+
+        $this->get(route('web.games.index'))
+            ->assertSee("localStorage.setItem('sp:theme', \"light\")", false)
+            ->assertSee("sessionStorage.removeItem('sp:themePending')", false);
+        $this->assertSame('light', $user->fresh()->theme);
+    }
+
+    public function test_invalid_pending_theme_is_rejected_without_changing_the_account(): void
+    {
+        $user = User::factory()->create(['theme' => 'dark', 'password' => Hash::make('password')]);
+
+        $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'password',
+            'pending_theme' => 'blue',
+        ])->assertSessionHasErrors('pending_theme');
+
+        $this->assertGuest();
+        $this->assertSame('dark', $user->fresh()->theme);
+    }
+
     public function test_user_can_login_with_correct_credentials(): void
     {
         $user = User::factory()->create(['password' => Hash::make('password')]);

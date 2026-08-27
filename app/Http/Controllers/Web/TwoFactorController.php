@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Http\Controllers\Concerns\AppliesThemePreference;
 use App\Http\Controllers\Concerns\SendsTwoFactorCode;
 use App\Http\Controllers\Controller;
 use App\Models\TwoFactorTrustedDevice;
@@ -22,7 +23,7 @@ use Illuminate\View\View;
  */
 class TwoFactorController extends Controller
 {
-    use SendsTwoFactorCode;
+    use AppliesThemePreference, SendsTwoFactorCode;
 
     /**
      * Muestra el formulario para introducir el código, o manda de vuelta al
@@ -52,8 +53,9 @@ class TwoFactorController extends Controller
             return redirect()->route('login');
         }
 
-        $request->validate([
+        $validated = $request->validate([
             'code' => ['required', 'string'],
+            'pending_theme' => ['nullable', 'in:dark,light'],
         ]);
 
         if (! $user->verifyTwoFactorCode($request->string('code')->trim()->toString())) {
@@ -63,10 +65,12 @@ class TwoFactorController extends Controller
         }
 
         $remember = (bool) $request->session()->get('two_factor.remember', false);
+        $pendingTheme = $validated['pending_theme'] ?? $request->session()->get('two_factor.pending_theme');
 
-        $request->session()->forget(['two_factor.user_id', 'two_factor.remember']);
+        $request->session()->forget(['two_factor.user_id', 'two_factor.remember', 'two_factor.pending_theme']);
 
         Auth::login($user, $remember);
+        $this->applyPendingTheme($user, $pendingTheme);
 
         // Evita el session fixation: nuevo ID de sesión tras autenticarse.
         $request->session()->regenerate();

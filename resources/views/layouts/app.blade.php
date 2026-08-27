@@ -5,8 +5,9 @@
     // que lleguen correctos en el primer HTML, sin depender de un script
     // bloqueante ni arriesgar un parpadeo al cargar.
     use App\Http\Controllers\Web\PanelController;
+    $canonicalTheme = auth()->user()?->theme === 'light' ? 'light' : 'dark';
     $htmlClasses = collect([
-        auth()->user()->theme === 'light' ? 'light' : null,
+        $canonicalTheme === 'light' ? 'light' : null,
         match (auth()->user()->games_view) {
             'grid' => 'games-grid-view',
             'compact' => 'games-compact-view',
@@ -41,6 +42,14 @@
           rel="stylesheet">
     @include('partials.material-symbols-link')
     <script nonce="{{ $cspNonce }}">
+        (function () {
+            try {
+                localStorage.setItem('sp:theme', @json($canonicalTheme));
+                sessionStorage.removeItem('sp:themePending');
+            } catch (e) {
+            }
+        })();
+
         // Bloqueante a propósito: aplica el estado guardado del sidebar antes del
         // primer pintado para que no haya parpadeo (expandido/plegado) al cargar o
         // al navegar entre páginas. Tema y vista de la colección ya no viven aquí:

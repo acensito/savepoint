@@ -6,6 +6,9 @@ if ('serviceWorker' in navigator) {
 }
 
 const SIDEBAR_STORAGE_KEY = 'sp:sidebarCollapsed';
+const THEME_STORAGE_KEY = 'sp:theme';
+const THEME_PENDING_KEY = 'sp:themePending';
+const VALID_THEMES = ['dark', 'light'];
 
 function initSidebarToggle() {
     const toggle = document.getElementById('sidebar-toggle');
@@ -73,14 +76,46 @@ function initThemeToggle() {
         toggle.addEventListener('click', () => {
             const isLight = !document.documentElement.classList.contains('light');
 
+            const theme = isLight ? 'light' : 'dark';
+
             document.documentElement.classList.toggle('light', isLight);
             syncIcon(isLight);
-            saveDisplayPreference({theme: isLight ? 'light' : 'dark'});
+
+            try {
+                localStorage.setItem(THEME_STORAGE_KEY, theme);
+                if (!document.querySelector('meta[name="csrf-token"]')) {
+                    sessionStorage.setItem(THEME_PENDING_KEY, theme);
+                }
+            } catch (e) {
+            }
+
+            if (document.querySelector('meta[name="csrf-token"]')) {
+                saveDisplayPreference({theme});
+            }
         });
     });
 }
 
 initThemeToggle();
+
+function initThemeBoundaryForms() {
+    document.querySelectorAll('.js-theme-boundary-form').forEach((form) => {
+        form.addEventListener('submit', () => {
+            try {
+                const pendingTheme = sessionStorage.getItem(THEME_PENDING_KEY);
+                const theme = localStorage.getItem(THEME_STORAGE_KEY);
+                const input = form.querySelector('input[name="pending_theme"]');
+
+                if (input && pendingTheme && pendingTheme === theme && VALID_THEMES.includes(theme)) {
+                    input.value = theme;
+                }
+            } catch (e) {
+            }
+        });
+    });
+}
+
+initThemeBoundaryForms();
 
 /**
  * Desplegable del menú de usuario del header (avatar/email → perfil, panel

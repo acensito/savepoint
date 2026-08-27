@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Http\Controllers\Concerns\AppliesThemePreference;
 use App\Http\Controllers\Concerns\SendsTwoFactorCode;
 use App\Http\Controllers\Controller;
 use App\Models\AppSetting;
@@ -13,7 +14,7 @@ use Illuminate\View\View;
 
 class RegisterController extends Controller
 {
-    use SendsTwoFactorCode;
+    use AppliesThemePreference, SendsTwoFactorCode;
 
     /**
      * Muestra el formulario de registro de nuevo usuario, o manda a /login
@@ -48,6 +49,7 @@ class RegisterController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', User::passwordComplexityRule(), 'confirmed'],
+            'pending_theme' => ['nullable', 'in:dark,light'],
         ]);
 
         $user = User::create([
@@ -57,6 +59,8 @@ class RegisterController extends Controller
             'is_admin' => false,
             'two_factor_enabled' => true,
         ]);
+
+        $this->applyPendingTheme($user, $validated['pending_theme'] ?? null);
 
         // Si el email no llega a salir (SMTP caído, credenciales mal puestas...),
         // la cuenta recién creada quedaría huérfana: activa el 2FA pero sin

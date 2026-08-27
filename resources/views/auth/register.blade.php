@@ -62,8 +62,10 @@
             </div>
         @endif
 
-        <form action="{{ route('web.register.attempt') }}" method="POST" class="space-y-4" autocomplete="off">
+        <form action="{{ route('web.register.attempt') }}" method="POST" class="js-theme-boundary-form space-y-4"
+              autocomplete="off">
             @csrf
+            <input type="hidden" name="pending_theme" value="">
 
             <div>
                 <label for="name" class="block font-medium text-sm text-slate-300 mb-1">Nombre</label>
