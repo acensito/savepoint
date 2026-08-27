@@ -31,12 +31,18 @@ class TwoFactorTest extends TestCase
      * desafío, sin depender de que la sesión de un login real sobreviva
      * entre dos peticiones de test separadas.
      */
-    private function withPendingChallenge(User $user, bool $remember = false): static
+    private function withPendingChallenge(User $user, bool $remember = false, ?string $pendingTheme = null): static
     {
-        return $this->withSession([
+        $session = [
             'two_factor.user_id' => $user->id,
             'two_factor.remember' => $remember,
-        ]);
+        ];
+
+        if ($pendingTheme !== null) {
+            $session['two_factor.pending_theme'] = $pendingTheme;
+        }
+
+        return $this->withSession($session);
     }
 
     public function test_login_without_two_factor_enabled_is_unaffected(): void
@@ -103,6 +109,8 @@ class TwoFactorTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('j******@example.com');
+        $response->assertSee('name="pending_theme"', false);
+        $response->assertSee('class="js-theme-boundary-form', false);
     }
 
     public function test_correct_code_completes_login(): void
@@ -115,6 +123,48 @@ class TwoFactorTest extends TestCase
         $response->assertRedirect(route('web.games.index'));
         $this->assertAuthenticatedAs($user);
         $this->assertNull($user->fresh()->two_factor_code);
+    }
+
+    public function test_latest_explicit_theme_selection_on_two_factor_challenge_overrides_pending_theme(): void
+    {
+        $user = User::factory()->twoFactorEnabled()->create(['theme' => 'dark']);
+        $code = $user->generateTwoFactorCode();
+
+        $response = $this->withPendingChallenge($user, false, 'dark')->post(route('two-factor.verify'), [
+            'code' => $code,
+            'pending_theme' => 'light',
+        ]);
+
+        $response->assertRedirect(route('web.games.index'));
+        $this->assertSame('light', $user->fresh()->theme);
+    }
+
+    public function test_missing_theme_on_two_factor_challenge_retains_pending_theme(): void
+    {
+        $user = User::factory()->twoFactorEnabled()->create(['theme' => 'light']);
+        $code = $user->generateTwoFactorCode();
+
+        $response = $this->withPendingChallenge($user, false, 'dark')->post(route('two-factor.verify'),
+            ['code' => $code]);
+
+        $response->assertRedirect(route('web.games.index'));
+        $this->assertSame('dark', $user->fresh()->theme);
+    }
+
+    public function test_invalid_theme_on_two_factor_challenge_is_rejected_without_overwriting_pending_theme(): void
+    {
+        $user = User::factory()->twoFactorEnabled()->create(['theme' => 'dark']);
+        $code = $user->generateTwoFactorCode();
+
+        $response = $this->withPendingChallenge($user, false, 'light')->post(route('two-factor.verify'), [
+            'code' => $code,
+            'pending_theme' => 'blue',
+        ]);
+
+        $response->assertSessionHasErrors('pending_theme');
+        $this->assertGuest();
+        $this->assertSame('dark', $user->fresh()->theme);
+        $this->assertSame('light', session('two_factor.pending_theme'));
     }
 
     public function test_incorrect_code_fails_without_authenticating(): void

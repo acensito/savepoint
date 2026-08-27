@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Http\Controllers\Concerns\AppliesThemePreference;
 use App\Http\Controllers\Concerns\SendsTwoFactorCode;
 use App\Http\Controllers\Concerns\ThrottlesLogins;
 use App\Http\Controllers\Controller;
@@ -16,7 +17,7 @@ use Illuminate\View\View;
 
 class AuthController extends Controller
 {
-    use SendsTwoFactorCode, ThrottlesLogins;
+    use AppliesThemePreference, SendsTwoFactorCode, ThrottlesLogins;
 
     /**
      * Muestra el formulario de acceso. Pasa si el registro público está
@@ -35,6 +36,7 @@ class AuthController extends Controller
         $credentials = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
+            'pending_theme' => ['nullable', 'in:dark,light'],
         ]);
 
         $this->ensureLoginIsNotThrottled($request);
@@ -45,7 +47,10 @@ class AuthController extends Controller
         // (ni siquiera para esta petición, a diferencia de Auth::once()): si
         // hace falta 2FA, no queremos que el guard llegue a considerar al
         // usuario logueado en ningún momento antes de que lo verifique.
-        if (! Auth::validate($credentials)) {
+        $loginCredentials = $credentials;
+        unset($loginCredentials['pending_theme']);
+
+        if (! Auth::validate($loginCredentials)) {
             $this->incrementLoginAttempts($request);
 
             // Un único mensaje genérico: no revelamos si el email existe o no.
@@ -58,10 +63,12 @@ class AuthController extends Controller
 
         $user = User::where('email', $credentials['email'])->firstOrFail();
 
-        $trustedDevice = TwoFactorTrustedDevice::isTrusted($user, $request->cookie(TwoFactorTrustedDevice::COOKIE_NAME));
+        $trustedDevice = TwoFactorTrustedDevice::isTrusted($user,
+            $request->cookie(TwoFactorTrustedDevice::COOKIE_NAME));
 
         if (! $user->two_factor_enabled || $trustedDevice) {
             Auth::login($user, $remember);
+            $this->applyPendingTheme($user, $credentials['pending_theme'] ?? null);
 
             // Evita el session fixation: nuevo ID de sesión tras autenticarse.
             $request->session()->regenerate();
@@ -82,6 +89,10 @@ class AuthController extends Controller
 
         $request->session()->put('two_factor.user_id', $user->id);
         $request->session()->put('two_factor.remember', $remember);
+        $request->session()->forget('two_factor.pending_theme');
+        if (isset($credentials['pending_theme'])) {
+            $request->session()->put('two_factor.pending_theme', $credentials['pending_theme']);
+        }
 
         return redirect()->route('two-factor.challenge');
     }
