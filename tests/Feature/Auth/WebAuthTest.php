@@ -19,6 +19,71 @@ class WebAuthTest extends TestCase
         $response->assertOk();
     }
 
+    public function test_login_shows_configured_local_development_credentials_button_when_enabled(): void
+    {
+        config([
+            'app.env' => 'local',
+            'app.show_dev_credentials' => true,
+            'app.dev_credentials.email' => 'configured@example.test',
+            'app.dev_credentials.password' => 'configured&password',
+        ]);
+
+        $response = $this->get('/login');
+
+        $response->assertSee('Rellenar credenciales de desarrollo');
+        $response->assertSeeHtml('data-email="configured@example.test"');
+        $response->assertSeeHtml('data-password="configured&amp;password"');
+        $response->assertSeeHtml('devCredentialsButton.dataset.email');
+        $response->assertSeeHtml('devCredentialsButton.dataset.password');
+        $response->assertDontSee('value="configured&amp;password"');
+    }
+
+    public function test_login_hides_local_development_credentials_when_disabled(): void
+    {
+        config([
+            'app.env' => 'local',
+            'app.show_dev_credentials' => false,
+        ]);
+
+        $response = $this->get('/login');
+
+        $response->assertDontSee('Rellenar credenciales de desarrollo');
+        $response->assertDontSee('admin@savepoint.test');
+        $response->assertDontSee('value="password"');
+    }
+
+    public function test_login_hides_local_development_credentials_in_production_even_when_enabled(): void
+    {
+        config([
+            'app.env' => 'production',
+            'app.show_dev_credentials' => true,
+            'app.dev_credentials.email' => 'configured@example.test',
+            'app.dev_credentials.password' => 'configured-password',
+        ]);
+
+        $response = $this->get('/login');
+
+        $response->assertDontSee('Rellenar credenciales de desarrollo');
+        $response->assertDontSee('configured@example.test');
+        $response->assertDontSee('configured-password');
+        $response->assertDontSee('value="configured-password"');
+    }
+
+    public function test_login_hides_local_development_credentials_when_values_are_empty(): void
+    {
+        config([
+            'app.env' => 'local',
+            'app.show_dev_credentials' => true,
+            'app.dev_credentials.email' => '',
+            'app.dev_credentials.password' => '',
+        ]);
+
+        $response = $this->get('/login');
+
+        $response->assertDontSee('Rellenar credenciales de desarrollo');
+        $response->assertDontSee('configured@example.test');
+    }
+
     public function test_login_shows_the_register_link_when_registration_is_open(): void
     {
         $response = $this->get('/login');

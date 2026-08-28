@@ -95,6 +95,23 @@
             </button>
         </form>
 
+        @if($showDevCredentials && $devCredentials)
+            <button type="button" id="fill-dev-credentials"
+                    data-email="{{ $devCredentials['email'] }}"
+                    data-password="{{ $devCredentials['password'] }}"
+                    class="mt-4 w-full border border-slate-700 text-slate-300 px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors">
+                Rellenar credenciales de desarrollo
+            </button>
+
+            <script nonce="{{ $cspNonce }}">
+                const devCredentialsButton = document.getElementById('fill-dev-credentials');
+                devCredentialsButton.addEventListener('click', function () {
+                    document.getElementById('email').value = devCredentialsButton.dataset.email;
+                    document.getElementById('password').value = devCredentialsButton.dataset.password;
+                });
+            </script>
+        @endif
+
         @if($registrationEnabled)
             <p class="mt-6 text-center text-sm text-slate-400">
                 ¿No tienes cuenta?

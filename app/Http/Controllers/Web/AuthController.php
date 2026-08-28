@@ -25,7 +25,25 @@ class AuthController extends Controller
      */
     public function showLogin(): View
     {
-        return view('auth.login', ['registrationEnabled' => AppSetting::current()->registration_enabled]);
+        $configuredCredentials = config('app.dev_credentials', []);
+        $devEmail = is_string($configuredCredentials['email'] ?? null)
+            ? trim($configuredCredentials['email'])
+            : '';
+        $devPassword = is_string($configuredCredentials['password'] ?? null)
+            ? $configuredCredentials['password']
+            : '';
+        $showDevCredentials = config('app.env') === 'local'
+            && config('app.show_dev_credentials') === true
+            && $devEmail !== ''
+            && $devPassword !== '';
+
+        return view('auth.login', [
+            'registrationEnabled' => AppSetting::current()->registration_enabled,
+            'showDevCredentials' => $showDevCredentials,
+            'devCredentials' => $showDevCredentials
+                ? ['email' => $devEmail, 'password' => $devPassword]
+                : null,
+        ]);
     }
 
     /**
