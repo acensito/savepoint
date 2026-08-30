@@ -28,6 +28,14 @@ return [
 
     'env' => env('APP_ENV', 'production'),
 
+    'show_dev_credentials' => (bool) env('SHOW_DEV_CREDENTIALS', false),
+
+    // Development-only credentials; never use these as production credentials.
+    'dev_credentials' => [
+        'email' => env('DEV_ADMIN_EMAIL', 'admin@savepoint.test'),
+        'password' => env('DEV_ADMIN_PASSWORD', 'password'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Application Debug Mode

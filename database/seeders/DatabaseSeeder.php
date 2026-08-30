@@ -17,22 +17,34 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
-        $this->seedUsers();
+        $user = $this->seedUsers();
         $this->seedCatalog();
-        $this->seedGames();
+        $this->seedGames($user);
     }
 
     /**
      * Usuario de desarrollo por defecto.
      */
-    private function seedUsers(): void
+    private function seedUsers(): ?User
     {
-        // updateOrCreate para poder relanzar el seeder sin petar por el unique del email.
-        User::updateOrCreate(
-            ['email' => 'admin@savepoint.test'],
+        $configuredCredentials = config('app.dev_credentials', []);
+        $email = is_string($configuredCredentials['email'] ?? null)
+            ? trim($configuredCredentials['email'])
+            : '';
+        $password = is_string($configuredCredentials['password'] ?? null)
+            ? $configuredCredentials['password']
+            : '';
+
+        if ($email === '' || $password === '') {
+            return null;
+        }
+
+        // updateOrCreate para poder relanzar el seeder sin crear duplicados.
+        return User::updateOrCreate(
+            ['email' => $email],
             [
                 'name' => 'Admin',
-                'password' => Hash::make('password'),
+                'password' => Hash::make($password),
                 'email_verified_at' => now(),
             ]
         );
@@ -87,9 +99,12 @@ class DatabaseSeeder extends Seeder
     /**
      * Juegos de prueba en la colección de Admin.
      */
-    private function seedGames(): void
+    private function seedGames(?User $user): void
     {
-        $user = User::where('email', 'admin@savepoint.test')->firstOrFail();
+        if ($user === null) {
+            return;
+        }
+
         $switch = Platform::where('slug', 'nintendo-switch')->firstOrFail();
 
         $games = [

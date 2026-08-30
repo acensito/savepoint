@@ -34,7 +34,8 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 - **Estadísticas de la colección**: gasto total y por mes, reparto por plataforma/estado/década, top de géneros,
   destacados y rendimiento de ventas.
 - **Lista de deseos** independiente y **seguimiento de ventas** con beneficio real por juego y por año.
-- **Multiusuario con roles** y registro público, con aislamiento total de datos por cuenta — cada cuenta ve solo lo suyo.
+- **Multiusuario con roles** y registro público, con aislamiento total de datos por cuenta — cada cuenta ve solo lo
+  suyo.
 - **Tuya de verdad**: autoalojada con Docker, tus datos en tu propio Postgres, sin límites ni suscripción.
 
 ## Capturas
@@ -211,20 +212,20 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
   login.
 - **2FA por email**: toda cuenta nueva lo lleva activo desde el momento del registro (sin elección en el formulario:
   tras crear la cuenta, antes de dar acceso, pide un código de 6 dígitos enviado por email, válido 10 minutos y de un
-  solo uso) — se puede desactivar después desde Ajustes una vez dentro, mismo patrón por cuenta que las credenciales
-  de IGDB. Las cuentas ya existentes antes de esta función lo llevan desactivado y lo activan igual desde Ajustes si
-  quieren. Con "recordar este dispositivo" marcado en el propio desafío, no se repite en el mismo navegador durante
-  30 días. Reenvío de código y verificación limitados aparte (5 intentos/10 min y 3 reenvíos/5 min) para que no se
-  pueda tantear por fuerza bruta.
+  solo uso) — se puede desactivar después desde Ajustes una vez dentro, mismo patrón por cuenta que las credenciales de
+  IGDB. Las cuentas ya existentes antes de esta función lo llevan desactivado y lo activan igual desde Ajustes si
+  quieren. Con "recordar este dispositivo" marcado en el propio desafío, no se repite en el mismo navegador durante 30
+  días. Reenvío de código y verificación limitados aparte (5 intentos/10 min y 3 reenvíos/5 min) para que no se pueda
+  tantear por fuerza bruta.
 - **Gestión de usuarios** (`/panel/users`, solo cuentas con el rol **admin**): listar todas las cuentas de la plataforma
   con su nº de juegos, dar de alta cuentas nuevas (nombre/email/contraseña puesta a mano, rol admin opcional), editarlas
   y borrarlas. Un admin no puede quitarse el rol a sí mismo ni borrar su propia cuenta, y no se puede borrar una cuenta
   que todavía tenga juegos (evita el borrado en cascada real de toda su colección a nivel de base de datos). No hay
   ningún admin por defecto "de fábrica": la migración que añadió el rol marcó como admin a todas las cuentas que ya
   existían en ese momento.
-  - **Abrir o cerrar el registro público** desde la misma página: un interruptor decide si `/register` está disponible
-    para cualquiera o si las cuentas solo se pueden crear desde aquí. Primer ajuste de instancia de la app (no de
-    cuenta): vive en su propia tabla (`app_settings`, una sola fila), separado de todo lo que cuelga de un usuario.
+    - **Abrir o cerrar el registro público** desde la misma página: un interruptor decide si `/register` está disponible
+      para cualquiera o si las cuentas solo se pueden crear desde aquí. Primer ajuste de instancia de la app (no de
+      cuenta): vive en su propia tabla (`app_settings`, una sola fila), separado de todo lo que cuelga de un usuario.
 
 ### API REST
 
@@ -237,14 +238,14 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
   `config/sanctum.php`): pasado ese tiempo dejan de autenticar aunque no se hayan revocado a mano, así que un token
   filtrado no queda válido para siempre.
 - **Login con 2FA**: si la cuenta tiene el 2FA por email activo, `POST /api/login` no emite token — devuelve
-  `two_factor_required: true` y un `two_factor_token` de un solo uso (10 minutos), y manda el código por email igual
-  que el login web. `POST /api/login/verify-2fa` (con `two_factor_token` + `code`) completa el login y emite el token
+  `two_factor_required: true` y un `two_factor_token` de un solo uso (10 minutos), y manda el código por email igual que
+  el login web. `POST /api/login/verify-2fa` (con `two_factor_token` + `code`) completa el login y emite el token
   Sanctum; `POST /api/login/resend-2fa` reenvía un código nuevo para el mismo desafío. Ambas rutas van sin
-  `auth:sanctum` (todavía no hay usuario autenticado) y con su propio límite de intentos
-  (`api-two-factor-verify`/`api-two-factor-resend`, `AppServiceProvider`), igual que el desafío web.
-- **Límite general de peticiones**: `throttle:api` (120/min, por usuario autenticado o por IP en `/login` antes de
-  tener token) sobre todas las rutas `/api/*`, activado en `bootstrap/app.php`. Antes solo `/login` tenía protección
-  propia contra fuerza bruta y el resto (`/games`) no tenía ningún tope.
+  `auth:sanctum` (todavía no hay usuario autenticado) y con su propio límite de intentos (`api-two-factor-verify`/
+  `api-two-factor-resend`, `AppServiceProvider`), igual que el desafío web.
+- **Límite general de peticiones**: `throttle:api` (120/min, por usuario autenticado o por IP en `/login` antes de tener
+  token) sobre todas las rutas `/api/*`, activado en `bootstrap/app.php`. Antes solo `/login` tenía protección propia
+  contra fuerza bruta y el resto (`/games`) no tenía ningún tope.
 
 ### Estadísticas
 
@@ -318,10 +319,10 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 - Tema claro/oscuro y vista de la colección (línea de abajo) son ajustes de **cuenta**, no solo del navegador (antes
   vivían solo en `localStorage`): se pintan server-side desde el primer HTML, sin parpadeo al cargar o navegar, y te
   siguen a cualquier dispositivo donde inicies sesión.
-- **Color de la barra de navegación y de los botones primarios**, a elegir entre varios presets (indigo, emerald,
-  rose, amber, sky, violet) desde Ajustes — mismo ajuste de cuenta que el tema.
-- **Menú de usuario de la cabecera**: el avatar/email de la barra superior abre un desplegable con acceso al perfil,
-  al Panel de control y "Salir", en vez de tener el botón de salir suelto al lado.
+- **Color de la barra de navegación y de los botones primarios**, a elegir entre varios presets (indigo, emerald, rose,
+  amber, sky, violet) desde Ajustes — mismo ajuste de cuenta que el tema.
+- **Menú de usuario de la cabecera**: el avatar/email de la barra superior abre un desplegable con acceso al perfil, al
+  Panel de control y "Salir", en vez de tener el botón de salir suelto al lado.
 - Orden del listado por título, precio, conservación o fecha de compra (con un valor por defecto configurable desde
   Ajustes); atajo de teclado `/` abre el buscador rápido, igual que `Ctrl+K`.
 - Acciones en bloque: seleccionar varios juegos a la vez para enviarlos a la papelera o cambiarles el estado de golpe.
@@ -335,8 +336,8 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
   resultados en vivo por título o EAN mientras se escribe (con un esqueleto de carga mientras llegan, en vez de dejar
   los resultados anteriores congelados), con filtros opcionales de plataforma/estado de juego/propiedad y un enlace para
   ver todos los resultados en la colección paginada cuando hace falta más que eso. Los resultados que ya están en tu
-  lista de deseos llevan un badge "En lista deseos" para no perderlo de vista. Si el juego no está en tu colección,
-  se ofrecen además **sugerencias de CEX** (webuy.com) con EAN y carátula reales para rellenar el alta con un clic; la
+  lista de deseos llevan un badge "En lista deseos" para no perderlo de vista. Si el juego no está en tu colección, se
+  ofrecen además **sugerencias de CEX** (webuy.com) con EAN y carátula reales para rellenar el alta con un clic; la
   lista de deseos se puede excluir de estos resultados desde Ajustes.
 - **Escaneo de código de barras** con la cámara desde la propia búsqueda rápida: detecta el EAN y lo vuelca en el
   buscador, enlazando con las sugerencias de CEX si el juego todavía no está en tu colección. Necesita HTTPS para
@@ -381,8 +382,9 @@ volumen). Tras un cambio en CSS/JS (`resources/css`, `resources/js`), se puede r
 
 ### Personalizar puertos y credenciales
 
-Por defecto todo funciona con los valores de `.env.example` (contraseña `secreto123`, puertos 5432/6379/8081/8043). Si
-algún puerto ya lo tienes ocupado, o vas a hacer un despliegue real y quieres cambiar la contraseña de Postgres, copia
+Por defecto todo funciona con los valores de `.env.example` (contraseña `secreto123`, puertos publicados
+5432/6379/8081/8443). Si algún puerto ya lo tienes ocupado, o vas a hacer un despliegue real y quieres cambiar la
+contraseña de Postgres, copia
 `.env.example` a `.env` en la raíz del proyecto (si no lo has hecho ya) y edita lo que necesites — es el **único**
 `.env` del proyecto: el mismo fichero que lee Docker Compose para las credenciales de Postgres/Redis y los puertos es,
 directamente, el que carga Laravel. Tras cambiarlo, `docker compose up -d --build` para que se aplique.
@@ -412,7 +414,17 @@ propósito, ver comentario en `.env.example`).
 
 Para un despliegue "en serio" en un servidor, además de lo anterior:
 
-- Ajusta en tu `.env` `APP_ENV=production`, `APP_DEBUG=false` y `APP_URL` con el dominio final.
+Configura el entorno de producción así y ajusta `APP_URL` con el dominio final:
+
+```dotenv
+APP_ENV=production
+APP_DEBUG=false
+SHOW_DEV_CREDENTIALS=false
+```
+
+`SHOW_DEV_CREDENTIALS` es exclusivo del desarrollo local. Combinado con `APP_ENV=local`, muestra el botón que rellena
+las credenciales seed de desarrollo. **Nunca lo habilites en una instancia accesible públicamente.**
+
 - Cambia `DB_PASSWORD` por una contraseña real (`openssl rand -base64 24`, por ejemplo) — la de `.env.example` es solo
   para desarrollo local. Esto **solo tiene efecto en un volumen de Postgres nuevo**: si vas a reutilizar un volumen que
   ya tenía otra contraseña, Postgres la guarda en sus propios datos y no se actualiza sola al cambiar el `.env`. Para
@@ -440,22 +452,22 @@ Cobertura actual:
   protección de rutas para invitados, bloqueo por fuerza bruta (por email+IP y, rotando de IP en cada intento, por el
   límite adicional solo por email), y que el enlace "Regístrate" aparece o no según el registro público esté abierto o
   cerrado.
-- `Tests\Feature\Auth\RegisterTest`: alta con datos válidos (evento `Registered`, contraseña hasheada, cuenta creada
-  con 2FA activo y sin autenticar todavía), que completar el desafío de 2FA es lo que autentica de verdad y respeta la
+- `Tests\Feature\Auth\RegisterTest`: alta con datos válidos (evento `Registered`, contraseña hasheada, cuenta creada con
+  2FA activo y sin autenticar todavía), que completar el desafío de 2FA es lo que autentica de verdad y respeta la
   página originalmente solicitada, validación (nombre obligatorio, email válido y único, contraseña con mínimo 8
   caracteres y mayúscula/minúscula/número/símbolo, confirmación), que no se puede escalar a admin desde el formulario,
-  invitado vs. usuario ya autenticado, límite de 5 registros/minuto por IP, que el 2FA se puede desactivar después
-  desde Ajustes, el enlace desde el login, que el formulario y el propio endpoint quedan bloqueados (con redirect a
+  invitado vs. usuario ya autenticado, límite de 5 registros/minuto por IP, que el 2FA se puede desactivar después desde
+  Ajustes, el enlace desde el login, que el formulario y el propio endpoint quedan bloqueados (con redirect a
   `/login` y aviso) cuando un admin cierra el registro público, que un fallo al enviar el código de 2FA deshace el
   registro en vez de dejar una cuenta huérfana, y que el formulario desactiva el autorrelleno de cuentas guardadas y
   muestra los requisitos de la contraseña.
-- `Tests\Feature\Auth\TwoFactorTest`: login con 2FA desactivado sin cambios, login con 2FA activo redirige al desafío
-  en vez de autenticar, código correcto/incorrecto/caducado, límites de verificación y reenvío, que reenviar invalida
-  el código anterior, "recordar dispositivo" crea la cookie/fila y un login posterior con ella se salta el desafío
-  (uno con una cookie desconocida sigue pidiéndolo), el email censurado que muestra la pantalla del desafío, y de
-  seguridad: que la cookie de dispositivo de confianza de una cuenta no sirve para saltarse el desafío de otra, y que
-  un `user_id` colado a mano en el body de `two-factor.verify` no tiene ningún efecto (siempre sale de la sesión); y
-  que un fallo al enviar el código (login o reenvío) muestra un aviso claro en vez de un 500 sin manejar.
+- `Tests\Feature\Auth\TwoFactorTest`: login con 2FA desactivado sin cambios, login con 2FA activo redirige al desafío en
+  vez de autenticar, código correcto/incorrecto/caducado, límites de verificación y reenvío, que reenviar invalida el
+  código anterior, "recordar dispositivo" crea la cookie/fila y un login posterior con ella se salta el desafío (uno con
+  una cookie desconocida sigue pidiéndolo), el email censurado que muestra la pantalla del desafío, y de seguridad: que
+  la cookie de dispositivo de confianza de una cuenta no sirve para saltarse el desafío de otra, y que un `user_id`
+  colado a mano en el body de `two-factor.verify` no tiene ningún efecto (siempre sale de la sesión); y que un fallo al
+  enviar el código (login o reenvío) muestra un aviso claro en vez de un 500 sin manejar.
 - `Tests\Feature\Api\AuthTest`: login/logout vía Sanctum (emisión y revocación de token), `/api/user` protegido (incluye
   que la respuesta nunca expone campos ocultos como `password` o `igdb_client_secret`), bloqueo por fuerza bruta,
   expiración de token (rechazado pasado el límite configurado, aceptado justo antes), token manipulado/de usuario
@@ -470,9 +482,9 @@ Cobertura actual:
 - `Tests\Feature\Api\GameControllerTest`: CRUD completo de la API, paginación (tamaño por defecto, `per_page` a medida,
   con tope, y tratado como el valor por defecto si no es un entero positivo), filtros (`q`, `platform_id`,
   `play_status`, `status`) incluida una búsqueda con caracteres de inyección SQL sin error ni fuga entre usuarios,
-  scoping por usuario y `GamePolicy` bloqueando acceso a juegos ajenos (403 en view/update/delete) o inexistentes
-  (404), un `user_id` colado en el payload de alta/edición sin ningún efecto (siempre manda el usuario autenticado), y
-  que `status` no admite `sold` (estado derivado, solo asignable desde `SalesController`).
+  scoping por usuario y `GamePolicy` bloqueando acceso a juegos ajenos (403 en view/update/delete) o inexistentes (404),
+  un `user_id` colado en el payload de alta/edición sin ningún efecto (siempre manda el usuario autenticado), y que
+  `status` no admite `sold` (estado derivado, solo asignable desde `SalesController`).
 - `Tests\Feature\Web\GameControllerTest`: alta y edición de juegos con subida/reemplazo de carátula real, validación,
   aviso de EAN duplicado (con y sin confirmar), `GamePolicy` aplicada en las rutas web, la ficha de detalle, la edición
   rápida (estado/en venta) por AJAX y por formulario normal, el filtro "en venta", el fragmento que devuelve `index()`
@@ -523,12 +535,16 @@ Cobertura actual:
 
 ## Pendiente / en curso
 
-Agrupado por la sección de la app a la que afecta cada pendiente. Cada uno tiene su propio issue en GitHub (número
-entre paréntesis) — este listado es un resumen, el issue tiene el detalle completo y el estado real.
+Agrupado por la sección de la app a la que afecta cada pendiente. Cada uno tiene su propio issue en GitHub (número entre
+paréntesis) — este listado es un resumen, el issue tiene el detalle completo y el estado real.
 
 ### API REST
 
-- **Documentar la API REST** (#4): hoy la única "documentación" es leer `routes/api.php`/los controladores. Por endpoint (`/api/login`, `/api/logout`, `/api/user`, `/api/games` CRUD): qué recibe (cada campo del payload con su tipo y si es obligatorio/opcional — ver `StoreGameRequest`/`UpdateGameRequest` para las reglas ya validadas) y qué devuelve (forma del JSON de `GameResource`, paginación de `index()`, códigos de estado de error). Formato ligero (un `docs/api.md` a mano), no una herramienta tipo L5-Swagger/Scribe — de sobra para dos controladores.
+- **Documentar la API REST** (#4): hoy la única "documentación" es leer `routes/api.php`/los controladores. Por endpoint
+  (`/api/login`, `/api/logout`, `/api/user`, `/api/games` CRUD): qué recibe (cada campo del payload con su tipo y si es
+  obligatorio/opcional — ver `StoreGameRequest`/`UpdateGameRequest` para las reglas ya validadas) y qué devuelve (forma
+  del JSON de `GameResource`, paginación de `index()`, códigos de estado de error). Formato ligero (un `docs/api.md` a
+  mano), no una herramienta tipo L5-Swagger/Scribe — de sobra para dos controladores.
 
 ### Gestión de la colección
 
@@ -538,25 +554,43 @@ entre paréntesis) — este listado es un resumen, el issue tiene el detalle com
 
 ### Exportación / copias de seguridad
 
-- **Copia de seguridad con las carátulas incluidas** (#9): mirar la viabilidad de exportar/importar la colección (datos + ficheros de `storage/app/public/covers`) en un único paquete (`.zip` u otro formato), de forma segura — hoy la exportación (CSV) y las carátulas en disco son cosas separadas, sin ninguna vía para respaldarlas o moverlas juntas.
+- **Copia de seguridad con las carátulas incluidas** (#9): mirar la viabilidad de exportar/importar la colección
+  (datos + ficheros de `storage/app/public/covers`) en un único paquete (`.zip` u otro formato), de forma segura — hoy
+  la exportación (CSV) y las carátulas en disco son cosas separadas, sin ninguna vía para respaldarlas o moverlas
+  juntas.
 
 ### Usuarios y cuentas
 
-- **`/panel/users`: orden del listado y ciclo de vida del registro sin terminar** (#10, anotado tras el incidente real de cuentas huérfanas por fallo de envío del código, ver CHANGELOG 2026-08-23):
-  - Orden actual: alfabético por nombre (`UserController::index()`). Cambiar a admins primero, luego el resto, y dentro de cada grupo por fecha de alta (`created_at`).
-  - Marcar con una etiqueta/badge las cuentas que se registraron pero nunca completaron el desafío de 2FA (`two_factor_code` todavía puesto, sin verificar nunca) — hoy son indistinguibles de una cuenta normal en el listado. Antes de implementarlo, decidir qué debe pasar si esa misma persona quiere reintentar el registro con ese email: hoy choca con el `unique` de `users.email` sin ninguna salida (¿se le deja reenviar el código desde `/login` en vez de volver a `/register`? ¿Hace falta que un admin la borre a mano desde el panel para liberar el email?).
-  - Purgado de esas cuentas abandonadas (job programado, o una acción manual desde el panel) para que no se acumulen indefinidamente bloqueando el email de alguien que de verdad quiere registrarse.
-- **Permitir que un usuario borre su propia cuenta y todos sus datos** (#11, colección, carátulas incluidas) desde `/profile`, con una confirmación reforzada dado lo irreversible del borrado (más allá del diálogo de confirmación genérico que ya usa el resto de la app para acciones destructivas).
+- **`/panel/users`: orden del listado y ciclo de vida del registro sin terminar** (#10, anotado tras el incidente real
+  de cuentas huérfanas por fallo de envío del código, ver CHANGELOG 2026-08-23):
+    - Orden actual: alfabético por nombre (`UserController::index()`). Cambiar a admins primero, luego el resto, y
+      dentro de cada grupo por fecha de alta (`created_at`).
+    - Marcar con una etiqueta/badge las cuentas que se registraron pero nunca completaron el desafío de 2FA
+      (`two_factor_code` todavía puesto, sin verificar nunca) — hoy son indistinguibles de una cuenta normal en el
+      listado. Antes de implementarlo, decidir qué debe pasar si esa misma persona quiere reintentar el registro con ese
+      email: hoy choca con el `unique` de `users.email` sin ninguna salida (¿se le deja reenviar el código desde
+      `/login` en vez de volver a `/register`? ¿Hace falta que un admin la borre a mano desde el panel para liberar el
+      email?).
+    - Purgado de esas cuentas abandonadas (job programado, o una acción manual desde el panel) para que no se acumulen
+      indefinidamente bloqueando el email de alguien que de verdad quiere registrarse.
+- **Permitir que un usuario borre su propia cuenta y todos sus datos** (#11, colección, carátulas incluidas) desde
+  `/profile`, con una confirmación reforzada dado lo irreversible del borrado (más allá del diálogo de confirmación
+  genérico que ya usa el resto de la app para acciones destructivas).
 
 ### Interfaz
 
-- **Investigar por qué la vista móvil se ve distinta en desarrollo local que en producción** (#16, en producción se ve bien) — sin diagnosticar todavía qué difiere entre ambos entornos.
-- **Precargar/subsetear la fuente de iconos** (#23): la fuente variable completa de Material Symbols Outlined pesa ~4 MB (incluye todos los iconos del catálogo, no solo los ~49 que usa la app) — a veces se nota el tiempo de carga (aparece el nombre del icono en texto plano antes de pintarse el glifo). Subsetear con el parámetro `icon_names=` de Google Fonts baja el fichero a ~49 KB, momento en el que sí compensa además precargarlo.
+- **Investigar por qué la vista móvil se ve distinta en desarrollo local que en producción** (#16, en producción se ve
+  bien) — sin diagnosticar todavía qué difiere entre ambos entornos.
+- **Precargar/subsetear la fuente de iconos** (#23): la fuente variable completa de Material Symbols Outlined pesa ~4 MB
+  (incluye todos los iconos del catálogo, no solo los ~49 que usa la app) — a veces se nota el tiempo de carga (aparece
+  el nombre del icono en texto plano antes de pintarse el glifo). Subsetear con el parámetro `icon_names=` de Google
+  Fonts baja el fichero a ~49 KB, momento en el que sí compensa además precargarlo.
 
 ### Infraestructura y despliegue
 
 - **Backups automatizados de Postgres** (#17): ni `pg_dump` programado ni snapshot del volumen.
-- Sin HTTPS en el despliegue actual: bloquea el escaneo de código de barras desde el móvil fuera de `localhost` (ver [Desplegar para uso propio](#desplegar-para-uso-propio)).
+- Sin HTTPS en el despliegue actual: bloquea el escaneo de código de barras desde el móvil fuera de `localhost`
+  (ver [Desplegar para uso propio](#desplegar-para-uso-propio)).
 
 ### Mejoras técnicas identificadas (auditoría 2026-08-17)
 
@@ -571,14 +605,14 @@ app a la que afectarían.
 ### Colección
 
 - **Préstamos**: marcar un juego como "prestado a X" con fecha, aparte de "en venta" (que es vender lo tuyo) y de
-  Encargos (que es logística de compra/envío a través de otra persona) — hoy no hay forma de recordar a quién le
-  dejaste algo.
+  Encargos (que es logística de compra/envío a través de otra persona) — hoy no hay forma de recordar a quién le dejaste
+  algo.
 - **Copias múltiples como cantidad**, no como filas duplicadas: hoy dos copias físicas del mismo juego son dos `Game`
   distintos (el aviso de EAN duplicado ya lo permite, con "guardar de todos modos") — la alternativa sería un campo
   `quantity` en el mismo registro.
 - **Agrupar por saga/franquicia** (Zelda, Final Fantasy...) para verlas juntas en la colección o en las estadísticas.
-- **Importar biblioteca digital**: conectar con Steam/PSN/Xbox (Steam tiene API pública sin auth compleja) para
-  detectar juegos digitales que ya tienes y no están en Savepoint.
+- **Importar biblioteca digital**: conectar con Steam/PSN/Xbox (Steam tiene API pública sin auth compleja) para detectar
+  juegos digitales que ya tienes y no están en Savepoint.
 
 ### Lista de deseos / compras
 
@@ -621,15 +655,15 @@ app a la que afectarían.
 
 ### Internacionalización
 
-- **Interfaz en inglés** además de español — el proyecto ya tiene licencia dual pensada para uso más amplio, y hoy
-  todo está hardcodeado en `lang/es/`.
+- **Interfaz en inglés** además de español — el proyecto ya tiene licencia dual pensada para uso más amplio, y hoy todo
+  está hardcodeado en `lang/es/`.
 
 ## Contribuir
 
 Savepoint es, hoy, un proyecto de uso personal (una sola persona catalogando su propia colección), así que no hay un
-proceso de contribución formal ni CI configurado. Aun así, si se bifurca o alguien quiere proponer un cambio, la guía
-está en [`CONTRIBUTING.md`](CONTRIBUTING.md): entorno de desarrollo, tests, estilo de commits/código y cómo enviar un
-PR.
+proceso de contribución formal ni CI configurado. Docker Compose sigue siendo el flujo predeterminado. Para trabajar con
+varios worktrees sin mezclar contenedores, volúmenes ni puertos, sigue el flujo canónico de
+[`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Licencia
 
