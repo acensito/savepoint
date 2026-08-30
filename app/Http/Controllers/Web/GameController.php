@@ -379,6 +379,7 @@ class GameController extends Controller
             'wishlist_store' => 'nullable|string|max:255',
             'play_status' => ['required', 'string', Rule::in(Game::PLAY_STATUSES)],
             'rating' => ['nullable', 'integer', 'min:'.Game::RATING_MIN, 'max:'.Game::RATING_MAX],
+            'playtime_hours' => 'nullable|numeric|min:0',
             'price_paid' => 'nullable|numeric|min:0',
             'purchase_place' => 'nullable|string|max:255',
             'purchase_date' => 'nullable|date',

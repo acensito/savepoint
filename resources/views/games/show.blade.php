@@ -8,6 +8,7 @@
         ['icon' => 'category', 'label' => 'Géneros', 'value' => $game->genres ? implode(', ', $game->genres) : null],
         ['icon' => 'public', 'label' => 'Región', 'value' => $game->region],
         ['icon' => 'badge', 'label' => 'Clasificación por edad', 'value' => $game->age_rating],
+        ['icon' => 'schedule', 'label' => 'Horas jugadas', 'value' => $game->playtime_hours !== null ? number_format((float) $game->playtime_hours, 1, ',', '.').' h' : null],
     ];
 
     $timeToBeat = $game->igdbTimeToBeatHours();
