@@ -12,6 +12,18 @@ services:
             POSTGRES_DB: ${DB_DATABASE:-savepoint}
             POSTGRES_USER: ${DB_USERNAME:-savepoint}
             POSTGRES_PASSWORD: ${DB_PASSWORD:-secreto123}
+        # Uso personal / concurrencia baja: menos buffers y menos conexiones
+        # reservadas que los valores por defecto de la imagen (pensados para
+        # servidores con mucho más tráfico que este).
+        command: postgres -c shared_buffers=96MB -c max_connections=20 -c work_mem=4MB
+        # Perfil "servidor" (por defecto): recursos holgados.
+        mem_limit: 512m
+        cpus: "1.5"
+        # Perfil "NAS" (hardware ajustado, p. ej. un MicroServer N36L
+        # compartiendo RAM/CPU con OpenMediaVault y sus plugins): comenta las
+        # dos líneas de arriba y descomenta estas dos.
+        # mem_limit: 384m
+        # cpus: "1.0"
         ports:
             # Cerrado al exterior: Solo accesible desde localhost (tu PC)
             - "127.0.0.1:${POSTGRES_FORWARD_PORT:-5432}:5432"
@@ -34,7 +46,16 @@ services:
         # pero el coste de activarlo es nulo. Fsync cada segundo (por defecto,
         # "everysec") en vez de en cada escritura: pérdida máxima de ~1s de
         # datos a cambio de no penalizar el rendimiento en cada operación.
-        command: redis-server --appendonly yes
+        # --maxmemory con política de desalojo LRU: al ser solo caché/sesiones
+        # (con copia real en Postgres) no hay riesgo real en perder claves
+        # antiguas bajo presión de memoria; evita que Redis crezca sin límite.
+        command: redis-server --appendonly yes --maxmemory 64mb --maxmemory-policy allkeys-lru
+        # Perfil "servidor" (por defecto):
+        mem_limit: 128m
+        cpus: "0.5"
+        # Perfil "NAS": comenta las dos líneas de arriba y descomenta estas dos.
+        # mem_limit: 96m
+        # cpus: "0.5"
         ports:
             # Cerrado al exterior: Solo accesible desde localhost
             - "127.0.0.1:${REDIS_FORWARD_PORT:-6379}:6379"
@@ -73,6 +94,12 @@ services:
         # 2026-08-06 para el incidente real que causó esto.
         volumes:
             - .:/app
+        # Perfil "servidor" (por defecto):
+        mem_limit: 512m
+        cpus: "1.5"
+        # Perfil "NAS": comenta las dos líneas de arriba y descomenta estas dos.
+        # mem_limit: 320m
+        # cpus: "1.0"
         depends_on:
             postgres:
                 condition: service_healthy
@@ -102,6 +129,12 @@ services:
         command: php artisan queue:work redis --sleep=3 --tries=3 --max-time=3600
         volumes:
             - .:/app
+        # Perfil "servidor" (por defecto):
+        mem_limit: 256m
+        cpus: "0.5"
+        # Perfil "NAS": comenta las dos líneas de arriba y descomenta estas dos.
+        # mem_limit: 160m
+        # cpus: "0.5"
         depends_on:
             app:
                 condition: service_healthy
@@ -128,6 +161,12 @@ services:
         volumes:
             - .:/app
             - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf
+        # Perfil "servidor" (por defecto):
+        mem_limit: 64m
+        cpus: "0.25"
+        # Perfil "NAS": comenta las dos líneas de arriba y descomenta estas dos.
+        # mem_limit: 32m
+        # cpus: "0.25"
         depends_on:
             app:
                 condition: service_healthy
