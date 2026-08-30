@@ -5,6 +5,10 @@ sección al final de `README.md`; se separó a este fichero para que el README
 pueda ser un documento de presentación del proyecto en vez de una lista que
 crece sin parar.
 
+## 2026-08-31
+
+- **Extraído el `<head>` común de las 5 vistas de autenticación a un partial** (#56): `login`, `register`, `forgot-password`, `reset-password` y `two-factor-challenge` tenían las primeras ~40 líneas idénticas letra por letra (meta tags PWA, preconnects de fuentes, el script que evita el parpadeo de tema, el botón de cambiar tema y el logo) — solo cambiaba el `<title>`. Nuevo `partials.auth-head`, incluido desde las 5 vistas con el título como parámetro; mismo patrón que ya usaba `partials.material-symbols-link` para un trozo más pequeño del `<head>`. Cambio mecánico, sin alterar comportamiento — cualquier cambio futuro de `theme-color`/iconos/PWA solo hay que tocarlo en un sitio.
+
 ## 2026-08-30
 
 - **Guardar el tiempo de juego propio, en horas** (#48): nuevo campo `playtime_hours` (decimal, admite medias horas tipo "12,5"), independiente de la duración media externa que trae IGDB (`igdb_time_to_beat`). Se edita junto a "Estado de juego" en el formulario de alta/edición y se muestra en la ficha de detalle. Sin relación automática con la media de IGDB ni cálculo de "% completado" — conviven en la misma ficha, no se comparan.
