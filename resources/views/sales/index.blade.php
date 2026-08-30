@@ -38,7 +38,57 @@
                         </div>
                     </div>
 
-                    <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
+                    <!-- Tarjetas: listado en pantallas estrechas, sin scroll horizontal -->
+                    <div class="md:hidden space-y-2.5">
+                        @foreach($data['games'] as $game)
+                            @php
+                                $rowPaid = (float) ($game->price_paid ?? 0);
+                                $rowSold = (float) ($game->sale_price ?? 0);
+                                $rowProfit = $rowSold - $rowPaid;
+                                $rowPercent = $rowPaid > 0 ? round($rowProfit / $rowPaid * 100, 1) : null;
+                            @endphp
+                            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 flex items-center gap-3">
+                                <a href="{{ route('web.games.show', $game->id) }}" class="shrink-0">
+                                    <x-game-cover :game="$game" size="sm" />
+                                </a>
+
+                                <div class="flex-1 min-w-0">
+                                    <a href="{{ route('web.games.show', $game->id) }}" class="flex items-start justify-between gap-2">
+                                        <span class="min-w-0 text-[15px] font-bold text-slate-100 line-clamp-2 leading-snug">{{ $game->title }}</span>
+                                        <x-platform-chip :platform="$game->platform" class="!px-2 !py-0.5 !text-[10px] shrink-0" />
+                                    </a>
+
+                                    <div class="mt-1.5 flex items-center justify-between gap-2 text-[12px] text-slate-400">
+                                        <span>{{ $game->sold_at->format('d/m/Y') }}</span>
+                                        <span class="font-medium tabular-nums {{ $rowProfit >= 0 ? 'text-emerald-400' : 'text-red-400' }}">
+                                            {{ $rowProfit >= 0 ? '+' : '' }}{{ number_format($rowProfit, 2, ',', '.') }} €
+                                            @if($rowPercent !== null)
+                                                <span class="text-slate-500 font-normal">({{ $rowPercent >= 0 ? '+' : '' }}{{ number_format($rowPercent, 1, ',', '.') }}%)</span>
+                                            @endif
+                                        </span>
+                                    </div>
+
+                                    <div class="mt-2 flex items-center justify-between gap-2">
+                                        <span class="text-[12px] text-slate-500 tabular-nums">
+                                            {{ $game->price_paid !== null ? number_format($game->price_paid, 2, ',', '.') . ' € → ' : '' }}{{ number_format($game->sale_price, 2, ',', '.') }} €
+                                        </span>
+                                        <form action="{{ route('web.sales.restore', $game->id) }}" method="POST" class="js-confirm-delete"
+                                            data-confirm-title="Deshacer venta"
+                                            data-confirm-message="«{{ $game->title }}» volverá a tu colección, sin datos de venta."
+                                            data-confirm-accept="Deshacer venta">
+                                            @csrf
+                                            <button type="submit" class="text-sm font-medium text-emerald-400 hover:text-emerald-300 transition-colors">
+                                                Deshacer
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+
+                    <!-- Tabla: listado en pantallas medianas y grandes -->
+                    <div class="hidden md:block bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
                         <table class="min-w-full divide-y divide-slate-800">
                             <thead class="bg-slate-800/50">
                                 <tr>

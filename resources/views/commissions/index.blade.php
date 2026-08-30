@@ -27,7 +27,84 @@
             No tienes ningún encargo{{ $direction !== '' ? ' en este filtro' : '' }} todavía.
         </div>
     @else
-        <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
+        <!-- Tarjetas: listado en pantallas estrechas, sin scroll horizontal -->
+        <div class="md:hidden space-y-2.5">
+            @foreach($commissions as $commission)
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5">
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0">
+                            <p class="text-[15px] font-bold text-slate-100 line-clamp-2 leading-snug">{{ $commission->title }}</p>
+                            <div class="mt-1.5 flex items-center gap-2">
+                                <x-platform-chip :platform="$commission->platform" class="!px-2 !py-0.5 !text-[10px]" />
+                                @if($commission->direction === 'owed_by_me')
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/30">Debo</span>
+                                @else
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">Me deben</span>
+                                @endif
+                            </div>
+                        </div>
+                        @if($commission->price !== null)
+                            <span class="text-[13px] font-semibold text-emerald-400 tabular-nums bg-emerald-500/10 px-1.5 py-0.5 rounded-md shrink-0">{{ number_format($commission->price, 2, ',', '.') }} €</span>
+                        @endif
+                    </div>
+
+                    <div class="mt-2.5 flex items-center justify-between gap-2 text-[12px] text-slate-400">
+                        <span class="min-w-0 truncate">{{ $commission->counterparty_name }}</span>
+                        <span class="inline-flex items-center gap-1 shrink-0">
+                            <x-gicon name="event" class="text-[13px]" />
+                            {{ $commission->purchased_at?->format('d/m/Y') ?? '—' }}
+                        </span>
+                    </div>
+
+                    <div class="mt-3 pt-3 border-t border-slate-800">
+                        @if($commission->isResolved())
+                            <div class="text-sm text-slate-300">
+                                {{ $commission->resolvedLabel() }}
+                                @if($commission->game_id)
+                                    <a href="{{ route('web.games.show', $commission->game_id) }}" class="block text-indigo-400 hover:underline text-xs mt-0.5">
+                                        Ver en tu colección
+                                    </a>
+                                @endif
+                            </div>
+                        @else
+                            <div class="flex items-center justify-between gap-3 text-sm font-medium">
+                                <a href="{{ route('web.commissions.edit', $commission->id) }}" class="text-slate-400 hover:text-slate-100 transition-colors">Editar</a>
+                                <button type="button" class="js-resolve-trigger text-emerald-400 hover:text-emerald-300 transition-colors"
+                                    data-target="resolve-panel-mobile-{{ $commission->id }}">
+                                    {{ $commission->direction === 'owed_by_me' ? 'Marcar enviado' : 'Marcar recibido' }}
+                                </button>
+                                <form action="{{ route('web.commissions.destroy', $commission->id) }}" method="POST" class="js-confirm-delete"
+                                    data-confirm-title="Borrar encargo"
+                                    data-confirm-message="«{{ $commission->title }}» se borrará definitivamente.">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="text-slate-400 hover:text-red-400 transition-colors">Borrar</button>
+                                </form>
+                            </div>
+
+                            <div id="resolve-panel-mobile-{{ $commission->id }}" class="hidden mt-3 bg-slate-800/40 border border-slate-800 rounded-lg p-3">
+                                <form action="{{ route('web.commissions.resolve', $commission->id) }}" method="POST" class="flex items-end gap-2">
+                                    @csrf
+                                    <div class="flex-1">
+                                        <label class="block text-xs text-slate-400 mb-1">
+                                            {{ $commission->direction === 'owed_by_me' ? 'Fecha de envío' : 'Fecha de recepción' }}
+                                        </label>
+                                        <input type="date" name="resolved_at" value="{{ now()->toDateString() }}"
+                                            class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-3 py-1.5 text-sm focus:border-indigo-500 focus:ring-indigo-500 outline-hidden">
+                                    </div>
+                                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap">
+                                        Confirmar
+                                    </button>
+                                </form>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            @endforeach
+        </div>
+
+        <!-- Tabla: listado en pantallas medianas y grandes -->
+        <div class="hidden md:block bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
             <table class="min-w-full divide-y divide-slate-800">
                 <thead class="bg-slate-800/50">
                     <tr>
