@@ -7,6 +7,7 @@ crece sin parar.
 
 ## 2026-08-31
 
+- **Fix: la paginación no seguía el tema claro/oscuro de la app** (#57): no había vista propia — se usaba la de Laravel sin publicar (`vendor:publish --tag=laravel-pagination`), que usa la escala `gray-*` de Tailwind y su modificador `dark` nativo (sigue `prefers-color-scheme` del sistema/navegador, no el tema elegido en SavePoint). Nueva `resources/views/vendor/pagination/tailwind.blade.php` reescrita con `slate-*` sin ese modificador, igual que el resto de componentes — la paginación de la colección, la lista de deseos y la papelera ahora cambia con el tema de la cuenta. Quitado el `@source` de `app.css` que apuntaba al vendor, ya innecesario.
 - **Extraído el `<head>` común de las 5 vistas de autenticación a un partial** (#56): `login`, `register`, `forgot-password`, `reset-password` y `two-factor-challenge` tenían las primeras ~40 líneas idénticas letra por letra (meta tags PWA, preconnects de fuentes, el script que evita el parpadeo de tema, el botón de cambiar tema y el logo) — solo cambiaba el `<title>`. Nuevo `partials.auth-head`, incluido desde las 5 vistas con el título como parámetro; mismo patrón que ya usaba `partials.material-symbols-link` para un trozo más pequeño del `<head>`. Cambio mecánico, sin alterar comportamiento — cualquier cambio futuro de `theme-color`/iconos/PWA solo hay que tocarlo en un sitio.
 
 ## 2026-08-30
