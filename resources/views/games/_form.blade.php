@@ -218,7 +218,7 @@
 <div class="pt-6 border-t border-slate-800 space-y-4">
     <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Estado y conservación</h2>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
             <label for="status" class="{{ $label }}">Propiedad</label>
             <select name="status" id="status" class="{{ $input }}">
@@ -239,6 +239,11 @@
                 <option value="finished" {{ old('play_status', $game?->play_status) == 'finished' ? 'selected' : '' }}>Terminado</option>
             </select>
             @error('play_status') <span class="{{ $error }}">{{ $message }}</span> @enderror
+        </div>
+        <div>
+            <label for="playtime_hours" class="{{ $label }}">Horas jugadas</label>
+            <input type="number" step="0.5" min="0" name="playtime_hours" id="playtime_hours" placeholder="Horas jugadas" value="{{ old('playtime_hours', $game?->playtime_hours) }}" class="{{ $input }}">
+            @error('playtime_hours') <span class="{{ $error }}">{{ $message }}</span> @enderror
         </div>
     </div>
 

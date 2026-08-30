@@ -464,6 +464,64 @@ class GameControllerTest extends TestCase
         Storage::disk('public')->assertExists($game->cover);
     }
 
+    public function test_user_can_set_playtime_hours_when_creating_a_game(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post('/games', [
+            'title' => 'Hades',
+            'play_status' => 'finished',
+            'playtime_hours' => '32.5',
+        ]);
+
+        $response->assertRedirect(route('web.games.index'));
+
+        $game = Game::where('title', 'Hades')->firstOrFail();
+        $this->assertSame('32.5', $game->playtime_hours);
+    }
+
+    public function test_playtime_hours_must_not_be_negative(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post('/games', [
+            'title' => 'Hades',
+            'play_status' => 'finished',
+            'playtime_hours' => '-1',
+        ]);
+
+        $response->assertSessionHasErrors('playtime_hours');
+        $this->assertDatabaseMissing('games', ['title' => 'Hades']);
+    }
+
+    public function test_playtime_hours_must_not_overflow_the_database_column(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post('/games', [
+            'title' => 'Hades',
+            'play_status' => 'finished',
+            // Supera el tope real de la columna decimal(6,1) — debe rechazarse
+            // en la validación en vez de reventar como excepción de base de
+            // datos (overflow), visto en producción real.
+            'playtime_hours' => '987459873258937465734169853',
+        ]);
+
+        $response->assertSessionHasErrors('playtime_hours');
+        $this->assertDatabaseMissing('games', ['title' => 'Hades']);
+    }
+
+    public function test_playtime_hours_is_shown_on_the_game_detail_page(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['playtime_hours' => 12.5]);
+
+        $response = $this->actingAs($user)->get(route('web.games.show', $game->id));
+
+        $response->assertSee('Horas jugadas');
+        $response->assertSee('12,5 h');
+    }
+
     public function test_creating_a_game_downloads_the_suggested_cover_from_an_allowed_host(): void
     {
         Storage::fake('public');

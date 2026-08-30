@@ -7,6 +7,7 @@ crece sin parar.
 
 ## 2026-08-30
 
+- **Guardar el tiempo de juego propio, en horas** (#48): nuevo campo `playtime_hours` (decimal, admite medias horas tipo "12,5"), independiente de la duración media externa que trae IGDB (`igdb_time_to_beat`). Se edita junto a "Estado de juego" en el formulario de alta/edición y se muestra en la ficha de detalle. Sin relación automática con la media de IGDB ni cálculo de "% completado" — conviven en la misma ficha, no se comparan.
 - **Límites de memoria/CPU por contenedor en `docker-compose.yml`, con perfil dedicado para NAS** (#60): `postgres`/`redis`/`app`/`queue`/`nginx` llevan ahora `mem_limit`/`cpus` (soportado nativamente por Compose v2, sin modo swarm) para que un pico en cualquiera no se coma los recursos del resto del host — importante en NAS donde Savepoint comparte máquina con otros servicios. Dos bloques por servicio, mismo patrón que ya usaba el fichero para `HTTP_PORT`/`HTTPS_PORT` (uno activo, el otro comentado): perfil "servidor" (por defecto) y perfil "NAS", calibrado sobre un HP ProLiant MicroServer N36L (8GB RAM, CPU dual-core de bajo consumo) bajo OpenMediaVault. De paso, tuning de Postgres (`shared_buffers=96MB`, `max_connections=20`, `work_mem=4MB`) y Redis (`--maxmemory 64mb --maxmemory-policy allkeys-lru`) para el caso de uso real de la app — personal o concurrencia baja — en vez de los defaults de las imágenes, pensados para bastante más tráfico.
 
 ## 2026-08-25
