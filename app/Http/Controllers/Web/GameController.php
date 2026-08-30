@@ -379,7 +379,11 @@ class GameController extends Controller
             'wishlist_store' => 'nullable|string|max:255',
             'play_status' => ['required', 'string', Rule::in(Game::PLAY_STATUSES)],
             'rating' => ['nullable', 'integer', 'min:'.Game::RATING_MIN, 'max:'.Game::RATING_MAX],
-            'playtime_hours' => 'nullable|numeric|min:0',
+            // max:99999.9: tope real de la columna decimal(6,1) — sin esto,
+            // un valor fuera de rango pasa la validación de Laravel y revienta
+            // como excepción de base de datos (overflow) en vez de un aviso
+            // normal del formulario.
+            'playtime_hours' => 'nullable|numeric|min:0|max:99999.9',
             'price_paid' => 'nullable|numeric|min:0',
             'purchase_place' => 'nullable|string|max:255',
             'purchase_date' => 'nullable|date',

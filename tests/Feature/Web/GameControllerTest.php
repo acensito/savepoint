@@ -494,6 +494,23 @@ class GameControllerTest extends TestCase
         $this->assertDatabaseMissing('games', ['title' => 'Hades']);
     }
 
+    public function test_playtime_hours_must_not_overflow_the_database_column(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post('/games', [
+            'title' => 'Hades',
+            'play_status' => 'finished',
+            // Supera el tope real de la columna decimal(6,1) — debe rechazarse
+            // en la validación en vez de reventar como excepción de base de
+            // datos (overflow), visto en producción real.
+            'playtime_hours' => '987459873258937465734169853',
+        ]);
+
+        $response->assertSessionHasErrors('playtime_hours');
+        $this->assertDatabaseMissing('games', ['title' => 'Hades']);
+    }
+
     public function test_playtime_hours_is_shown_on_the_game_detail_page(): void
     {
         $user = User::factory()->create();
