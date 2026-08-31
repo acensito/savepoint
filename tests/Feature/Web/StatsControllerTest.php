@@ -6,6 +6,7 @@ use App\Models\Game;
 use App\Models\Platform;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class StatsControllerTest extends TestCase
@@ -107,6 +108,32 @@ class StatsControllerTest extends TestCase
         $byMonth = collect($response->viewData('spendingByMonth'))->keyBy('label');
 
         $this->assertSame(25.0, $byMonth['jun. 2026']['total']);
+        $this->assertSame(5.0, $byMonth['jul. 2026']['total']);
+    }
+
+    /**
+     * Regresión: Carbon::createFromFormat('Y-m', $month) rellena el día que
+     * falta en el formato con el de HOY, no con 1. En un día 31 (como hoy al
+     * escribir este test), agrupar un mes más corto que 31 días (aquí,
+     * junio) desbordaba al mes siguiente y esa etiqueta acababa chocando con
+     * la del mes real — "jun. 2026" desaparecía sin más. Se fija el reloj a
+     * un día 31 explícitamente para que esta regresión no dependa de en qué
+     * día del mes se ejecute la suite.
+     */
+    public function test_stats_spending_by_month_does_not_overflow_on_the_31st_into_a_shorter_month(): void
+    {
+        $this->travelTo(Carbon::parse('2026-08-31'));
+
+        $user = User::factory()->create();
+
+        Game::factory()->for($user)->create(['purchase_date' => '2026-06-15', 'price_paid' => 10]);
+        Game::factory()->for($user)->create(['purchase_date' => '2026-07-01', 'price_paid' => 5]);
+
+        $response = $this->actingAs($user)->get('/stats');
+
+        $byMonth = collect($response->viewData('spendingByMonth'))->keyBy('label');
+
+        $this->assertSame(10.0, $byMonth['jun. 2026']['total']);
         $this->assertSame(5.0, $byMonth['jul. 2026']['total']);
     }
 
