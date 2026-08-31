@@ -117,6 +117,39 @@ class WishlistControllerTest extends TestCase
         $this->assertDatabaseCount('games', 0);
     }
 
+    /**
+     * wishlist_estimated_price es decimal(10,2): sin un max: que lo refleje,
+     * un valor de 9 dígitos pasaba la validación de Laravel y reventaba como
+     * QueryException (overflow numérico) en vez de un aviso normal del
+     * formulario (mismo bug ya corregido en GameController::validated()).
+     */
+    public function test_store_rejects_an_estimated_price_beyond_the_database_column_size(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post(route('web.wishlist.store'), [
+            'title' => 'Silksong',
+            'wishlist_estimated_price' => '123456789.12',
+        ]);
+
+        $response->assertSessionHasErrors('wishlist_estimated_price');
+        $this->assertDatabaseCount('games', 0);
+    }
+
+    public function test_store_accepts_an_estimated_price_at_the_maximum_allowed_value(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post(route('web.wishlist.store'), [
+            'title' => 'Silksong',
+            'wishlist_estimated_price' => '99999999.99',
+        ]);
+
+        $response->assertRedirect(route('web.wishlist.index'));
+        $game = Game::where('title', 'Silksong')->firstOrFail();
+        $this->assertEquals(99999999.99, $game->wishlist_estimated_price);
+    }
+
     public function test_store_requires_a_title(): void
     {
         $user = User::factory()->create();

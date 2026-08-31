@@ -92,6 +92,43 @@ class CommissionControllerTest extends TestCase
         $response->assertSessionHasErrors(['title', 'counterparty_name', 'direction']);
     }
 
+    /**
+     * price es decimal(10,2): sin un max: que lo refleje, un valor de 9
+     * dígitos pasaba la validación de Laravel y reventaba como
+     * QueryException (overflow numérico) en vez de un aviso normal del
+     * formulario (mismo bug ya corregido en GameController::validated()).
+     */
+    public function test_creating_a_commission_rejects_a_price_beyond_the_database_column_size(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post('/commissions', [
+            'title' => 'Celeste',
+            'counterparty_name' => 'Ana',
+            'direction' => Commission::DIRECTION_OWED_TO_ME,
+            'price' => '123456789.12',
+        ]);
+
+        $response->assertSessionHasErrors('price');
+        $this->assertDatabaseCount('commissions', 0);
+    }
+
+    public function test_creating_a_commission_accepts_a_price_at_the_maximum_allowed_value(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post('/commissions', [
+            'title' => 'Celeste',
+            'counterparty_name' => 'Ana',
+            'direction' => Commission::DIRECTION_OWED_TO_ME,
+            'price' => '99999999.99',
+        ]);
+
+        $response->assertRedirect(route('web.commissions.index'));
+        $commission = Commission::where('title', 'Celeste')->firstOrFail();
+        $this->assertEquals(99999999.99, $commission->price);
+    }
+
     public function test_user_can_update_their_own_commission(): void
     {
         $user = User::factory()->create();

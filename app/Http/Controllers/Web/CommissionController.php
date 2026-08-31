@@ -123,7 +123,9 @@ class CommissionController extends Controller
             'platform_id' => 'nullable|exists:platforms,id',
             'counterparty_name' => 'required|string|max:255',
             'direction' => 'required|string|in:'.implode(',', Commission::DIRECTIONS),
-            'price' => 'nullable|numeric|min:0',
+            // max:99999999.99: tope real de la columna decimal(10,2) — ver
+            // GameController::validated() para el mismo motivo.
+            'price' => 'nullable|numeric|min:0|max:99999999.99',
             'purchased_at' => 'nullable|date',
             'notes' => 'nullable|string',
         ]);

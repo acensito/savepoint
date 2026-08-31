@@ -36,7 +36,9 @@ class StoreGameRequest extends FormRequest
             'release_date' => ['nullable', 'date'],
             'genres' => ['nullable', 'array'], // Validamos que llegue como un array
             'rating' => ['nullable', 'integer', 'min:'.Game::RATING_MIN, 'max:'.Game::RATING_MAX],
-            'price_paid' => ['nullable', 'numeric', 'min:0'],
+            // max:99999999.99: tope real de la columna decimal(10,2) — ver
+            // GameController::validated() para el mismo motivo.
+            'price_paid' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
         ];
     }
 
