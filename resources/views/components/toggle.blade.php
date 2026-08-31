@@ -9,8 +9,15 @@
     PanelController::updateToggle y UserController::updateRegistration); el
     name/value se dejan puestos por si el checkbox viaja dentro de un <form>
     normal, pero ninguna ruta los procesa ya por ese lado.
+
+    "flex" y no "inline-flex" en el <label>: varios toggles seguidos como
+    hermanos directos (p. ej. la tarjeta "Secciones opcionales" de
+    settings.blade.php) quedaban en línea unos junto a otros cuando cabían,
+    en vez de uno por fila — "flex" es de caja de bloque, así que cada
+    <label> ocupa su propia línea igual que cualquier otro elemento apilado
+    con space-y-*.
 --}}
-<label {{ $attributes->merge(['class' => 'inline-flex items-center gap-3 text-sm text-slate-300 cursor-pointer']) }}>
+<label {{ $attributes->merge(['class' => 'flex items-center gap-3 text-sm text-slate-300 cursor-pointer']) }}>
     <span class="relative inline-flex h-6 w-11 shrink-0 items-center">
         <input type="checkbox" id="{{ $id ?? $name }}" name="{{ $name }}" value="1" {{ $checked ? 'checked' : '' }}
             class="peer sr-only js-setting-toggle" data-url="{{ $url }}" data-field="{{ $name }}">
