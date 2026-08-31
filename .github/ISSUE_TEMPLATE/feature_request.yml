@@ -1,0 +1,71 @@
+name: ✨ Propuesta de funcionalidad
+description: Sugiere una nueva idea o mejora para Savepoint.
+labels: ["mejora"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Nos encanta escuchar nuevas ideas. Por favor, céntrate en explicar el problema que tienes y cómo esta funcionalidad te ayudaría a resolverlo, sin necesidad de proponer ya una implementación técnica cerrada.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Comprobaciones previas
+      options:
+        - label: He buscado en las issues abiertas y cerradas y no he encontrado una propuesta similar.
+          required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problema o necesidad que se pretende resolver
+      description: Describe por qué es necesaria esta funcionalidad o qué limitación encuentras actualmente.
+    validations:
+      required: true
+  - type: textarea
+    id: usecase
+    attributes:
+      label: Caso de uso y usuarios beneficiados
+      description: ¿Quién se beneficiaría de este cambio y en qué situación concreta?
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Solución propuesta
+      description: ¿Cómo crees que debería funcionar o verse esta nueva característica?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas consideradas
+      description: ¿Has pensado en otras formas de resolver este problema?
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área del proyecto afectada
+      options:
+        - Colección
+        - Lista de deseos
+        - Encargos
+        - En venta
+        - Ventas
+        - Estadísticas
+        - Catálogo (plataformas, fabricantes, ediciones)
+        - Panel de control / Ajustes
+        - Autenticación / 2FA
+        - Importación / exportación
+        - API
+        - Docker / despliegue
+        - Otro
+  - type: textarea
+    id: limitations
+    attributes:
+      label: Posibles implicaciones o limitaciones
+      description: ¿Podría esto afectar el rendimiento, romper la compatibilidad u obligar a cambiar la arquitectura?
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Criterios de aceptación
+      description: ¿Qué condiciones deben cumplirse para dar esta funcionalidad por completada?
+    validations:
+      required: true
