@@ -51,8 +51,8 @@ Todas las peticiones a la API deben incluir las siguientes cabeceras HTTP:
 | `Content-Type`  | `application/json`      | Requerida en peticiones con cuerpo (`POST`, `PUT`, `PATCH`). |
 | `Authorization` | `Bearer <access_token>` | Requerida en todas las rutas protegidas.                     |
 
-> **Nota:** La aplicación configura el renderizado de excepciones en `bootstrap/app.php` para devolver siempre
-> respuestas JSON ante peticiones con prefijo `/api/*` o con cabecera `Accept: application/json`.
+> **Nota:** La aplicación configura el renderizado del contrato de errores en `bootstrap/app.php` únicamente para
+> peticiones con prefijo `/api/*`. Las rutas web mantienen sus respuestas HTML y su comportamiento habitual.
 
 ### Autenticación y ciclo de vida del token
 
@@ -144,6 +144,8 @@ Sin `access_token`: hay que completar el desafío en `/api/login/verify-2fa`.
 
 ```json
 {
+    "code": "INVALID_CREDENTIALS",
+    "status": 401,
     "message": "Credenciales incorrectas"
 }
 ```
@@ -154,6 +156,8 @@ Los mensajes de validación se localizan según `APP_LOCALE` (`es` por defecto e
 
 ```json
 {
+    "code": "VALIDATION_ERROR",
+    "status": 422,
     "message": "Los datos proporcionados no son válidos.",
     "errors": {
         "email": [
@@ -170,12 +174,9 @@ Los mensajes de validación se localizan según `APP_LOCALE` (`es` por defecto e
 
 ```json
 {
-    "message": "Demasiados intentos de acceso. Inténtalo de nuevo en 58 segundos.",
-    "errors": {
-        "email": [
-            "Demasiados intentos de acceso. Inténtalo de nuevo en 58 segundos."
-        ]
-    }
+    "code": "RATE_LIMIT_EXCEEDED",
+    "status": 429,
+    "message": "Demasiados intentos de acceso. Inténtalo de nuevo en 58 segundos."
 }
 ```
 
@@ -186,6 +187,8 @@ ningún `two_factor_token`: hay que reintentar `/api/login` más tarde.
 
 ```json
 {
+    "code": "SERVICE_UNAVAILABLE",
+    "status": 503,
     "message": "Error. Por favor, inténtalo más tarde y, si el problema persiste, comunícaselo al administrador."
 }
 ```
@@ -213,12 +216,13 @@ contador). Superarlo devuelve `429 Too Many Requests`.
 
 ```bash
 curl -X POST http://localhost:8000/api/login/verify-2fa \
-  -H "Accept: application/json" \
-  -H "Content-Type: application/json" \
-  -d '{
+    -H "Accept: application/json" \
+    -H "Content-Type: application/json" \
+    -d '{
     "two_factor_token": "K9x7gZ8K...64 caracteres aleatorios...",
     "code": "123456"
   }'
+
 ```
 
 #### Respuestas
@@ -239,6 +243,8 @@ Misma forma que el login exitoso sin 2FA:
 
 ```json
 {
+    "code": "INVALID_TWO_FACTOR_CODE",
+    "status": 401,
     "message": "Código incorrecto o caducado."
 }
 ```
@@ -247,6 +253,8 @@ Misma forma que el login exitoso sin 2FA:
 
 ```json
 {
+    "code": "TWO_FACTOR_CHALLENGE_EXPIRED",
+    "status": 401,
     "message": "La verificación ha caducado o no es válida. Vuelve a iniciar sesión."
 }
 ```
@@ -255,7 +263,9 @@ Misma forma que el login exitoso sin 2FA:
 
 ```json
 {
-    "message": "Too Many Attempts."
+    "code": "RATE_LIMIT_EXCEEDED",
+    "status": 429,
+    "message": "Demasiados intentos de acceso. Inténtalo de nuevo más tarde."
 }
 ```
 
@@ -298,6 +308,8 @@ curl -X POST http://localhost:8000/api/login/resend-2fa \
 
 ```json
 {
+    "code": "TWO_FACTOR_CHALLENGE_EXPIRED",
+    "status": 401,
     "message": "La verificación ha caducado o no es válida. Vuelve a iniciar sesión."
 }
 ```
@@ -306,7 +318,9 @@ curl -X POST http://localhost:8000/api/login/resend-2fa \
 
 ```json
 {
-    "message": "Too Many Attempts."
+    "code": "RATE_LIMIT_EXCEEDED",
+    "status": 429,
+    "message": "Demasiados intentos de acceso. Inténtalo de nuevo más tarde."
 }
 ```
 
@@ -339,6 +353,8 @@ curl -X POST http://localhost:8000/api/logout \
 
 ```json
 {
+    "code": "UNAUTHENTICATED",
+    "status": 401,
     "message": "No autenticado."
 }
 ```
@@ -606,6 +622,8 @@ curl -X POST http://localhost:8000/api/games \
 
 ```json
 {
+    "code": "VALIDATION_ERROR",
+    "status": 422,
     "message": "Los datos proporcionados no son válidos.",
     "errors": {
         "title": [
@@ -738,6 +756,29 @@ El objeto `GameResource` transforma el modelo `Game` en la representación JSON 
 
 ## 6. Códigos de estado y respuestas de error
 
+Todas las respuestas de error de `/api/*` tienen esta forma común:
+
+```json
+{
+    "code": "VALIDATION_ERROR",
+    "status": 422,
+    "message": "Los datos proporcionados no son válidos.",
+    "errors": {
+        "email": [
+            "El campo email es obligatorio."
+        ]
+    }
+}
+```
+
+`errors` solo aparece en errores de validación. Los códigos públicos posibles son:
+`UNAUTHENTICATED`, `INVALID_CREDENTIALS`, `TWO_FACTOR_CHALLENGE_EXPIRED`, `INVALID_TWO_FACTOR_CODE`,
+`FORBIDDEN`, `NOT_FOUND`, `METHOD_NOT_ALLOWED`, `HTTP_ERROR`, `VALIDATION_ERROR`, `RATE_LIMIT_EXCEEDED`,
+`SERVICE_UNAVAILABLE` e `INTERNAL_ERROR`.
+
+Los errores 429 por validación de login y por el middleware de throttle usan `RATE_LIMIT_EXCEEDED`, no incluyen `errors`
+y conservan cabeceras como `Retry-After` cuando Laravel las proporciona.
+
 La API utiliza los códigos de estado estándar de HTTP:
 
 | Código                          | Significado            | Causa común                                                                                                                 |
@@ -758,6 +799,8 @@ La API utiliza los códigos de estado estándar de HTTP:
 
 ```json
 {
+    "code": "UNAUTHENTICATED",
+    "status": 401,
     "message": "No autenticado."
 }
 ```
@@ -766,6 +809,8 @@ La API utiliza los códigos de estado estándar de HTTP:
 
 ```json
 {
+    "code": "FORBIDDEN",
+    "status": 403,
     "message": "No autorizado para realizar esta acción."
 }
 ```
@@ -774,6 +819,8 @@ La API utiliza los códigos de estado estándar de HTTP:
 
 ```json
 {
+    "code": "NOT_FOUND",
+    "status": 404,
     "message": "Recurso no encontrado."
 }
 ```
@@ -782,6 +829,8 @@ La API utiliza los códigos de estado estándar de HTTP:
 
 ```json
 {
+    "code": "VALIDATION_ERROR",
+    "status": 422,
     "message": "Los datos proporcionados no son válidos.",
     "errors": {
         "title": [

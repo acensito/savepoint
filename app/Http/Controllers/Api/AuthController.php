@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exceptions\ApiErrorCode;
+use App\Exceptions\ApiException;
 use App\Http\Controllers\Concerns\SendsTwoFactorCode;
 use App\Http\Controllers\Concerns\ThrottlesLogins;
 use App\Http\Controllers\Controller;
@@ -48,9 +50,7 @@ class AuthController extends Controller
         if (! Auth::attempt($request->only('email', 'password'))) {
             $this->incrementLoginAttempts($request);
 
-            return response()->json([
-                'message' => 'Credenciales incorrectas',
-            ], 401);
+            throw new ApiException(ApiErrorCode::INVALID_CREDENTIALS, 401, 'Credenciales incorrectas');
         }
 
         $this->clearLoginAttempts($request);
@@ -83,15 +83,15 @@ class AuthController extends Controller
         $user = $this->pendingUser($request->string('two_factor_token')->toString());
 
         if (! $user) {
-            return response()->json([
-                'message' => 'La verificación ha caducado o no es válida. Vuelve a iniciar sesión.',
-            ], 401);
+            throw new ApiException(
+                ApiErrorCode::TWO_FACTOR_CHALLENGE_EXPIRED,
+                401,
+                'La verificación ha caducado o no es válida. Vuelve a iniciar sesión.',
+            );
         }
 
         if (! $user->verifyTwoFactorCode($request->string('code')->trim()->toString())) {
-            return response()->json([
-                'message' => 'Código incorrecto o caducado.',
-            ], 401);
+            throw new ApiException(ApiErrorCode::INVALID_TWO_FACTOR_CODE, 401, 'Código incorrecto o caducado.');
         }
 
         Cache::forget(self::TWO_FACTOR_CACHE_PREFIX.$request->input('two_factor_token'));
@@ -112,15 +112,19 @@ class AuthController extends Controller
         $user = $this->pendingUser($request->string('two_factor_token')->toString());
 
         if (! $user) {
-            return response()->json([
-                'message' => 'La verificación ha caducado o no es válida. Vuelve a iniciar sesión.',
-            ], 401);
+            throw new ApiException(
+                ApiErrorCode::TWO_FACTOR_CHALLENGE_EXPIRED,
+                401,
+                'La verificación ha caducado o no es válida. Vuelve a iniciar sesión.',
+            );
         }
 
         if (! $this->sendTwoFactorCode($user)) {
-            return response()->json([
-                'message' => 'Error. Por favor, inténtalo más tarde y, si el problema persiste, comunícaselo al administrador.',
-            ], 503);
+            throw new ApiException(
+                ApiErrorCode::SERVICE_UNAVAILABLE,
+                503,
+                'Error. Por favor, inténtalo más tarde y, si el problema persiste, comunícaselo al administrador.',
+            );
         }
 
         // Refrescamos el TTL: diez minutos más desde este reenvío.
@@ -151,9 +155,11 @@ class AuthController extends Controller
     private function beginTwoFactorChallenge(User $user)
     {
         if (! $this->sendTwoFactorCode($user)) {
-            return response()->json([
-                'message' => 'Error. Por favor, inténtalo más tarde y, si el problema persiste, comunícaselo al administrador.',
-            ], 503);
+            throw new ApiException(
+                ApiErrorCode::SERVICE_UNAVAILABLE,
+                503,
+                'Error. Por favor, inténtalo más tarde y, si el problema persiste, comunícaselo al administrador.',
+            );
         }
 
         $challengeToken = Str::random(64);

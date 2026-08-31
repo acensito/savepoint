@@ -78,7 +78,8 @@ class StatsControllerTest extends TestCase
         $this->actingAs($user)->post("/games/{$mine->id}/mark-sold", ['sale_price' => 35, 'sold_at' => '2026-03-01']);
 
         $notMine = Game::factory()->for($otherUser)->create(['status' => 'owned', 'price_paid' => 20]);
-        $this->actingAs($otherUser)->post("/games/{$notMine->id}/mark-sold", ['sale_price' => 35, 'sold_at' => '2026-03-01']);
+        $this->actingAs($otherUser)->post("/games/{$notMine->id}/mark-sold",
+            ['sale_price' => 35, 'sold_at' => '2026-03-01']);
 
         $response = $this->actingAs($user)->get('/stats');
 
@@ -111,30 +112,21 @@ class StatsControllerTest extends TestCase
         $this->assertSame(5.0, $byMonth['jul. 2026']['total']);
     }
 
-    /**
-     * Regresión: Carbon::createFromFormat('Y-m', $month) rellena el día que
-     * falta en el formato con el de HOY, no con 1. En un día 31 (como hoy al
-     * escribir este test), agrupar un mes más corto que 31 días (aquí,
-     * junio) desbordaba al mes siguiente y esa etiqueta acababa chocando con
-     * la del mes real — "jun. 2026" desaparecía sin más. Se fija el reloj a
-     * un día 31 explícitamente para que esta regresión no dependa de en qué
-     * día del mes se ejecute la suite.
-     */
-    public function test_stats_spending_by_month_does_not_overflow_on_the_31st_into_a_shorter_month(): void
+    public function test_stats_keeps_month_label_when_today_is_the_thirty_first(): void
     {
-        $this->travelTo(Carbon::parse('2026-08-31'));
+        Carbon::setTestNow(Carbon::create(2026, 7, 31));
 
-        $user = User::factory()->create();
+        try {
+            $user = User::factory()->create();
+            Game::factory()->for($user)->create(['purchase_date' => '2026-06-15', 'price_paid' => 10]);
 
-        Game::factory()->for($user)->create(['purchase_date' => '2026-06-15', 'price_paid' => 10]);
-        Game::factory()->for($user)->create(['purchase_date' => '2026-07-01', 'price_paid' => 5]);
+            $byMonth = collect($this->actingAs($user)->get('/stats')->viewData('spendingByMonth'))->keyBy('label');
 
-        $response = $this->actingAs($user)->get('/stats');
-
-        $byMonth = collect($response->viewData('spendingByMonth'))->keyBy('label');
-
-        $this->assertSame(10.0, $byMonth['jun. 2026']['total']);
-        $this->assertSame(5.0, $byMonth['jul. 2026']['total']);
+            $this->assertArrayHasKey('jun. 2026', $byMonth->all());
+            $this->assertSame(10.0, $byMonth['jun. 2026']['total']);
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 
     public function test_stats_lists_top_genres(): void
@@ -229,7 +221,9 @@ class StatsControllerTest extends TestCase
 
         Game::factory()->for($user)->create(['title' => 'Barato', 'price_paid' => 5, 'rating' => 1]);
         $expensive = Game::factory()->for($user)->create(['title' => 'Caro', 'price_paid' => 90, 'rating' => 2]);
-        $topRated = Game::factory()->for($user)->create(['title' => 'Mejor valorado', 'price_paid' => 20, 'rating' => 5]);
+        $topRated = Game::factory()->for($user)->create([
+            'title' => 'Mejor valorado', 'price_paid' => 20, 'rating' => 5,
+        ]);
 
         $response = $this->actingAs($user)->get('/stats');
 
