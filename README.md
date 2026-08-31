@@ -85,7 +85,6 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 - [Stack técnico](#stack-técnico)
 - [Desplegar para uso propio](#desplegar-para-uso-propio)
 - [Tests](#tests)
-- [Pendiente / en curso](#pendiente--en-curso)
 - [Ideas a futuro](#ideas-a-futuro)
 - [Contribuir](#contribuir)
 - [Licencia](#licencia)
@@ -533,74 +532,12 @@ Cobertura actual:
 - `Tests\Unit\Models\GameTest` / `PlatformTest`: iniciales y URL de carátula, resolución de colores/etiqueta de chip con
   fallback a fabricante.
 
-## Pendiente / en curso
-
-Agrupado por la sección de la app a la que afecta cada pendiente. Cada uno tiene su propio issue en GitHub (número entre
-paréntesis) — este listado es un resumen, el issue tiene el detalle completo y el estado real.
-
-### API REST
-
-- **Documentar la API REST** (#4): hoy la única "documentación" es leer `routes/api.php`/los controladores. Por endpoint
-  (`/api/login`, `/api/logout`, `/api/user`, `/api/games` CRUD): qué recibe (cada campo del payload con su tipo y si es
-  obligatorio/opcional — ver `StoreGameRequest`/`UpdateGameRequest` para las reglas ya validadas) y qué devuelve (forma
-  del JSON de `GameResource`, paginación de `index()`, códigos de estado de error). Formato ligero (un `docs/api.md` a
-  mano), no una herramienta tipo L5-Swagger/Scribe — de sobra para dos controladores.
-
-### Gestión de la colección
-
-- **Mostrar tiempos de completado de IGDB** (#22): si está disponible y el usuario tiene IGDB configurado, mostrar el
-  tiempo medio en completar el juego ("No disponible" si IGDB no lo tiene, oculto del todo sin credenciales IGDB); más
-  un campo para que el usuario anote su propio tiempo al marcar un juego como terminado.
-
-### Exportación / copias de seguridad
-
-- **Copia de seguridad con las carátulas incluidas** (#9): mirar la viabilidad de exportar/importar la colección
-  (datos + ficheros de `storage/app/public/covers`) en un único paquete (`.zip` u otro formato), de forma segura — hoy
-  la exportación (CSV) y las carátulas en disco son cosas separadas, sin ninguna vía para respaldarlas o moverlas
-  juntas.
-
-### Usuarios y cuentas
-
-- **`/panel/users`: orden del listado y ciclo de vida del registro sin terminar** (#10, anotado tras el incidente real
-  de cuentas huérfanas por fallo de envío del código, ver CHANGELOG 2026-08-23):
-    - Orden actual: alfabético por nombre (`UserController::index()`). Cambiar a admins primero, luego el resto, y
-      dentro de cada grupo por fecha de alta (`created_at`).
-    - Marcar con una etiqueta/badge las cuentas que se registraron pero nunca completaron el desafío de 2FA
-      (`two_factor_code` todavía puesto, sin verificar nunca) — hoy son indistinguibles de una cuenta normal en el
-      listado. Antes de implementarlo, decidir qué debe pasar si esa misma persona quiere reintentar el registro con ese
-      email: hoy choca con el `unique` de `users.email` sin ninguna salida (¿se le deja reenviar el código desde
-      `/login` en vez de volver a `/register`? ¿Hace falta que un admin la borre a mano desde el panel para liberar el
-      email?).
-    - Purgado de esas cuentas abandonadas (job programado, o una acción manual desde el panel) para que no se acumulen
-      indefinidamente bloqueando el email de alguien que de verdad quiere registrarse.
-- **Permitir que un usuario borre su propia cuenta y todos sus datos** (#11, colección, carátulas incluidas) desde
-  `/profile`, con una confirmación reforzada dado lo irreversible del borrado (más allá del diálogo de confirmación
-  genérico que ya usa el resto de la app para acciones destructivas).
-
-### Interfaz
-
-- **Investigar por qué la vista móvil se ve distinta en desarrollo local que en producción** (#16, en producción se ve
-  bien) — sin diagnosticar todavía qué difiere entre ambos entornos.
-- **Precargar/subsetear la fuente de iconos** (#23): la fuente variable completa de Material Symbols Outlined pesa ~4 MB
-  (incluye todos los iconos del catálogo, no solo los ~49 que usa la app) — a veces se nota el tiempo de carga (aparece
-  el nombre del icono en texto plano antes de pintarse el glifo). Subsetear con el parámetro `icon_names=` de Google
-  Fonts baja el fichero a ~49 KB, momento en el que sí compensa además precargarlo.
-
-### Infraestructura y despliegue
-
-- **Backups automatizados de Postgres** (#17): ni `pg_dump` programado ni snapshot del volumen.
-- Sin HTTPS en el despliegue actual: bloquea el escaneo de código de barras desde el móvil fuera de `localhost`
-  (ver [Desplegar para uso propio](#desplegar-para-uso-propio)).
-
-### Mejoras técnicas identificadas (auditoría 2026-08-17)
-
-- **Sin PHPStan/Larastan configurado** (#18).
-
 ## Ideas a futuro
 
-A diferencia de "Pendiente / en curso" (cosas ya acotadas y con intención real de hacerse pronto), esto es una lista de
-ideas sueltas sin planificar ni acotar todavía — una tormenta de ideas, no un roadmap. Agrupadas por la sección de la
-app a la que afectarían.
+A diferencia de una tarea ya abierta como issue en GitHub (con forma concreta de tarea, ver
+[issues del repositorio](issues) para el estado real de lo pendiente), esto es una lista de ideas sueltas sin
+planificar ni acotar todavía — una tormenta de ideas, no un roadmap ni una previsión de qué se implementará a corto
+plazo. Agrupadas por la sección de la app a la que afectarían.
 
 ### Colección
 
