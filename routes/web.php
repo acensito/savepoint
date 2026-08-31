@@ -87,6 +87,10 @@ Route::middleware('auth')->group(function () {
     // colección (ver initThemeToggle/initGamesViewToggle en app.js): no son
     // parte del formulario de Ajustes, tienen su propio control ya existente.
     Route::patch('/panel/settings/display', [PanelController::class, 'updateDisplay'])->name('web.panel.settings.display');
+    // Mismo patrón que la de arriba: fire-and-forget desde cada toggle switch
+    // de Ajustes (ver x-toggle e initSettingsToggles en app.js), efecto y
+    // persistencia inmediatos sin pasar por "Guardar ajustes".
+    Route::patch('/panel/settings/toggles', [PanelController::class, 'updateToggle'])->name('web.panel.settings.toggles');
 
     // Gestión de usuarios de la plataforma (solo admin, ver UserPolicy):
     // crear/editar/borrar cuentas a mano, sin tirar de tinker, y decidir si

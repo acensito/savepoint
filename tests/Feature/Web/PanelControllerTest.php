@@ -6,6 +6,7 @@ use App\Models\Edition;
 use App\Models\Game;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class PanelControllerTest extends TestCase
@@ -70,38 +71,6 @@ class PanelControllerTest extends TestCase
         $this->assertStringNotContainsString('name="auto_igdb_background" value="1" checked', $content);
     }
 
-    public function test_user_can_enable_auto_igdb_background(): void
-    {
-        $user = User::factory()->create(['auto_igdb_background' => false]);
-
-        $response = $this->actingAs($user)->put('/panel/settings', [
-            'auto_igdb_background' => '1',
-        ]);
-
-        $response->assertRedirect(route('web.panel.settings'));
-        $this->assertTrue($user->fresh()->auto_igdb_background);
-    }
-
-    public function test_user_can_disable_auto_igdb_background_by_omitting_the_checkbox(): void
-    {
-        $user = User::factory()->create(['auto_igdb_background' => true]);
-
-        $response = $this->actingAs($user)->put('/panel/settings', []);
-
-        $response->assertRedirect(route('web.panel.settings'));
-        $this->assertFalse($user->fresh()->auto_igdb_background);
-    }
-
-    public function test_updating_settings_does_not_affect_other_users(): void
-    {
-        $user = User::factory()->create(['auto_igdb_background' => false]);
-        $otherUser = User::factory()->create(['auto_igdb_background' => false]);
-
-        $this->actingAs($user)->put('/panel/settings', ['auto_igdb_background' => '1']);
-
-        $this->assertFalse($otherUser->fresh()->auto_igdb_background);
-    }
-
     public function test_user_can_update_collection_and_new_game_defaults(): void
     {
         $edition = Edition::factory()->create(['name' => 'Coleccionista']);
@@ -113,7 +82,6 @@ class PanelControllerTest extends TestCase
             'default_per_page' => '50',
             'default_region' => 'NTSC-U',
             'default_edition_id' => (string) $edition->id,
-            'quick_search_exclude_wishlist' => '1',
         ]);
 
         $response->assertRedirect(route('web.panel.settings'));
@@ -124,7 +92,6 @@ class PanelControllerTest extends TestCase
         $this->assertSame(50, $fresh->default_per_page);
         $this->assertSame('NTSC-U', $fresh->default_region);
         $this->assertSame($edition->id, $fresh->default_edition_id);
-        $this->assertTrue($fresh->quick_search_exclude_wishlist);
     }
 
     public function test_user_can_update_the_navbar_color(): void
@@ -187,12 +154,11 @@ class PanelControllerTest extends TestCase
         $response->assertDontSee('existing-secret', false);
     }
 
-    public function test_user_can_enable_igdb_and_set_credentials(): void
+    public function test_user_can_set_igdb_credentials_without_touching_whether_igdb_is_enabled(): void
     {
-        $user = User::factory()->create(['igdb_enabled' => false]);
+        $user = User::factory()->create(['igdb_enabled' => true]);
 
         $response = $this->actingAs($user)->put('/panel/settings', [
-            'igdb_enabled' => '1',
             'igdb_client_id' => 'my-client-id',
             'igdb_client_secret' => 'my-client-secret',
         ]);
@@ -205,36 +171,6 @@ class PanelControllerTest extends TestCase
         $this->assertSame('my-client-secret', $fresh->igdb_client_secret);
     }
 
-    public function test_user_can_enable_two_factor(): void
-    {
-        $user = User::factory()->create(['two_factor_enabled' => false]);
-
-        $response = $this->actingAs($user)->put('/panel/settings', [
-            'two_factor_enabled' => '1',
-        ]);
-
-        $response->assertRedirect(route('web.panel.settings'));
-        $this->assertTrue($user->fresh()->two_factor_enabled);
-    }
-
-    public function test_user_can_disable_two_factor_by_omitting_the_checkbox(): void
-    {
-        $user = User::factory()->create(['two_factor_enabled' => true]);
-
-        $this->actingAs($user)->put('/panel/settings', []);
-
-        $this->assertFalse($user->fresh()->two_factor_enabled);
-    }
-
-    public function test_user_can_disable_igdb_by_omitting_the_checkbox(): void
-    {
-        $user = User::factory()->create(['igdb_enabled' => true, 'igdb_client_id' => 'id', 'igdb_client_secret' => 'secret']);
-
-        $this->actingAs($user)->put('/panel/settings', []);
-
-        $this->assertFalse($user->fresh()->igdb_enabled);
-    }
-
     public function test_leaving_the_igdb_client_secret_blank_keeps_the_previously_saved_secret(): void
     {
         $user = User::factory()->create([
@@ -244,7 +180,6 @@ class PanelControllerTest extends TestCase
         ]);
 
         $this->actingAs($user)->put('/panel/settings', [
-            'igdb_enabled' => '1',
             'igdb_client_id' => 'new-client-id',
             'igdb_client_secret' => '',
         ]);
@@ -254,18 +189,16 @@ class PanelControllerTest extends TestCase
         $this->assertSame('old-secret', $fresh->igdb_client_secret);
     }
 
-    public function test_updating_igdb_settings_does_not_affect_other_users(): void
+    public function test_updating_igdb_credentials_does_not_affect_other_users(): void
     {
         $user = User::factory()->create();
-        $otherUser = User::factory()->create(['igdb_enabled' => false]);
+        $otherUser = User::factory()->create();
 
         $this->actingAs($user)->put('/panel/settings', [
-            'igdb_enabled' => '1',
             'igdb_client_id' => 'id',
             'igdb_client_secret' => 'secret',
         ]);
 
-        $this->assertFalse($otherUser->fresh()->igdb_enabled);
         $this->assertNull($otherUser->fresh()->igdb_client_id);
     }
 
@@ -279,37 +212,6 @@ class PanelControllerTest extends TestCase
         $content = preg_replace('/\s+/', ' ', $response->getContent());
         $this->assertStringContainsString('name="hide_for_sale_from_collection" value="1"', $content);
         $this->assertStringNotContainsString('name="hide_for_sale_from_collection" value="1" checked', $content);
-    }
-
-    public function test_user_can_enable_hiding_for_sale_games_from_the_collection(): void
-    {
-        $user = User::factory()->create(['hide_for_sale_from_collection' => false]);
-
-        $response = $this->actingAs($user)->put('/panel/settings', [
-            'hide_for_sale_from_collection' => '1',
-        ]);
-
-        $response->assertRedirect(route('web.panel.settings'));
-        $this->assertTrue($user->fresh()->hide_for_sale_from_collection);
-    }
-
-    public function test_user_can_disable_hiding_for_sale_games_by_omitting_the_checkbox(): void
-    {
-        $user = User::factory()->create(['hide_for_sale_from_collection' => true]);
-
-        $this->actingAs($user)->put('/panel/settings', []);
-
-        $this->assertFalse($user->fresh()->hide_for_sale_from_collection);
-    }
-
-    public function test_updating_the_hide_for_sale_setting_does_not_affect_other_users(): void
-    {
-        $user = User::factory()->create();
-        $otherUser = User::factory()->create(['hide_for_sale_from_collection' => false]);
-
-        $this->actingAs($user)->put('/panel/settings', ['hide_for_sale_from_collection' => '1']);
-
-        $this->assertFalse($otherUser->fresh()->hide_for_sale_from_collection);
     }
 
     public function test_updating_settings_with_blank_selects_clears_the_defaults(): void
@@ -372,5 +274,70 @@ class PanelControllerTest extends TestCase
         $this->actingAs($user)->patchJson('/panel/settings/display', ['theme' => 'light']);
 
         $this->assertSame('dark', $otherUser->fresh()->theme);
+    }
+
+    public function test_guest_cannot_update_a_setting_toggle(): void
+    {
+        $this->patchJson('/panel/settings/toggles', ['field' => 'auto_igdb_background', 'value' => true])
+            ->assertUnauthorized();
+    }
+
+    public function test_updating_a_setting_toggle_rejects_a_field_outside_the_whitelist(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->patchJson('/panel/settings/toggles', [
+            'field' => 'is_admin',
+            'value' => true,
+        ]);
+
+        $response->assertUnprocessable();
+        $response->assertJsonValidationErrors('field');
+    }
+
+    #[DataProvider('toggleFieldProvider')]
+    public function test_user_can_toggle_a_setting_and_it_takes_effect_immediately(string $field): void
+    {
+        $user = User::factory()->create([$field => false]);
+
+        $response = $this->actingAs($user)->patchJson('/panel/settings/toggles', [
+            'field' => $field,
+            'value' => true,
+        ]);
+
+        $response->assertOk()->assertJson(['ok' => true]);
+        $this->assertTrue($user->fresh()->$field);
+
+        $this->actingAs($user)->patchJson('/panel/settings/toggles', [
+            'field' => $field,
+            'value' => false,
+        ]);
+
+        $this->assertFalse($user->fresh()->$field);
+    }
+
+    #[DataProvider('toggleFieldProvider')]
+    public function test_toggling_a_setting_does_not_affect_other_users(string $field): void
+    {
+        $user = User::factory()->create([$field => false]);
+        $otherUser = User::factory()->create([$field => false]);
+
+        $this->actingAs($user)->patchJson('/panel/settings/toggles', [
+            'field' => $field,
+            'value' => true,
+        ]);
+
+        $this->assertFalse($otherUser->fresh()->$field);
+    }
+
+    public static function toggleFieldProvider(): array
+    {
+        return [
+            'auto_igdb_background' => ['auto_igdb_background'],
+            'quick_search_exclude_wishlist' => ['quick_search_exclude_wishlist'],
+            'hide_for_sale_from_collection' => ['hide_for_sale_from_collection'],
+            'igdb_enabled' => ['igdb_enabled'],
+            'two_factor_enabled' => ['two_factor_enabled'],
+        ];
     }
 }
