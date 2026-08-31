@@ -12,6 +12,7 @@ use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -22,18 +23,32 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // La app siempre sirve HTTP plano (nginx no gestiona TLS, ver README
+        // "Exponer la app fuera de localhost") y el proxy inverso (Cloudflare
+        // Tunnel, Tailscale Funnel, Caddy...) es el único punto de entrada, así
+        // que confiar en cualquier origen para las cabeceras X-Forwarded-* es
+        // seguro aquí: sin esto, route()/url() generan enlaces con http://
+        // aunque el navegador esté en https://, lo que la CSP bloquea por
+        // desajuste de origen (ver CHANGELOG).
         $middleware->trustProxies(at: '*');
+        // Solo en 'web': una respuesta JSON de la API nunca se renderiza
+        // como HTML, así que un nonce de CSP ahí no protege nada.
         $middleware->web(append: [AddContentSecurityPolicyHeader::class]);
+        // Sin esto, 'api' no traía ningún límite de peticiones por defecto
+        // (Laravel solo lo activa si se pide explícitamente) — /login ya
+        // tenía su propio throttle contra fuerza bruta (ThrottlesLogins),
+        // pero /games quedaba sin ningún tope: un token robado podía
+        // machacar la API sin límite. 120/min por usuario autenticado (o por
+        // IP para /login antes de tener token) es generoso de sobra para una
+        // app de colección.
         $middleware->throttleApi();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Respuestas de error localizadas en español para la API (/api/*),
+        // manteniendo los códigos de estado HTTP y la estructura JSON habitual.
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->wantsJson(),
         );
-
-        $exceptions->render(function (ApiException $e, Request $request) {
-            return $request->is('api/*') ? $e->render($request) : null;
-        });
 
         $exceptions->render(function (AuthenticationException $e, Request $request) {
             return $request->is('api/*')
@@ -83,6 +98,23 @@ return Application::configure(basePath: dirname(__DIR__))
                     headers: $e->getHeaders(),
                 ))->render($request)
                 : null;
+        });
+
+        $exceptions->render(function (HttpExceptionInterface $e, Request $request) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            $status = $e->getStatusCode();
+            $code = match ($status) {
+                405 => ApiErrorCode::METHOD_NOT_ALLOWED,
+                default => $status >= 500 ? ApiErrorCode::INTERNAL_ERROR : ApiErrorCode::HTTP_ERROR,
+            };
+            $message = $status >= 500
+                ? 'Se ha producido un error interno.'
+                : ($status === 405 ? 'Método no permitido.' : 'Se ha producido un error en la petición.');
+
+            return (new ApiException($code, $status, $message, headers: $e->getHeaders()))->render($request);
         });
 
         $exceptions->render(function (Throwable $e, Request $request) {

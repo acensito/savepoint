@@ -9,10 +9,12 @@ use App\Models\User;
 use Illuminate\Contracts\Notifications\Dispatcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Route;
 use Laravel\Sanctum\Sanctum;
 use RuntimeException;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Tests\TestCase;
 
 class ErrorContractTest extends TestCase
@@ -64,16 +66,53 @@ class ErrorContractTest extends TestCase
             ->assertJsonStructure(['errors' => ['title', 'platform_id']]);
     }
 
-    public function test_api_exception_omits_null_and_empty_errors_and_reports_only_server_errors(): void
+    public function test_api_exception_omits_null_and_empty_errors_and_uses_the_reporting_pipeline(): void
     {
-        $withoutErrors = new ApiException(ApiErrorCode::INVALID_CREDENTIALS, 401, 'Invalid');
-        $withEmptyErrors = new ApiException(ApiErrorCode::VALIDATION_ERROR, 422, 'Invalid', []);
-        $serverError = new ApiException(ApiErrorCode::SERVICE_UNAVAILABLE, 503, 'Unavailable');
+        $this->assertArrayNotHasKey('errors', (new ApiException(
+            ApiErrorCode::INVALID_CREDENTIALS, 401, 'Invalid',
+        ))->payload());
+        $this->assertArrayNotHasKey('errors', (new ApiException(
+            ApiErrorCode::VALIDATION_ERROR, 422, 'Invalid', [],
+        ))->payload());
 
-        $this->assertArrayNotHasKey('errors', $withoutErrors->payload());
-        $this->assertArrayNotHasKey('errors', $withEmptyErrors->payload());
-        $this->assertFalse($withoutErrors->report());
-        $this->assertNull($serverError->report());
+        Log::shouldReceive('error')
+            ->once()
+            ->withArgs(static fn (string $message, array $context): bool => str_contains($message, 'Server failure'));
+        Route::get('/api/error-contract/client-error', static function () {
+            throw new ApiException(ApiErrorCode::INVALID_CREDENTIALS, 401, 'Invalid');
+        });
+        Route::get('/api/error-contract/server-error', static function () {
+            throw new ApiException(ApiErrorCode::INTERNAL_ERROR, 500, 'Server failure');
+        });
+
+        $this->getJson('/api/error-contract/client-error')->assertUnauthorized();
+
+        $this->getJson('/api/error-contract/server-error')->assertInternalServerError();
+    }
+
+    public function test_http_exceptions_keep_status_headers_and_public_codes(): void
+    {
+        $this->getJson('/api/login')
+            ->assertStatus(405)
+            ->assertJson([
+                'code' => 'METHOD_NOT_ALLOWED',
+                'status' => 405,
+                'message' => 'Método no permitido.',
+            ])
+            ->assertHeader('Allow');
+
+        Route::get('/api/error-contract/bad-request', static function () {
+            throw new BadRequestHttpException('internal details');
+        });
+
+        $this->getJson('/api/error-contract/bad-request')
+            ->assertStatus(400)
+            ->assertJson([
+                'code' => 'HTTP_ERROR',
+                'status' => 400,
+                'message' => 'Se ha producido un error en la petición.',
+            ])
+            ->assertJsonMissing(['internal details']);
     }
 
     public function test_api_middleware_throttle_preserves_retry_after_header(): void
@@ -200,6 +239,7 @@ class ErrorContractTest extends TestCase
             ->assertJson([
                 'code' => 'RATE_LIMIT_EXCEEDED',
                 'status' => 429,
+                'message' => 'Demasiados intentos de acceso. Inténtalo de nuevo en 59 segundos.',
             ])
             ->assertJsonMissingPath('errors');
     }

@@ -23,13 +23,13 @@ class ApiException extends RuntimeException
     }
 
     /**
-     * Returning false tells Laravel to suppress reporting for controlled
-     * client errors. Null lets server errors continue through the normal
-     * reporting pipeline.
+     * Returning true tells Laravel that controlled client errors have been
+     * handled and suppresses reporting. False lets server errors continue
+     * through the normal reporting pipeline.
      */
     public function report(): ?bool
     {
-        return $this->status < 500 ? false : null;
+        return $this->status < 500;
     }
 
     public function render(Request $request): ?JsonResponse

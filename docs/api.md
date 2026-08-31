@@ -216,12 +216,13 @@ contador). Superarlo devuelve `429 Too Many Requests`.
 
 ```bash
 curl -X POST http://localhost:8000/api/login/verify-2fa \
-  -H "Accept: application/json" \
-  -H "Content-Type: application/json" \
-  -d '{
+    -H "Accept: application/json" \
+    -H "Content-Type: application/json" \
+    -d '{
     "two_factor_token": "K9x7gZ8K...64 caracteres aleatorios...",
     "code": "123456"
   }'
+
 ```
 
 #### Respuestas
@@ -264,7 +265,7 @@ Misma forma que el login exitoso sin 2FA:
 {
     "code": "RATE_LIMIT_EXCEEDED",
     "status": 429,
-    "message": "Too Many Attempts."
+    "message": "Demasiados intentos de acceso. Inténtalo de nuevo más tarde."
 }
 ```
 
@@ -319,7 +320,7 @@ curl -X POST http://localhost:8000/api/login/resend-2fa \
 {
     "code": "RATE_LIMIT_EXCEEDED",
     "status": 429,
-    "message": "Too Many Attempts."
+    "message": "Demasiados intentos de acceso. Inténtalo de nuevo más tarde."
 }
 ```
 
@@ -772,7 +773,8 @@ Todas las respuestas de error de `/api/*` tienen esta forma común:
 
 `errors` solo aparece en errores de validación. Los códigos públicos posibles son:
 `UNAUTHENTICATED`, `INVALID_CREDENTIALS`, `TWO_FACTOR_CHALLENGE_EXPIRED`, `INVALID_TWO_FACTOR_CODE`,
-`FORBIDDEN`, `NOT_FOUND`, `VALIDATION_ERROR`, `RATE_LIMIT_EXCEEDED`, `SERVICE_UNAVAILABLE` e `INTERNAL_ERROR`.
+`FORBIDDEN`, `NOT_FOUND`, `METHOD_NOT_ALLOWED`, `HTTP_ERROR`, `VALIDATION_ERROR`, `RATE_LIMIT_EXCEEDED`,
+`SERVICE_UNAVAILABLE` e `INTERNAL_ERROR`.
 
 Los errores 429 por validación de login y por el middleware de throttle usan `RATE_LIMIT_EXCEEDED`, no incluyen `errors`
 y conservan cabeceras como `Retry-After` cuando Laravel las proporciona.
