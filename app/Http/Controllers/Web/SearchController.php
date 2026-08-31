@@ -60,8 +60,15 @@ class SearchController extends Controller
                 ->when($status !== '', fn ($q) => $q->where('status', $status))
                 // Ajuste "Excluir la wishlist" de Ajustes (ver
                 // PanelController::updateSettings): desactivado por defecto,
-                // así que por defecto sigue apareciendo como hasta ahora.
-                ->when(auth()->user()->quick_search_exclude_wishlist, fn ($q) => $q->where('status', '!=', 'wishlist'))
+                // así que por defecto sigue apareciendo como hasta ahora. Si
+                // además la sección "Lista de deseos" está desactivada
+                // (issue #32), se excluye igualmente aunque ese ajuste esté
+                // en no: no tiene sentido ofrecer desde aquí una sección que
+                // el propio sidebar ya no muestra.
+                ->when(
+                    auth()->user()->quick_search_exclude_wishlist || ! auth()->user()->section_wishlist_enabled,
+                    fn ($q) => $q->where('status', '!=', 'wishlist')
+                )
                 ->orderBy('title')
                 ->limit(self::MAX_RESULTS)
                 ->get();

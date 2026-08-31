@@ -20,6 +20,8 @@ use Laravel\Sanctum\HasApiTokens;
     'default_region', 'default_edition_id', 'quick_search_exclude_wishlist',
     'igdb_enabled', 'igdb_client_id', 'igdb_client_secret',
     'hide_for_sale_from_collection', 'avatar_path', 'two_factor_enabled',
+    'section_wishlist_enabled', 'section_commissions_enabled', 'section_for_sale_enabled',
+    'section_sales_enabled', 'section_stats_enabled',
     'created_at',
 ])]
 #[Hidden(['password', 'remember_token', 'igdb_client_secret', 'two_factor_code'])]
@@ -27,6 +29,25 @@ class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
+
+    /**
+     * Eloquent::create() no relee los defaults que pone la propia columna en
+     * la base de datos para los atributos omitidos: el modelo recién creado
+     * se queda con null en memoria (que el cast 'boolean' vuelve false) hasta
+     * el próximo fresh()/refresh(). Sin repetirlo aquí, estas 5 secciones
+     * (todas con default true en la migración, ver issue #32) arrancarían
+     * "desactivadas" para cualquier código que use el mismo objeto en
+     * memoria justo tras crearlo (p. ej. actingAs() en un test).
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'section_wishlist_enabled' => true,
+        'section_commissions_enabled' => true,
+        'section_for_sale_enabled' => true,
+        'section_sales_enabled' => true,
+        'section_stats_enabled' => true,
+    ];
 
     /**
      * Get the attributes that should be cast.
@@ -50,6 +71,11 @@ class User extends Authenticatable
             'igdb_client_secret' => 'encrypted',
             'two_factor_enabled' => 'boolean',
             'two_factor_code_expires_at' => 'datetime',
+            'section_wishlist_enabled' => 'boolean',
+            'section_commissions_enabled' => 'boolean',
+            'section_for_sale_enabled' => 'boolean',
+            'section_sales_enabled' => 'boolean',
+            'section_stats_enabled' => 'boolean',
         ];
     }
 

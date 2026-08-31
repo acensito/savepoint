@@ -338,6 +338,11 @@ class PanelControllerTest extends TestCase
             'hide_for_sale_from_collection' => ['hide_for_sale_from_collection'],
             'igdb_enabled' => ['igdb_enabled'],
             'two_factor_enabled' => ['two_factor_enabled'],
+            'section_wishlist_enabled' => ['section_wishlist_enabled'],
+            'section_commissions_enabled' => ['section_commissions_enabled'],
+            'section_for_sale_enabled' => ['section_for_sale_enabled'],
+            'section_sales_enabled' => ['section_sales_enabled'],
+            'section_stats_enabled' => ['section_stats_enabled'],
         ];
     }
 }

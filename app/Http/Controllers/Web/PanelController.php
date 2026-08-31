@@ -40,6 +40,11 @@ class PanelController extends Controller
         'hide_for_sale_from_collection',
         'igdb_enabled',
         'two_factor_enabled',
+        'section_wishlist_enabled',
+        'section_commissions_enabled',
+        'section_for_sale_enabled',
+        'section_sales_enabled',
+        'section_stats_enabled',
     ];
 
     /**
