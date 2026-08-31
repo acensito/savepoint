@@ -260,9 +260,12 @@ class UserControllerTest extends TestCase
     {
         $admin = User::factory()->admin()->create();
 
-        $response = $this->actingAs($admin)->patch('/panel/registration', []);
+        $response = $this->actingAs($admin)->patchJson('/panel/registration', [
+            'field' => 'registration_enabled',
+            'value' => false,
+        ]);
 
-        $response->assertRedirect(route('web.panel.users.index'));
+        $response->assertOk()->assertJson(['ok' => true]);
         $this->assertFalse(AppSetting::current()->fresh()->registration_enabled);
     }
 
@@ -271,9 +274,25 @@ class UserControllerTest extends TestCase
         $admin = User::factory()->admin()->create();
         AppSetting::current()->update(['registration_enabled' => false]);
 
-        $response = $this->actingAs($admin)->patch('/panel/registration', ['registration_enabled' => '1']);
+        $response = $this->actingAs($admin)->patchJson('/panel/registration', [
+            'field' => 'registration_enabled',
+            'value' => true,
+        ]);
 
-        $response->assertRedirect(route('web.panel.users.index'));
+        $response->assertOk()->assertJson(['ok' => true]);
         $this->assertTrue(AppSetting::current()->fresh()->registration_enabled);
+    }
+
+    public function test_updating_registration_rejects_a_field_outside_the_whitelist(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $response = $this->actingAs($admin)->patchJson('/panel/registration', [
+            'field' => 'is_admin',
+            'value' => true,
+        ]);
+
+        $response->assertUnprocessable();
+        $response->assertJsonValidationErrors('field');
     }
 }
