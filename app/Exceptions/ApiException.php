@@ -23,13 +23,17 @@ class ApiException extends RuntimeException
     }
 
     /**
-     * Returning false tells Laravel to suppress reporting for controlled
-     * client errors. Null lets server errors continue through the normal
-     * reporting pipeline.
+     * Handler::reportThrowable() only suppresses the default logger when
+     * report() returns something other than exactly `false` (`!== false`):
+     * null/true short-circuit it, `false` falls through to the logger. So
+     * controlled client errors (4xx) return null to suppress reporting, and
+     * server errors (5xx) return false to let them through the normal
+     * reporting pipeline — the opposite of what the literal true/false
+     * naming suggests.
      */
     public function report(): ?bool
     {
-        return $this->status < 500 ? false : null;
+        return $this->status < 500 ? null : false;
     }
 
     public function render(Request $request): ?JsonResponse

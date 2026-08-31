@@ -72,8 +72,14 @@ class ErrorContractTest extends TestCase
 
         $this->assertArrayNotHasKey('errors', $withoutErrors->payload());
         $this->assertArrayNotHasKey('errors', $withEmptyErrors->payload());
-        $this->assertFalse($withoutErrors->report());
-        $this->assertNull($serverError->report());
+
+        // Handler::reportThrowable() solo suprime el log por defecto cuando
+        // report() devuelve algo distinto de `false` (comprueba !== false):
+        // null/true lo suprimen, `false` deja pasar al logger. Por eso un
+        // error de cliente controlado (4xx) devuelve null (sin ruido en el
+        // log) y uno de servidor (5xx) devuelve false (sigue reportándose).
+        $this->assertNull($withoutErrors->report());
+        $this->assertFalse($serverError->report());
     }
 
     public function test_api_middleware_throttle_preserves_retry_after_header(): void
@@ -92,6 +98,19 @@ class ErrorContractTest extends TestCase
             ])
             ->assertJsonMissingPath('errors')
             ->assertHeader('Retry-After');
+    }
+
+    /**
+     * Regresión: cualquier HttpExceptionInterface sin un código más
+     * específico (aquí, MethodNotAllowedHttpException al pedir /login con un
+     * verbo que la ruta no admite) caía en el catch-all de Throwable y
+     * siempre informaba 500, ocultando el 405 real al consumidor.
+     */
+    public function test_a_disallowed_http_method_keeps_its_real_status_code(): void
+    {
+        $this->getJson('/api/login')
+            ->assertStatus(405)
+            ->assertJson(['code' => 'HTTP_ERROR', 'status' => 405]);
     }
 
     public function test_unexpected_api_throwable_is_sanitized_even_in_debug_mode(): void

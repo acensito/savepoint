@@ -264,7 +264,7 @@ Misma forma que el login exitoso sin 2FA:
 {
     "code": "RATE_LIMIT_EXCEEDED",
     "status": 429,
-    "message": "Too Many Attempts."
+    "message": "Demasiados intentos de acceso. Inténtalo de nuevo más tarde."
 }
 ```
 
@@ -319,7 +319,7 @@ curl -X POST http://localhost:8000/api/login/resend-2fa \
 {
     "code": "RATE_LIMIT_EXCEEDED",
     "status": 429,
-    "message": "Too Many Attempts."
+    "message": "Demasiados intentos de acceso. Inténtalo de nuevo más tarde."
 }
 ```
 
@@ -772,7 +772,9 @@ Todas las respuestas de error de `/api/*` tienen esta forma común:
 
 `errors` solo aparece en errores de validación. Los códigos públicos posibles son:
 `UNAUTHENTICATED`, `INVALID_CREDENTIALS`, `TWO_FACTOR_CHALLENGE_EXPIRED`, `INVALID_TWO_FACTOR_CODE`,
-`FORBIDDEN`, `NOT_FOUND`, `VALIDATION_ERROR`, `RATE_LIMIT_EXCEEDED`, `SERVICE_UNAVAILABLE` e `INTERNAL_ERROR`.
+`FORBIDDEN`, `NOT_FOUND`, `VALIDATION_ERROR`, `RATE_LIMIT_EXCEEDED`, `SERVICE_UNAVAILABLE`, `HTTP_ERROR`
+e `INTERNAL_ERROR`. `HTTP_ERROR` cubre cualquier otro error HTTP sin código más específico (p. ej. un
+método no permitido en una ruta existente), conservando el status real de la excepción.
 
 Los errores 429 por validación de login y por el middleware de throttle usan `RATE_LIMIT_EXCEEDED`, no incluyen `errors`
 y conservan cabeceras como `Retry-After` cuando Laravel las proporciona.
@@ -788,6 +790,7 @@ La API utiliza los códigos de estado estándar de HTTP:
 | **`404 Not Found`**             | Recurso no encontrado  | El ID del juego no existe o ha sido eliminado (*Soft Delete*).                                                              |
 | **`422 Unprocessable Content`** | Error de validación    | Los datos enviados en el cuerpo no cumplen las reglas de validación.                                                        |
 | **`429 Too Many Requests`**     | Límite de intentos     | Límite general de la API (120/min), de intentos de login en `/api/login`, o del desafío de 2FA (`verify-2fa`/`resend-2fa`). |
+| **`405/400/409...`**            | Otro error HTTP        | Cualquier otro error controlado por Symfony/Laravel sin código más específico (`HTTP_ERROR`), p. ej. un verbo no admitido en una ruta existente. |
 | **`500 Internal Server Error`** | Error interno          | Error no controlado en el servidor.                                                                                         |
 | **`503 Service Unavailable`**   | Envío de email fallido | El código de 2FA no se pudo enviar (`/api/login`, `/api/login/resend-2fa`).                                                 |
 

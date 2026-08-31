@@ -12,6 +12,7 @@ use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -22,8 +23,26 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // La app siempre sirve HTTP plano (nginx no gestiona TLS, ver README
+        // "Exponer la app fuera de localhost") y el proxy inverso (Cloudflare
+        // Tunnel, Tailscale Funnel, Caddy...) es el único punto de entrada, así
+        // que confiar en cualquier origen para las cabeceras X-Forwarded-* es
+        // seguro aquí: sin esto, route()/url() generan enlaces con http://
+        // aunque el navegador esté en https://, lo que la CSP bloquea por
+        // desajuste de origen (ver CHANGELOG).
         $middleware->trustProxies(at: '*');
+
+        // Solo en 'web': una respuesta JSON de la API nunca se renderiza
+        // como HTML, así que un nonce de CSP ahí no protege nada.
         $middleware->web(append: [AddContentSecurityPolicyHeader::class]);
+
+        // Sin esto, 'api' no traía ningún límite de peticiones por defecto
+        // (Laravel solo lo activa si se pide explícitamente) — /login ya
+        // tenía su propio throttle contra fuerza bruta (ThrottlesLogins),
+        // pero /games quedaba sin ningún tope: un token robado podía
+        // machacar la API sin límite. 120/min por usuario autenticado (o por
+        // IP para /login antes de tener token) es generoso de sobra para una
+        // app de colección.
         $middleware->throttleApi();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
@@ -31,9 +50,11 @@ return Application::configure(basePath: dirname(__DIR__))
             fn (Request $request) => $request->is('api/*') || $request->wantsJson(),
         );
 
-        $exceptions->render(function (ApiException $e, Request $request) {
-            return $request->is('api/*') ? $e->render($request) : null;
-        });
+        // No hace falta registrar aquí un render() para ApiException: Laravel
+        // ya invoca el render() propio de una excepción (Handler::render())
+        // antes de llegar siquiera a los callbacks de más abajo, así que
+        // ApiException::render() ya se ejecuta solo, sin necesidad de nada
+        // más en este archivo.
 
         $exceptions->render(function (AuthenticationException $e, Request $request) {
             return $request->is('api/*')
@@ -82,6 +103,18 @@ return Application::configure(basePath: dirname(__DIR__))
                     'Demasiados intentos de acceso. Inténtalo de nuevo más tarde.',
                     headers: $e->getHeaders(),
                 ))->render($request)
+                : null;
+        });
+
+        // Cualquier otra HttpExceptionInterface (405 método no permitido, 415
+        // tipo de contenido no soportado, 400, 409...) no cubierta por un
+        // código más específico de arriba: conserva su status HTTP real en
+        // vez de caer en el catch-all de Throwable de más abajo, que
+        // siempre informa 500 y ocultaría el código correcto al consumidor.
+        $exceptions->render(function (HttpExceptionInterface $e, Request $request) {
+            return $request->is('api/*')
+                ? (new ApiException(ApiErrorCode::HTTP_ERROR, $e->getStatusCode(),
+                    'Se ha producido un error al procesar la petición.'))->render($request)
                 : null;
         });
 

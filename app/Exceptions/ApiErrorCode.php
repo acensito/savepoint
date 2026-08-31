@@ -13,5 +13,9 @@ enum ApiErrorCode: string
     case VALIDATION_ERROR = 'VALIDATION_ERROR';
     case RATE_LIMIT_EXCEEDED = 'RATE_LIMIT_EXCEEDED';
     case SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE';
+    // Cualquier HttpExceptionInterface no cubierto por un código más
+    // específico de arriba (405, 415, 400, 409...): conserva el status HTTP
+    // real de la excepción en vez de caer en el catch-all de INTERNAL_ERROR.
+    case HTTP_ERROR = 'HTTP_ERROR';
     case INTERNAL_ERROR = 'INTERNAL_ERROR';
 }
