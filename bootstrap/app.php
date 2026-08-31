@@ -3,8 +3,8 @@
 use App\Exceptions\ApiErrorCode;
 use App\Exceptions\ApiException;
 use App\Http\Middleware\AddContentSecurityPolicyHeader;
-use Illuminate\Auth\Access\AuthorizationException;
 use App\Http\Middleware\EnsureSectionIsEnabled;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
