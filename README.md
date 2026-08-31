@@ -1,5 +1,5 @@
 <div align="center">
-<img src="public/icons/icon-512.png" alt="Logo de Savepoint" width="96" height="96">
+<img src="docs/banner/repo_banner_1024.jpg" alt="Savepoint — Tu colección de videojuegos, catalogada de verdad, y solo tuya." width="700">
 
 # Savepoint
 
