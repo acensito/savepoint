@@ -223,36 +223,49 @@
 
                 <!-- Separadores con inset propio (nunca a ras del borde del sidebar,
                      ni en móvil ni en escritorio, ni compacto ni normal): heredan el
-                     px-3 de <nav> y no llevan -mx que lo cancele. -->
-                <div class="my-2 border-t border-slate-800"></div>
+                     px-3 de <nav> y no llevan -mx que lo cancele. Cada sección opcional
+                     (ver /panel/settings "Secciones", issue #32) lleva su propio
+                     separador de apertura para que desactivar cualquier combinación
+                     no deje un separador huérfano sin nada detrás. -->
+                @if(auth()->user()->section_wishlist_enabled)
+                    <div class="my-2 border-t border-slate-800"></div>
 
-                <a href="{{ route('web.wishlist.index') }}" title="Lista de deseos"
-                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('web.wishlist.*') ? 'bg-indigo-500/10 text-indigo-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' }}">
-                    <x-gicon name="favorite" class="text-[20px]"/>
-                    <span class="sidebar-label">Lista de deseos</span>
-                </a>
+                    <a href="{{ route('web.wishlist.index') }}" title="Lista de deseos"
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('web.wishlist.*') ? 'bg-indigo-500/10 text-indigo-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' }}">
+                        <x-gicon name="favorite" class="text-[20px]"/>
+                        <span class="sidebar-label">Lista de deseos</span>
+                    </a>
+                @endif
 
-                <div class="my-2 border-t border-slate-800"></div>
+                @if(auth()->user()->section_commissions_enabled)
+                    <div class="my-2 border-t border-slate-800"></div>
 
-                <a href="{{ route('web.commissions.index') }}" title="Encargos"
-                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('web.commissions.*') ? 'bg-indigo-500/10 text-indigo-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' }}">
-                    <x-gicon name="local_shipping" class="text-[20px]"/>
-                    <span class="sidebar-label">Encargos</span>
-                </a>
+                    <a href="{{ route('web.commissions.index') }}" title="Encargos"
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('web.commissions.*') ? 'bg-indigo-500/10 text-indigo-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' }}">
+                        <x-gicon name="local_shipping" class="text-[20px]"/>
+                        <span class="sidebar-label">Encargos</span>
+                    </a>
+                @endif
 
-                <div class="my-2 border-t border-slate-800"></div>
+                @if(auth()->user()->section_for_sale_enabled || auth()->user()->section_sales_enabled)
+                    <div class="my-2 border-t border-slate-800"></div>
+                @endif
 
-                <a href="{{ route('web.for-sale.index') }}" title="En venta"
-                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('web.for-sale.*') ? 'bg-indigo-500/10 text-indigo-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' }}">
-                    <x-gicon name="sell" class="text-[20px]"/>
-                    <span class="sidebar-label">En venta</span>
-                </a>
+                @if(auth()->user()->section_for_sale_enabled)
+                    <a href="{{ route('web.for-sale.index') }}" title="En venta"
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('web.for-sale.*') ? 'bg-indigo-500/10 text-indigo-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' }}">
+                        <x-gicon name="sell" class="text-[20px]"/>
+                        <span class="sidebar-label">En venta</span>
+                    </a>
+                @endif
 
-                <a href="{{ route('web.sales.index') }}" title="Ventas"
-                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('web.sales.*') ? 'bg-indigo-500/10 text-indigo-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' }}">
-                    <x-gicon name="paid" class="text-[20px]"/>
-                    <span class="sidebar-label">Ventas</span>
-                </a>
+                @if(auth()->user()->section_sales_enabled)
+                    <a href="{{ route('web.sales.index') }}" title="Ventas"
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('web.sales.*') ? 'bg-indigo-500/10 text-indigo-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' }}">
+                        <x-gicon name="paid" class="text-[20px]"/>
+                        <span class="sidebar-label">Ventas</span>
+                    </a>
+                @endif
 
                 <div class="my-2 border-t border-slate-800"></div>
 
@@ -274,13 +287,15 @@
                     <span class="sidebar-label">Ediciones</span>
                 </a>
 
-                <div class="my-2 border-t border-slate-800"></div>
+                @if(auth()->user()->section_stats_enabled)
+                    <div class="my-2 border-t border-slate-800"></div>
 
-                <a href="{{ route('web.stats.index') }}" title="Estadísticas"
-                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('web.stats.*') ? 'bg-indigo-500/10 text-indigo-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' }}">
-                    <x-gicon name="bar_chart" class="text-[20px]"/>
-                    <span class="sidebar-label">Estadísticas</span>
-                </a>
+                    <a href="{{ route('web.stats.index') }}" title="Estadísticas"
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('web.stats.*') ? 'bg-indigo-500/10 text-indigo-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' }}">
+                        <x-gicon name="bar_chart" class="text-[20px]"/>
+                        <span class="sidebar-label">Estadísticas</span>
+                    </a>
+                @endif
             </nav>
 
             <div id="sidebar-footer" class="px-3 py-4 border-t border-slate-800 space-y-1">

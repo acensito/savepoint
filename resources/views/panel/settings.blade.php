@@ -203,6 +203,37 @@
                 </div>
             </div>
 
+            <div>
+                <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Secciones</h2>
+                <div class="space-y-6">
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl p-8">
+                        <h3 class="text-lg font-semibold text-slate-100 mb-1">Secciones opcionales</h3>
+                        <p class="text-sm text-slate-500 mb-6">
+                            Oculta del menú lateral las secciones que no uses. Los datos que ya tuvieran no se borran
+                            ni cambian: si reactivas una sección, todo sigue donde estaba.
+                        </p>
+
+                        <div class="space-y-4">
+                            <x-toggle name="section_wishlist_enabled" :checked="$user->section_wishlist_enabled" :url="$toggleUrl">
+                                Lista de deseos
+                            </x-toggle>
+                            <x-toggle name="section_commissions_enabled" :checked="$user->section_commissions_enabled" :url="$toggleUrl">
+                                Encargos
+                            </x-toggle>
+                            <x-toggle name="section_for_sale_enabled" :checked="$user->section_for_sale_enabled" :url="$toggleUrl">
+                                En venta
+                            </x-toggle>
+                            <x-toggle name="section_sales_enabled" :checked="$user->section_sales_enabled" :url="$toggleUrl">
+                                Ventas
+                            </x-toggle>
+                            <x-toggle name="section_stats_enabled" :checked="$user->section_stats_enabled" :url="$toggleUrl">
+                                Estadísticas
+                            </x-toggle>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="flex items-center justify-end">
                 <button type="submit" class="bg-(--color-navbar) text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-(--color-navbar-hover) transition-colors">
                     Guardar ajustes
