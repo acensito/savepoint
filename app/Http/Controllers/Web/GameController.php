@@ -375,7 +375,9 @@ class GameController extends Controller
             // venta, se marca desde SalesController::markAsSold().
             'status' => ['nullable', 'string', Rule::in(Game::STATUSES)],
             'wishlist_priority' => 'nullable|integer|min:1|max:3',
-            'wishlist_estimated_price' => 'nullable|numeric|min:0',
+            // max:99999999.99: mismo motivo que price_paid más abajo, tope
+            // real de la columna decimal(10,2).
+            'wishlist_estimated_price' => 'nullable|numeric|min:0|max:99999999.99',
             'wishlist_store' => 'nullable|string|max:255',
             'play_status' => ['required', 'string', Rule::in(Game::PLAY_STATUSES)],
             'rating' => ['nullable', 'integer', 'min:'.Game::RATING_MIN, 'max:'.Game::RATING_MAX],
@@ -384,7 +386,8 @@ class GameController extends Controller
             // como excepción de base de datos (overflow) en vez de un aviso
             // normal del formulario.
             'playtime_hours' => 'nullable|numeric|min:0|max:99999.9',
-            'price_paid' => 'nullable|numeric|min:0',
+            // max:99999999.99: mismo motivo, tope real de la columna decimal(10,2).
+            'price_paid' => 'nullable|numeric|min:0|max:99999999.99',
             'purchase_place' => 'nullable|string|max:255',
             'purchase_date' => 'nullable|date',
             'manual_status' => ['nullable', 'string', Rule::in(Game::MANUAL_STATUSES)],
