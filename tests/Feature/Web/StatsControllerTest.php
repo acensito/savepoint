@@ -6,6 +6,7 @@ use App\Models\Game;
 use App\Models\Platform;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class StatsControllerTest extends TestCase
@@ -77,7 +78,8 @@ class StatsControllerTest extends TestCase
         $this->actingAs($user)->post("/games/{$mine->id}/mark-sold", ['sale_price' => 35, 'sold_at' => '2026-03-01']);
 
         $notMine = Game::factory()->for($otherUser)->create(['status' => 'owned', 'price_paid' => 20]);
-        $this->actingAs($otherUser)->post("/games/{$notMine->id}/mark-sold", ['sale_price' => 35, 'sold_at' => '2026-03-01']);
+        $this->actingAs($otherUser)->post("/games/{$notMine->id}/mark-sold",
+            ['sale_price' => 35, 'sold_at' => '2026-03-01']);
 
         $response = $this->actingAs($user)->get('/stats');
 
@@ -108,6 +110,23 @@ class StatsControllerTest extends TestCase
 
         $this->assertSame(25.0, $byMonth['jun. 2026']['total']);
         $this->assertSame(5.0, $byMonth['jul. 2026']['total']);
+    }
+
+    public function test_stats_keeps_month_label_when_today_is_the_thirty_first(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 7, 31));
+
+        try {
+            $user = User::factory()->create();
+            Game::factory()->for($user)->create(['purchase_date' => '2026-06-15', 'price_paid' => 10]);
+
+            $byMonth = collect($this->actingAs($user)->get('/stats')->viewData('spendingByMonth'))->keyBy('label');
+
+            $this->assertArrayHasKey('jun. 2026', $byMonth->all());
+            $this->assertSame(10.0, $byMonth['jun. 2026']['total']);
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 
     public function test_stats_lists_top_genres(): void
@@ -202,7 +221,9 @@ class StatsControllerTest extends TestCase
 
         Game::factory()->for($user)->create(['title' => 'Barato', 'price_paid' => 5, 'rating' => 1]);
         $expensive = Game::factory()->for($user)->create(['title' => 'Caro', 'price_paid' => 90, 'rating' => 2]);
-        $topRated = Game::factory()->for($user)->create(['title' => 'Mejor valorado', 'price_paid' => 20, 'rating' => 5]);
+        $topRated = Game::factory()->for($user)->create([
+            'title' => 'Mejor valorado', 'price_paid' => 20, 'rating' => 5,
+        ]);
 
         $response = $this->actingAs($user)->get('/stats');
 

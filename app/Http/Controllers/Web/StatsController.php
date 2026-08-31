@@ -141,7 +141,8 @@ class StatsController extends Controller
             'label' => $label,
             'color' => $colors[$key],
             'total' => $key === '__unspecified' ? $unspecified : $counts->get($key, 0),
-            'percent' => $total > 0 ? round(($key === '__unspecified' ? $unspecified : $counts->get($key, 0)) / $total * 100) : 0,
+            'percent' => $total > 0 ? round(($key === '__unspecified' ? $unspecified : $counts->get($key,
+                0)) / $total * 100) : 0,
         ])->values()->all();
     }
 
@@ -163,7 +164,7 @@ class StatsController extends Controller
         $max = (float) ($grouped->max() ?: 1);
 
         return $grouped->map(fn (float $total, string $month) => [
-            'label' => Carbon::createFromFormat('Y-m', $month)->translatedFormat('M Y'),
+            'label' => Carbon::createFromFormat('Y-m-d', "{$month}-01")->startOfMonth()->translatedFormat('M Y'),
             'total' => $total,
             'percent' => $max > 0 ? round($total / $max * 100) : 0,
         ])->values();
