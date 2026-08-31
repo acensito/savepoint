@@ -163,7 +163,13 @@ class StatsController extends Controller
         $max = (float) ($grouped->max() ?: 1);
 
         return $grouped->map(fn (float $total, string $month) => [
-            'label' => Carbon::createFromFormat('Y-m', $month)->translatedFormat('M Y'),
+            // Y-m (sin día) hace que Carbon rellene el día que falta con el
+            // de HOY en vez de con 1: en un día 31, un mes agrupado más
+            // corto (p. ej. junio) desbordaba al mes siguiente y esa
+            // etiqueta acababa chocando con la del mes real. Con '-01'
+            // explícito, la fecha auxiliar siempre es el primer día del
+            // mes agrupado, exista o no ese día en el mes de hoy.
+            'label' => Carbon::createFromFormat('Y-m-d', $month.'-01')->translatedFormat('M Y'),
             'total' => $total,
             'percent' => $max > 0 ? round($total / $max * 100) : 0,
         ])->values();
