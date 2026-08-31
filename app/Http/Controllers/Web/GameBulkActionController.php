@@ -65,6 +65,8 @@ class GameBulkActionController extends Controller
      * IDs seleccionados en el formulario, acotados a los que de verdad
      * pertenecen al usuario autenticado (evita que alguien manipule el HTML
      * y mande el ID de un juego ajeno).
+     *
+     * @return array<int, int>
      */
     private function ownedSelectedIds(Request $request): array
     {

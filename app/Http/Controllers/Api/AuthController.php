@@ -8,6 +8,7 @@ use App\Http\Controllers\Concerns\SendsTwoFactorCode;
 use App\Http\Controllers\Concerns\ThrottlesLogins;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -36,7 +37,7 @@ class AuthController extends Controller
      * la API se saltaba el 2FA por completo (a diferencia del login web,
      * Web\AuthController::login()) y bastaban email+contraseña para entrar.
      */
-    public function login(Request $request)
+    public function login(Request $request): JsonResponse
     {
         // 1. Validar que nos envían email y contraseña
         $request->validate([
@@ -73,7 +74,7 @@ class AuthController extends Controller
      * Canjea el "two_factor_token" de un login a medias junto con el código
      * recibido por email para completar el login y emitir el token de acceso.
      */
-    public function verifyTwoFactor(Request $request)
+    public function verifyTwoFactor(Request $request): JsonResponse
     {
         $request->validate([
             'two_factor_token' => ['required', 'string'],
@@ -103,7 +104,7 @@ class AuthController extends Controller
      * Genera un código nuevo (invalida el anterior) y lo reenvía, para el
      * mismo desafío de 2FA pendiente.
      */
-    public function resendTwoFactor(Request $request)
+    public function resendTwoFactor(Request $request): JsonResponse
     {
         $request->validate([
             'two_factor_token' => ['required', 'string'],
@@ -142,7 +143,7 @@ class AuthController extends Controller
     /**
      * Cerrar sesión y destruir el Token
      */
-    public function logout(Request $request)
+    public function logout(Request $request): JsonResponse
     {
         // Revocamos el token específico que se ha usado para esta petición
         $request->user()->currentAccessToken()->delete();
@@ -152,7 +153,7 @@ class AuthController extends Controller
         ]);
     }
 
-    private function beginTwoFactorChallenge(User $user)
+    private function beginTwoFactorChallenge(User $user): JsonResponse
     {
         if (! $this->sendTwoFactorCode($user)) {
             throw new ApiException(
@@ -201,7 +202,7 @@ class AuthController extends Controller
         return $userId ? User::find($userId) : null;
     }
 
-    private function issueTokenResponse(User $user)
+    private function issueTokenResponse(User $user): JsonResponse
     {
         // Creamos un token llamado 'MobileApp' (puedes llamarlo como quieras)
         $token = $user->createToken('MobileApp')->plainTextToken;

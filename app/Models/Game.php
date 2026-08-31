@@ -2,15 +2,30 @@
 
 namespace App\Models;
 
+use Database\Factories\GameFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
+/**
+ * Larastan no infiere los tipos de columnas casteadas vía el método
+ * casts() (a diferencia de la propiedad estática $casts): sin las
+ * anotaciones de abajo, cualquier ->format() sobre estas fechas se
+ * marcaba como "Cannot call method format() on string" en varios
+ * controladores, aunque en tiempo de ejecución siempre son Carbon (el
+ * cast 'date' así lo garantiza).
+ *
+ * @property Carbon|null $release_date
+ * @property Carbon|null $purchase_date
+ * @property Carbon|null $sold_at
+ */
 class Game extends Model
 {
     // Activamos la papelera de reciclaje para no perder datos por error
+    /** @use HasFactory<GameFactory> */
     use HasFactory, SoftDeletes;
 
     /**
@@ -110,6 +125,9 @@ class Game extends Model
      * Coincidencia por título (parcial, sin distinguir mayúsculas) o EAN
      * (exacto). Mismo criterio usado por el buscador de la colección
      * (GameCollectionQuery::query) y por el Ctrl+K (SearchController::quick).
+     *
+     * @param  Builder<Game>  $query
+     * @return Builder<Game>
      */
     public function scopeSearch(Builder $query, string $term): Builder
     {
@@ -125,6 +143,8 @@ class Game extends Model
 
     /**
      * Un juego pertenece a un único usuario.
+     *
+     * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
     {
@@ -133,6 +153,8 @@ class Game extends Model
 
     /**
      * Un juego pertenece a una plataforma.
+     *
+     * @return BelongsTo<Platform, $this>
      */
     public function platform(): BelongsTo
     {
@@ -141,6 +163,8 @@ class Game extends Model
 
     /**
      * Un juego pertenece a una edición específica (Opcional).
+     *
+     * @return BelongsTo<Edition, $this>
      */
     public function edition(): BelongsTo
     {
@@ -192,7 +216,10 @@ class Game extends Model
             return null;
         }
 
-        return collect($this->igdb_time_to_beat)
+        /** @var array<string, int> $timeToBeat */
+        $timeToBeat = $this->igdb_time_to_beat;
+
+        return collect($timeToBeat)
             ->map(fn (int $value, string $key) => $key === 'count' ? $value : (int) round($value / 3600))
             ->all();
     }

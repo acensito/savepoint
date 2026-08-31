@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use Database\Factories\CommissionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * Encargo: un juego que un amigo compra/envía para el usuario, o que el
@@ -12,9 +14,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * no una venta ni parte de la colección hasta que se marca recibido (ver
  * CommissionController::resolve()). El registro se queda como histórico
  * para siempre, se resuelva en la dirección que se resuelva.
+ *
+ * @property Carbon|null $purchased_at
+ * @property Carbon|null $resolved_at
  */
 class Commission extends Model
 {
+    /** @use HasFactory<CommissionFactory> */
     use HasFactory;
 
     public const DIRECTION_OWED_TO_ME = 'owed_to_me';
@@ -45,16 +51,25 @@ class Commission extends Model
         ];
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * @return BelongsTo<Platform, $this>
+     */
     public function platform(): BelongsTo
     {
         return $this->belongsTo(Platform::class);
     }
 
+    /**
+     * @return BelongsTo<Game, $this>
+     */
     public function game(): BelongsTo
     {
         return $this->belongsTo(Game::class);

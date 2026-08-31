@@ -52,7 +52,7 @@ class PanelController extends Controller
      * sidebar (importar, papelera): importar/exportar la colección, la
      * papelera de reciclaje y el perfil del usuario.
      */
-    public function index()
+    public function index(): View
     {
         $trashedCount = Game::onlyTrashed()->where('user_id', auth()->id())->count();
 

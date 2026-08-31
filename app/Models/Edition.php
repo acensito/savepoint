@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Database\Factories\EditionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -9,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Edition extends Model
 {
+    /** @use HasFactory<EditionFactory> */
     use HasFactory;
 
     protected $fillable = ['name', 'format'];
@@ -27,6 +29,8 @@ class Edition extends Model
 
     /**
      * Una edición puede estar disponible en múltiples plataformas.
+     *
+     * @return BelongsToMany<Platform, $this>
      */
     public function platforms(): BelongsToMany
     {
@@ -35,6 +39,8 @@ class Edition extends Model
 
     /**
      * Una edición puede tener muchos juegos registrados.
+     *
+     * @return HasMany<Game, $this>
      */
     public function games(): HasMany
     {

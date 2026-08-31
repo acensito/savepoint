@@ -68,7 +68,10 @@ class CexGameLookupService implements GameLookupInterface
             return [];
         }
 
-        return collect($response->json('hits', []))
+        /** @var array<int, array<string, mixed>> $hits */
+        $hits = $response->json('hits', []);
+
+        return collect($hits)
             ->map(fn (array $hit) => new GameLookupResult(
                 title: trim((string) ($hit['boxName'] ?? '')),
                 ean: isset($hit['boxId']) && $hit['boxId'] !== '' ? (string) $hit['boxId'] : null,

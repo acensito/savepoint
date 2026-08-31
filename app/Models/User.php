@@ -10,10 +10,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 use Laravel\Sanctum\HasApiTokens;
 
+/**
+ * @property Carbon|null $two_factor_code_expires_at
+ */
 #[Fillable([
     'name', 'email', 'password', 'is_admin', 'auto_igdb_background',
     'theme', 'games_view', 'navbar_color', 'default_sort', 'default_dir', 'default_per_page',
@@ -103,12 +107,17 @@ class User extends Authenticatable
 
     /**
      * Un usuario tiene muchos juegos en su colección.
+     *
+     * @return HasMany<Game, $this>
      */
     public function games(): HasMany
     {
         return $this->hasMany(Game::class);
     }
 
+    /**
+     * @return HasMany<TwoFactorTrustedDevice, $this>
+     */
     public function twoFactorTrustedDevices(): HasMany
     {
         return $this->hasMany(TwoFactorTrustedDevice::class);

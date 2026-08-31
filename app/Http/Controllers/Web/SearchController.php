@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Game;
 use App\Services\GameLookup\GameLookupInterface;
 use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class SearchController extends Controller
 {
@@ -38,7 +39,7 @@ class SearchController extends Controller
      * de un catálogo externo (ver GameLookupInterface) para autorrellenar el
      * alta: es una ayuda opcional, nunca sustituye a "dar de alta a mano".
      */
-    public function quick(Request $request)
+    public function quick(Request $request): View
     {
         $query = trim((string) $request->input('q', ''));
         $platformId = (string) $request->input('platform_id', '');

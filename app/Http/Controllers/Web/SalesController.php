@@ -7,6 +7,7 @@ use App\Models\Game;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\View\View;
 
 class SalesController extends Controller
 {
@@ -16,7 +17,7 @@ class SalesController extends Controller
      * status=sold, así que se lee con onlyTrashed() en vez de la colección
      * normal (que ya no lo verá nunca).
      */
-    public function index()
+    public function index(): View
     {
         $games = Game::onlyTrashed()
             ->where('user_id', auth()->id())

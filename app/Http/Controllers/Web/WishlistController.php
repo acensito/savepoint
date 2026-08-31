@@ -8,6 +8,7 @@ use App\Models\Game;
 use App\Models\Platform;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class WishlistController extends Controller
 {
@@ -31,7 +32,7 @@ class WishlistController extends Controller
      * todavía no es parte de "tu colección" (GameController::index lo
      * excluye siempre).
      */
-    public function index(Request $request)
+    public function index(Request $request): View
     {
         $query = trim((string) $request->input('q', ''));
         $sort = (string) $request->input('sort', '');
@@ -64,7 +65,7 @@ class WishlistController extends Controller
      * que el resto de datos (precio, conservación, manual...) no tienen
      * sentido para un juego que todavía no se tiene.
      */
-    public function create()
+    public function create(): View
     {
         $platforms = Platform::orderBy('name')->get();
         $editions = Edition::with('platforms')->orderBy('name')->get();
