@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\AppSetting;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -30,20 +31,25 @@ class UserController extends Controller
     }
 
     /**
-     * Activa/desactiva el registro público (/register). Reutiliza la misma
-     * autorización que el resto de esta página ('viewAny' de UserPolicy,
-     * "es admin"): un solo ajuste de instancia no justifica todavía una
-     * policy propia aparte.
+     * Activa/desactiva el registro público (/register): toggle switch de
+     * efecto/persistencia inmediatos (ver x-toggle e initSettingsToggles en
+     * app.js), mismo patrón AJAX que PanelController::updateToggle. Reutiliza
+     * la misma autorización que el resto de esta página ('viewAny' de
+     * UserPolicy, "es admin"): un solo ajuste de instancia no justifica
+     * todavía una policy propia aparte.
      */
-    public function updateRegistration(Request $request): RedirectResponse
+    public function updateRegistration(Request $request): JsonResponse
     {
         Gate::authorize('viewAny', User::class);
 
-        AppSetting::current()->update([
-            'registration_enabled' => $request->boolean('registration_enabled'),
+        $validated = $request->validate([
+            'field' => ['required', 'string', Rule::in(['registration_enabled'])],
+            'value' => ['required', 'boolean'],
         ]);
 
-        return redirect()->route('web.panel.users.index')->with('success', 'Ajuste de registro actualizado.');
+        AppSetting::current()->update(['registration_enabled' => $validated['value']]);
+
+        return response()->json(['ok' => true]);
     }
 
     public function create(): View

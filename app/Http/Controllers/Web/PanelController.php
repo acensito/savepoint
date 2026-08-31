@@ -29,6 +29,25 @@ class PanelController extends Controller
     ];
 
     /**
+     * Columnas booleanas que se guardan al vuelo desde un toggle switch (ver
+     * updateToggle), en vez de esperar al "Guardar ajustes" del resto del
+     * formulario. Whitelist para no poder pisar por esta vía ninguna otra
+     * columna del usuario.
+     */
+    public const TOGGLE_FIELDS = [
+        'auto_igdb_background',
+        'quick_search_exclude_wishlist',
+        'hide_for_sale_from_collection',
+        'igdb_enabled',
+        'two_factor_enabled',
+        'section_wishlist_enabled',
+        'section_commissions_enabled',
+        'section_for_sale_enabled',
+        'section_sales_enabled',
+        'section_stats_enabled',
+    ];
+
+    /**
      * Punto de entrada único para tareas que antes vivían sueltas por el
      * sidebar (importar, papelera): importar/exportar la colección, la
      * papelera de reciclaje y el perfil del usuario.
@@ -77,12 +96,6 @@ class PanelController extends Controller
             'default_region' => $validated['default_region'] ?? null,
             'default_edition_id' => $validated['default_edition_id'] ?? null,
             'navbar_color' => $validated['navbar_color'] ?? 'indigo',
-            // Checkboxes: si no llegan en el POST, es que estaban desmarcados.
-            'auto_igdb_background' => $request->boolean('auto_igdb_background'),
-            'quick_search_exclude_wishlist' => $request->boolean('quick_search_exclude_wishlist'),
-            'hide_for_sale_from_collection' => $request->boolean('hide_for_sale_from_collection'),
-            'igdb_enabled' => $request->boolean('igdb_enabled'),
-            'two_factor_enabled' => $request->boolean('two_factor_enabled'),
             'igdb_client_id' => $validated['igdb_client_id'] ?? null,
             // El campo llega siempre en blanco desde la vista (nunca se
             // reimprime un secreto ya guardado, ver settings.blade.php): en
@@ -109,6 +122,23 @@ class PanelController extends Controller
         ]);
 
         $request->user()->update($validated);
+
+        return response()->json(['ok' => true]);
+    }
+
+    /**
+     * AJAX fire-and-forget desde cada toggle switch de Ajustes (ver x-toggle
+     * e initSettingsToggles en app.js): efecto y persistencia inmediatos, sin
+     * pasar por el botón "Guardar ajustes" del resto del formulario.
+     */
+    public function updateToggle(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'field' => ['required', 'string', Rule::in(self::TOGGLE_FIELDS)],
+            'value' => ['required', 'boolean'],
+        ]);
+
+        $request->user()->update([$validated['field'] => $validated['value']]);
 
         return response()->json(['ok' => true]);
     }

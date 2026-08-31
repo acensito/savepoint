@@ -145,6 +145,40 @@ class SalesControllerTest extends TestCase
         $this->assertDatabaseHas('games', ['id' => $game->id, 'deleted_at' => null, 'status' => 'owned']);
     }
 
+    /**
+     * sale_price es decimal(10,2): sin un max: que lo refleje, un valor de 9
+     * dígitos pasaba la validación de Laravel y reventaba como
+     * QueryException (overflow numérico) en vez de un aviso normal del
+     * formulario (mismo bug ya corregido en GameController::validated()).
+     */
+    public function test_marking_a_game_as_sold_rejects_a_price_beyond_the_database_column_size(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['status' => 'owned']);
+
+        $response = $this->actingAs($user)->post("/games/{$game->id}/mark-sold", [
+            'sale_price' => '123456789.12',
+            'sold_at' => '2026-03-10',
+        ]);
+
+        $response->assertSessionHasErrors('sale_price');
+        $this->assertDatabaseHas('games', ['id' => $game->id, 'deleted_at' => null, 'status' => 'owned']);
+    }
+
+    public function test_marking_a_game_as_sold_accepts_a_price_at_the_maximum_allowed_value(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['status' => 'owned']);
+
+        $response = $this->actingAs($user)->post("/games/{$game->id}/mark-sold", [
+            'sale_price' => '99999999.99',
+            'sold_at' => '2026-03-10',
+        ]);
+
+        $response->assertRedirect(route('web.games.index'));
+        $this->assertSame('99999999.99', $game->fresh()->sale_price);
+    }
+
     public function test_user_cannot_mark_another_users_game_as_sold(): void
     {
         $owner = User::factory()->create();

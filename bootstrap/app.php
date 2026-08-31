@@ -4,6 +4,7 @@ use App\Exceptions\ApiErrorCode;
 use App\Exceptions\ApiException;
 use App\Http\Middleware\AddContentSecurityPolicyHeader;
 use Illuminate\Auth\Access\AuthorizationException;
+use App\Http\Middleware\EnsureSectionIsEnabled;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -42,6 +43,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // IP para /login antes de tener token) es generoso de sobra para una
         // app de colección.
         $middleware->throttleApi();
+
+        // 'section:wishlist' etc. (ver routes/web.php, issue #32): 404 en
+        // vez de la página si el usuario desactivó esa sección desde
+        // /panel/settings.
+        $middleware->alias(['section' => EnsureSectionIsEnabled::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Respuestas de error localizadas en español para la API (/api/*),

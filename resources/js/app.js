@@ -98,6 +98,32 @@ function initThemeToggle() {
 
 initThemeToggle();
 
+/**
+ * Toggle switches con guardado al vuelo (ver x-toggle): cada uno persiste su
+ * propia columna en el endpoint de su data-url (PanelController::updateToggle
+ * para ajustes de cuenta, UserController::updateRegistration para el registro
+ * público), sin esperar a ningún botón "Guardar" aparte. Mismo fire-and-forget
+ * que saveDisplayPreference: el cambio visual ya lo hace el propio checkbox
+ * (:checked del CSS), un fallo de red solo hace que no sobreviva a la
+ * próxima carga de página.
+ */
+function initSettingsToggles() {
+    document.querySelectorAll('.js-setting-toggle').forEach((toggle) => {
+        toggle.addEventListener('change', () => {
+            const token = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+
+            fetch(toggle.dataset.url, {
+                method: 'PATCH', credentials: 'same-origin', headers: {
+                    'X-CSRF-TOKEN': token, 'Content-Type': 'application/json', 'Accept': 'application/json',
+                }, body: JSON.stringify({field: toggle.dataset.field, value: toggle.checked}),
+            }).catch(() => {
+            });
+        });
+    });
+}
+
+initSettingsToggles();
+
 function initThemeBoundaryForms() {
     document.querySelectorAll('.js-theme-boundary-form').forEach((form) => {
         form.addEventListener('submit', () => {

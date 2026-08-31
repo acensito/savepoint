@@ -74,8 +74,11 @@ Route::middleware('auth')->group(function () {
     // Colección (con búsqueda opcional por título/EAN vía ?q=)
     Route::get('/', [GameController::class, 'index'])->name('web.games.index');
 
-    // Estadísticas de la colección
-    Route::get('/stats', [StatsController::class, 'index'])->name('web.stats.index');
+    // Estadísticas de la colección. 'section:stats' (issue #32): 404 si el
+    // usuario desactivó esta sección desde /panel/settings.
+    Route::get('/stats', [StatsController::class, 'index'])
+        ->middleware('section:stats')
+        ->name('web.stats.index');
 
     // Panel de control: punto de entrada único a importar/exportar la
     // colección, la papelera de reciclaje y el perfil del usuario (antes
@@ -87,6 +90,10 @@ Route::middleware('auth')->group(function () {
     // colección (ver initThemeToggle/initGamesViewToggle en app.js): no son
     // parte del formulario de Ajustes, tienen su propio control ya existente.
     Route::patch('/panel/settings/display', [PanelController::class, 'updateDisplay'])->name('web.panel.settings.display');
+    // Mismo patrón que la de arriba: fire-and-forget desde cada toggle switch
+    // de Ajustes (ver x-toggle e initSettingsToggles en app.js), efecto y
+    // persistencia inmediatos sin pasar por "Guardar ajustes".
+    Route::patch('/panel/settings/toggles', [PanelController::class, 'updateToggle'])->name('web.panel.settings.toggles');
 
     // Gestión de usuarios de la plataforma (solo admin, ver UserPolicy):
     // crear/editar/borrar cuentas a mano, sin tirar de tinker, y decidir si
@@ -104,34 +111,49 @@ Route::middleware('auth')->group(function () {
     // Lista de deseos: juegos con Propiedad = "wishlist", en su propia página
     // (nunca en la colección principal, ver GameController::index). Ruta
     // estática /wishlist/create antes de la resource-like /wishlist por el
-    // mismo motivo que las de /games más abajo.
-    Route::get('/wishlist/create', [WishlistController::class, 'create'])->name('web.wishlist.create');
-    Route::post('/wishlist', [WishlistController::class, 'store'])->name('web.wishlist.store');
-    Route::get('/wishlist', [WishlistController::class, 'index'])->name('web.wishlist.index');
+    // mismo motivo que las de /games más abajo. 'section:wishlist' (issue
+    // #32): 404 si el usuario desactivó esta sección desde /panel/settings.
+    Route::middleware('section:wishlist')->group(function () {
+        Route::get('/wishlist/create', [WishlistController::class, 'create'])->name('web.wishlist.create');
+        Route::post('/wishlist', [WishlistController::class, 'store'])->name('web.wishlist.store');
+        Route::get('/wishlist', [WishlistController::class, 'index'])->name('web.wishlist.index');
+    });
 
     // Encargos: juegos que un amigo compra/envía al usuario o viceversa,
     // fuera de la colección hasta que se marcan recibidos (ver
     // CommissionController::resolve()). Ruta estática /commissions/create
     // antes de la resource-like /commissions/{commission} por el mismo
     // motivo que el resto de rutas de este fichero.
-    Route::get('/commissions/create', [CommissionController::class, 'create'])->name('web.commissions.create');
-    Route::post('/commissions', [CommissionController::class, 'store'])->name('web.commissions.store');
-    Route::get('/commissions', [CommissionController::class, 'index'])->name('web.commissions.index');
-    Route::get('/commissions/{commission}/edit', [CommissionController::class, 'edit'])->name('web.commissions.edit');
-    Route::put('/commissions/{commission}', [CommissionController::class, 'update'])->name('web.commissions.update');
-    Route::post('/commissions/{commission}/resolve', [CommissionController::class, 'resolve'])->name('web.commissions.resolve');
-    Route::delete('/commissions/{commission}', [CommissionController::class, 'destroy'])->name('web.commissions.destroy');
+    Route::middleware('section:commissions')->group(function () {
+        Route::get('/commissions/create', [CommissionController::class, 'create'])->name('web.commissions.create');
+        Route::post('/commissions', [CommissionController::class, 'store'])->name('web.commissions.store');
+        Route::get('/commissions', [CommissionController::class, 'index'])->name('web.commissions.index');
+        Route::get('/commissions/{commission}/edit', [CommissionController::class, 'edit'])->name('web.commissions.edit');
+        Route::put('/commissions/{commission}', [CommissionController::class, 'update'])->name('web.commissions.update');
+        Route::post('/commissions/{commission}/resolve', [CommissionController::class, 'resolve'])->name('web.commissions.resolve');
+        Route::delete('/commissions/{commission}', [CommissionController::class, 'destroy'])->name('web.commissions.destroy');
+    });
 
     // En venta: juegos con for_sale=true (GameController::quickUpdate), en su
     // propia página para su mantenimiento (ver ForSaleController). No son un
     // "estado" de Propiedad aparte como wishlist/vendido: siguen en la
-    // colección, solo se les da una vista dedicada.
-    Route::get('/for-sale', [ForSaleController::class, 'index'])->name('web.for-sale.index');
+    // colección, solo se les da una vista dedicada. 'section:for_sale' cubre
+    // solo esta página — marcar/desmarcar un juego como "en venta" sigue
+    // disponible desde la colección aunque esta sección esté desactivada.
+    Route::get('/for-sale', [ForSaleController::class, 'index'])
+        ->middleware('section:for_sale')
+        ->name('web.for-sale.index');
 
     // Ventas: histórico por año de los juegos marcados como vendidos (ver
     // SalesController::markAsSold), fuera de la colección principal.
-    Route::get('/sales', [SalesController::class, 'index'])->name('web.sales.index');
-    Route::post('/sales/{id}/restore', [SalesController::class, 'restore'])->name('web.sales.restore');
+    // 'section:sales' cubre solo este histórico — marcar un juego como
+    // vendido (/games/{game}/mark-sold, más abajo) sigue disponible aunque
+    // esta sección esté desactivada: es como se registra el dato, no una
+    // vista opcional de algo que vive en otro sitio.
+    Route::middleware('section:sales')->group(function () {
+        Route::get('/sales', [SalesController::class, 'index'])->name('web.sales.index');
+        Route::post('/sales/{id}/restore', [SalesController::class, 'restore'])->name('web.sales.restore');
+    });
 
     // Búsqueda rápida global (Ctrl+K): unos pocos resultados en vivo por título/EAN.
     // throttle:external-search-cex: consulta CexGameLookupService, que usa

@@ -528,7 +528,7 @@ class RegisterTest extends TestCase
             });
         $this->post(route('two-factor.verify'), ['code' => $code]);
 
-        $this->put('/panel/settings', []);
+        $this->patchJson('/panel/settings/toggles', ['field' => 'two_factor_enabled', 'value' => false]);
 
         $this->assertFalse($user->fresh()->two_factor_enabled);
     }

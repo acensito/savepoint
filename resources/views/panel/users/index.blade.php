@@ -24,20 +24,9 @@
             se pueden dar de alta cuentas nuevas desde aquí.
         </p>
 
-        <form action="{{ route('web.panel.registration.update') }}" method="POST" class="flex items-center gap-4">
-            @csrf
-            @method('PATCH')
-
-            <label class="flex items-center gap-2 text-sm text-slate-300">
-                <input type="checkbox" name="registration_enabled" value="1" {{ $appSetting->registration_enabled ? 'checked' : '' }}
-                    class="rounded border-slate-600 bg-slate-800 text-indigo-600 focus:ring-indigo-500">
-                Permitir que cualquiera se registre libremente
-            </label>
-
-            <button type="submit" class="bg-(--color-navbar) text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-(--color-navbar-hover) transition-colors">
-                Guardar
-            </button>
-        </form>
+        <x-toggle name="registration_enabled" :checked="$appSetting->registration_enabled" :url="route('web.panel.registration.update')">
+            Permitir que cualquiera se registre libremente
+        </x-toggle>
     </div>
 
     <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">

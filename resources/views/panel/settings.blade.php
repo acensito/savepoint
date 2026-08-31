@@ -4,6 +4,7 @@
     @php
         $input = 'w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden';
         $label = 'block font-medium text-sm text-slate-300 mb-1';
+        $toggleUrl = route('web.panel.settings.toggles');
     @endphp
 
     <div class="max-w-2xl mx-auto py-6">
@@ -24,6 +25,37 @@
             @method('PUT')
 
             <div>
+                <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Secciones</h2>
+                <div class="space-y-6">
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl p-8">
+                        <h3 class="text-lg font-semibold text-slate-100 mb-1">Secciones opcionales</h3>
+                        <p class="text-sm text-slate-500 mb-6">
+                            Oculta del menú lateral las secciones que no uses. Los datos que ya tuvieran no se borran
+                            ni cambian: si reactivas una sección, todo sigue donde estaba.
+                        </p>
+
+                        <div class="space-y-4">
+                            <x-toggle name="section_wishlist_enabled" :checked="$user->section_wishlist_enabled" :url="$toggleUrl">
+                                Lista de deseos
+                            </x-toggle>
+                            <x-toggle name="section_commissions_enabled" :checked="$user->section_commissions_enabled" :url="$toggleUrl">
+                                Encargos
+                            </x-toggle>
+                            <x-toggle name="section_for_sale_enabled" :checked="$user->section_for_sale_enabled" :url="$toggleUrl">
+                                En venta
+                            </x-toggle>
+                            <x-toggle name="section_sales_enabled" :checked="$user->section_sales_enabled" :url="$toggleUrl">
+                                Ventas
+                            </x-toggle>
+                            <x-toggle name="section_stats_enabled" :checked="$user->section_stats_enabled" :url="$toggleUrl">
+                                Estadísticas
+                            </x-toggle>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div>
                 <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">IGDB</h2>
                 <div class="space-y-6">
                     <div class="bg-slate-900 border border-slate-800 rounded-xl p-8">
@@ -38,11 +70,9 @@
                             IGDB.
                         </p>
 
-                        <label class="flex items-center gap-2 text-sm text-slate-300 mb-4">
-                            <input type="checkbox" id="igdb_enabled" name="igdb_enabled" value="1" {{ old('igdb_enabled', $user->igdb_enabled) ? 'checked' : '' }}
-                                class="rounded border-slate-600 bg-slate-800 text-indigo-600 focus:ring-indigo-500">
+                        <x-toggle name="igdb_enabled" :checked="$user->igdb_enabled" :url="$toggleUrl" class="mb-4">
                             Permitir el uso de IGDB con mis credenciales
-                        </label>
+                        </x-toggle>
 
                         <div id="igdb-credentials" class="grid grid-cols-1 sm:grid-cols-2 gap-4 {{ $user->igdb_enabled ? '' : 'hidden' }}">
                             <div>
@@ -68,11 +98,9 @@
                             lo elijas tú.
                         </p>
 
-                        <label class="flex items-center gap-2 text-sm text-slate-300">
-                            <input type="checkbox" name="auto_igdb_background" value="1" {{ old('auto_igdb_background', $user->auto_igdb_background) ? 'checked' : '' }}
-                                class="rounded border-slate-600 bg-slate-800 text-indigo-600 focus:ring-indigo-500">
+                        <x-toggle name="auto_igdb_background" :checked="$user->auto_igdb_background" :url="$toggleUrl">
                             Establecer el fondo automáticamente al dar de alta un juego
-                        </label>
+                        </x-toggle>
                     </div>
                 </div>
             </div>
@@ -87,11 +115,9 @@
                             confianza" pedirá además un código de un solo uso enviado a tu email.
                         </p>
 
-                        <label class="flex items-center gap-2 text-sm text-slate-300">
-                            <input type="checkbox" name="two_factor_enabled" value="1" {{ old('two_factor_enabled', $user->two_factor_enabled) ? 'checked' : '' }}
-                                class="rounded border-slate-600 bg-slate-800 text-indigo-600 focus:ring-indigo-500">
+                        <x-toggle name="two_factor_enabled" :checked="$user->two_factor_enabled" :url="$toggleUrl">
                             Pedir un código por email al iniciar sesión
-                        </label>
+                        </x-toggle>
                     </div>
 
                     <div class="bg-slate-900 border border-slate-800 rounded-xl p-8">
@@ -190,11 +216,9 @@
                             Si tu lista de deseos aparece mezclada con tu colección en los resultados de Ctrl+K.
                         </p>
 
-                        <label class="flex items-center gap-2 text-sm text-slate-300">
-                            <input type="checkbox" name="quick_search_exclude_wishlist" value="1" {{ old('quick_search_exclude_wishlist', $user->quick_search_exclude_wishlist) ? 'checked' : '' }}
-                                class="rounded border-slate-600 bg-slate-800 text-indigo-600 focus:ring-indigo-500">
+                        <x-toggle name="quick_search_exclude_wishlist" :checked="$user->quick_search_exclude_wishlist" :url="$toggleUrl">
                             Excluir la lista de deseos de los resultados de Ctrl+K
-                        </label>
+                        </x-toggle>
                     </div>
 
                     <div class="bg-slate-900 border border-slate-800 rounded-xl p-8">
@@ -203,11 +227,9 @@
                             Los juegos marcados "en venta" tienen su propia sección (<a href="{{ route('web.for-sale.index') }}" class="text-indigo-400 hover:underline">En venta</a>, en el menú lateral) para darles mantenimiento sin mezclarlos con el resto. Siguen viéndose ahí y filtrando la colección aunque actives esto.
                         </p>
 
-                        <label class="flex items-center gap-2 text-sm text-slate-300">
-                            <input type="checkbox" name="hide_for_sale_from_collection" value="1" {{ old('hide_for_sale_from_collection', $user->hide_for_sale_from_collection) ? 'checked' : '' }}
-                                class="rounded border-slate-600 bg-slate-800 text-indigo-600 focus:ring-indigo-500">
+                        <x-toggle name="hide_for_sale_from_collection" :checked="$user->hide_for_sale_from_collection" :url="$toggleUrl">
                             Ocultar los juegos en venta del listado de mi colección
-                        </label>
+                        </x-toggle>
                     </div>
                 </div>
             </div>
