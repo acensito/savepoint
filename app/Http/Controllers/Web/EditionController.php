@@ -5,25 +5,28 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Edition;
 use App\Models\Platform;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class EditionController extends Controller
 {
-    public function index()
+    public function index(): View
     {
         $editions = Edition::with('platforms')->withCount('games')->orderBy('name')->get();
 
         return view('editions.index', compact('editions'));
     }
 
-    public function create()
+    public function create(): View
     {
         $platforms = Platform::orderBy('name')->get();
 
         return view('editions.create', compact('platforms'));
     }
 
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse|RedirectResponse
     {
         $validated = $this->validated($request);
 
@@ -43,7 +46,7 @@ class EditionController extends Controller
         return redirect()->route('web.editions.index')->with('success', 'Edición creada correctamente.');
     }
 
-    public function edit(Edition $edition)
+    public function edit(Edition $edition): View
     {
         $platforms = Platform::orderBy('name')->get();
         $edition->load('platforms');
@@ -51,7 +54,7 @@ class EditionController extends Controller
         return view('editions.edit', compact('edition', 'platforms'));
     }
 
-    public function update(Request $request, Edition $edition)
+    public function update(Request $request, Edition $edition): RedirectResponse
     {
         $validated = $this->validated($request);
 
@@ -64,7 +67,7 @@ class EditionController extends Controller
         return redirect()->route('web.editions.index')->with('success', 'Edición actualizada correctamente.');
     }
 
-    public function destroy(Edition $edition)
+    public function destroy(Edition $edition): RedirectResponse
     {
         // Los juegos con esta edición no se borran: edition_id pasa a null (ver migración de games).
         $edition->delete();
@@ -72,6 +75,9 @@ class EditionController extends Controller
         return redirect()->route('web.editions.index')->with('success', 'Edición eliminada.');
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function validated(Request $request): array
     {
         return $request->validate([

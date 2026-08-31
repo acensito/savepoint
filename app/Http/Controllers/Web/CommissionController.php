@@ -9,6 +9,7 @@ use App\Models\Platform;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\View\View;
 
 class CommissionController extends Controller
 {
@@ -17,7 +18,7 @@ class CommissionController extends Controller
      * Commission::DIRECTIONS), pendientes primero. Sin paginar, como
      * /sales: no se espera un volumen alto.
      */
-    public function index(Request $request)
+    public function index(Request $request): View
     {
         $direction = (string) $request->input('direction', '');
 
@@ -31,7 +32,7 @@ class CommissionController extends Controller
         return view('commissions.index', compact('commissions', 'direction'));
     }
 
-    public function create()
+    public function create(): View
     {
         $platforms = Platform::orderBy('name')->get();
 
@@ -48,7 +49,7 @@ class CommissionController extends Controller
         return redirect()->route('web.commissions.index')->with('success', 'Encargo añadido.');
     }
 
-    public function edit(Commission $commission)
+    public function edit(Commission $commission): View
     {
         Gate::authorize('update', $commission);
 
@@ -116,6 +117,9 @@ class CommissionController extends Controller
             ->with('success', "«{$commission->title}» recibido: completa el resto de datos.");
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function validated(Request $request): array
     {
         return $request->validate([

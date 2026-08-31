@@ -4,25 +4,27 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Manufacturer;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\View\View;
 
 class ManufacturerController extends Controller
 {
-    public function index()
+    public function index(): View
     {
         $manufacturers = Manufacturer::withCount('platforms')->orderBy('name')->get();
 
         return view('manufacturers.index', compact('manufacturers'));
     }
 
-    public function create()
+    public function create(): View
     {
         return view('manufacturers.create');
     }
 
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
         $validated = $this->validated($request);
         $validated['slug'] = $this->uniqueSlug($validated['name']);
@@ -32,12 +34,12 @@ class ManufacturerController extends Controller
         return redirect()->route('web.manufacturers.index')->with('success', 'Fabricante creado correctamente.');
     }
 
-    public function edit(Manufacturer $manufacturer)
+    public function edit(Manufacturer $manufacturer): View
     {
         return view('manufacturers.edit', compact('manufacturer'));
     }
 
-    public function update(Request $request, Manufacturer $manufacturer)
+    public function update(Request $request, Manufacturer $manufacturer): RedirectResponse
     {
         $validated = $this->validated($request);
 
@@ -50,7 +52,7 @@ class ManufacturerController extends Controller
         return redirect()->route('web.manufacturers.index')->with('success', 'Fabricante actualizado correctamente.');
     }
 
-    public function destroy(Manufacturer $manufacturer)
+    public function destroy(Manufacturer $manufacturer): RedirectResponse
     {
         // Las plataformas de este fabricante no se borran: manufacturer_id pasa a null (ver migración).
         $manufacturer->delete();
@@ -58,6 +60,9 @@ class ManufacturerController extends Controller
         return redirect()->route('web.manufacturers.index')->with('success', 'Fabricante eliminado.');
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function validated(Request $request): array
     {
         return $request->validate([

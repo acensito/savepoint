@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Game;
 use App\Models\Platform;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\View\View;
 
 /**
  * Papelera de reciclaje de juegos, separada de GameController igual que ya
@@ -23,7 +25,7 @@ class GameTrashController extends Controller
      * búsqueda por título/EAN y filtro por plataforma (?q=, ?platform_id=),
      * igual que el listado principal.
      */
-    public function index(Request $request)
+    public function index(Request $request): View
     {
         $query = trim((string) $request->input('q', ''));
         $platformId = (string) $request->input('platform_id', '');
@@ -58,7 +60,7 @@ class GameTrashController extends Controller
     /**
      * Restaura un juego de la papelera.
      */
-    public function restore(int $id)
+    public function restore(int $id): RedirectResponse
     {
         $game = Game::onlyTrashed()->findOrFail($id);
 
@@ -72,7 +74,7 @@ class GameTrashController extends Controller
     /**
      * Elimina un juego definitivamente, saltándose la papelera.
      */
-    public function forceDelete(int $id)
+    public function forceDelete(int $id): RedirectResponse
     {
         $game = Game::onlyTrashed()->findOrFail($id);
 

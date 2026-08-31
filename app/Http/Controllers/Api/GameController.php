@@ -7,7 +7,9 @@ use App\Http\Requests\Api\StoreGameRequest;
 use App\Http\Requests\Api\UpdateGameRequest;
 use App\Http\Resources\Api\GameResource;
 use App\Models\Game;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Gate;
 
 class GameController extends Controller
@@ -16,7 +18,7 @@ class GameController extends Controller
      * Muestra una lista paginada de los juegos, con los mismos filtros que el
      * listado web (?q=, ?platform_id=, ?play_status=, ?status=).
      */
-    public function index(Request $request)
+    public function index(Request $request): AnonymousResourceCollection
     {
         // Tope de 100 para que nadie pida una página gigante; 20 por defecto,
         // igual que el listado web.
@@ -52,7 +54,7 @@ class GameController extends Controller
     /**
      * Muestra un juego concreto.
      */
-    public function show(Game $game)
+    public function show(Game $game): GameResource
     {
         Gate::authorize('view', $game);
 
@@ -62,7 +64,7 @@ class GameController extends Controller
     /**
      * Guarda un nuevo juego en la base de datos.
      */
-    public function store(StoreGameRequest $request)
+    public function store(StoreGameRequest $request): GameResource
     {
         // Si el código llega aquí, significa que StoreGameRequest ya ha validado todo.
         // Solo cogemos los datos validados (evitamos que nos inyecten campos maliciosos).
@@ -80,7 +82,7 @@ class GameController extends Controller
     /**
      * Actualiza un juego existente.
      */
-    public function update(UpdateGameRequest $request, Game $game)
+    public function update(UpdateGameRequest $request, Game $game): GameResource
     {
         Gate::authorize('update', $game);
 
@@ -94,7 +96,7 @@ class GameController extends Controller
     /**
      * Elimina un juego (Soft Delete).
      */
-    public function destroy(Game $game)
+    public function destroy(Game $game): JsonResponse
     {
         Gate::authorize('delete', $game);
 

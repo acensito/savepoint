@@ -15,6 +15,9 @@ class TwoFactorCodeNotification extends Notification
 {
     public function __construct(public readonly string $code) {}
 
+    /**
+     * @return array<int, string>
+     */
     public function via(object $notifiable): array
     {
         return ['mail'];

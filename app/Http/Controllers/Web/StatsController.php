@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Game;
 use App\Models\Platform;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
 
@@ -49,6 +51,8 @@ class StatsController extends Controller
      * ~9 queries de agregación sobre toda la colección: se cachean en
      * conjunto (ver index()) porque todas dependen de los mismos datos y se
      * invalidan a la vez.
+     *
+     * @return array<string, mixed>
      */
     private function buildStats(int $userId): array
     {
@@ -76,8 +80,11 @@ class StatsController extends Controller
 
     /**
      * Nº de juegos por plataforma, ordenado de mayor a menor.
+     *
+     * @param  Builder<Game>  $base
+     * @return Collection<int, array{platform: Platform|null, total: int, percent: float}>
      */
-    private function byPlatform($base)
+    private function byPlatform(Builder $base): Collection
     {
         $counts = $base->selectRaw('platform_id, count(*) as total')
             ->groupBy('platform_id')
@@ -86,17 +93,24 @@ class StatsController extends Controller
         $platforms = Platform::whereIn('id', $counts->keys()->filter())->get()->keyBy('id');
         $max = $counts->max() ?: 1;
 
+        // Collection<TKey,TValue> no es covariante en PHPStan (la forma real
+        // coincide exactamente con el @return de arriba, pero PHPStan no lo
+        // reconoce): https://phpstan.org/blog/whats-up-with-template-covariant
+        // @phpstan-ignore return.type
         return $counts->map(fn ($total, $platformId) => [
             'platform' => $platforms->get($platformId),
-            'total' => $total,
+            'total' => (int) $total,
             'percent' => round($total / $max * 100),
         ])->sortByDesc('total')->values();
     }
 
     /**
      * Reparto por estado de juego (pendiente/jugando/terminado), con su % sobre el total.
+     *
+     * @param  Builder<Game>  $base
+     * @return array<int, array{label: string, color: string, total: int, percent: float}>
      */
-    private function byPlayStatus($base, int $total): array
+    private function byPlayStatus(Builder $base, int $total): array
     {
         $counts = $base->selectRaw('play_status, count(*) as total')
             ->groupBy('play_status')
@@ -118,8 +132,11 @@ class StatsController extends Controller
      * total. No incluye "vendido": un juego vendido (ver
      * SalesController::markAsSold) es un borrado blando, así que nunca
      * aparece aquí — su propio reparto por año vive en salesByYear().
+     *
+     * @param  Builder<Game>  $base
+     * @return array<int, array{label: string, color: string, total: int, percent: float}>
      */
-    private function byOwnershipStatus($base, int $total): array
+    private function byOwnershipStatus(Builder $base, int $total): array
     {
         $counts = $base->selectRaw('status, count(*) as total')
             ->groupBy('status')
@@ -151,8 +168,11 @@ class StatsController extends Controller
      * evolución en vez de solo el total acumulado. Se agrupa en PHP (no con
      * una función de fecha en SQL tipo to_char/strftime) para que funcione
      * igual en Postgres (producción) y SQLite (tests).
+     *
+     * @param  Builder<Game>  $base
+     * @return Collection<int, array{label: string, total: float, percent: float}>
      */
-    private function spendingByMonth($base)
+    private function spendingByMonth(Builder $base): Collection
     {
         $grouped = $base->whereNotNull('purchase_date')
             ->get(['purchase_date', 'price_paid'])
@@ -166,18 +186,23 @@ class StatsController extends Controller
         return $grouped->map(fn (float $total, string $month) => [
             'label' => Carbon::createFromFormat('Y-m-d', "{$month}-01")->startOfMonth()->translatedFormat('M Y'),
             'total' => $total,
-            'percent' => $max > 0 ? round($total / $max * 100) : 0,
+            'percent' => $max > 0 ? round($total / $max * 100) : 0.0,
         ])->values();
     }
 
     /**
      * Los géneros más repetidos en la colección (un juego puede tener
      * varios), de mayor a menor.
+     *
+     * @param  Builder<Game>  $base
+     * @return Collection<int, array{genre: string, total: int, percent: float}>
      */
-    private function topGenres($base)
+    private function topGenres(Builder $base): Collection
     {
-        $counts = $base->whereNotNull('genres')
-            ->pluck('genres')
+        /** @var Collection<int, array<int, string>|null> $genresColumn */
+        $genresColumn = $base->whereNotNull('genres')->pluck('genres');
+
+        $counts = $genresColumn
             ->flatMap(fn ($genres) => $genres ?? [])
             ->filter()
             ->countBy()
@@ -187,8 +212,8 @@ class StatsController extends Controller
         $max = $counts->max() ?: 1;
 
         return $counts->map(fn ($total, $genre) => [
-            'genre' => $genre,
-            'total' => $total,
+            'genre' => (string) $genre,
+            'total' => (int) $total,
             'percent' => round($total / $max * 100),
         ])->values();
     }
@@ -197,8 +222,11 @@ class StatsController extends Controller
      * Reparto por década de lanzamiento (años 90, 2000, 2010...), ordenado
      * cronológicamente (a diferencia de topGenres, que ordena por cantidad):
      * en una línea de tiempo importa más ver la evolución que el ranking.
+     *
+     * @param  Builder<Game>  $base
+     * @return Collection<int, array{decade: string, total: int, percent: float}>
      */
-    private function byDecade($base)
+    private function byDecade(Builder $base): Collection
     {
         $counts = $base->whereNotNull('release_date')
             ->pluck('release_date')
@@ -209,7 +237,7 @@ class StatsController extends Controller
 
         return $counts->map(fn ($total, $decade) => [
             'decade' => "Años {$decade}",
-            'total' => $total,
+            'total' => (int) $total,
             'percent' => round($total / $max * 100),
         ])->values();
     }
@@ -221,8 +249,10 @@ class StatsController extends Controller
      * falta los importes) y agrupado en PHP por el mismo motivo que
      * spendingByMonth()/byDecade(): funciona igual en Postgres (producción) y
      * SQLite (tests) sin depender de funciones de fecha propias de cada motor.
+     *
+     * @return Collection<int|string, array{count: int, paid: float, sold: float, profit: float, profit_percent: float|null}>
      */
-    private function salesByYear(int $userId)
+    private function salesByYear(int $userId): Collection
     {
         $sales = Game::onlyTrashed()
             ->where('user_id', $userId)
@@ -230,6 +260,10 @@ class StatsController extends Controller
             ->whereNotNull('sold_at')
             ->get(['sold_at', 'price_paid', 'sale_price']);
 
+        // Collection<TKey,TValue> no es covariante en PHPStan (la forma real
+        // coincide exactamente con el @return de arriba, pero PHPStan no lo
+        // reconoce): https://phpstan.org/blog/whats-up-with-template-covariant
+        // @phpstan-ignore return.type
         return $sales
             ->groupBy(fn (Game $game) => $game->sold_at->format('Y'))
             ->sortKeysDesc()
@@ -239,7 +273,7 @@ class StatsController extends Controller
                 $profit = $sold - $paid;
 
                 return [
-                    'count' => $yearGames->count(),
+                    'count' => (int) $yearGames->count(),
                     'paid' => $paid,
                     'sold' => $sold,
                     'profit' => $profit,

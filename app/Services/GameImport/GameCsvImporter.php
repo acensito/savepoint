@@ -50,6 +50,8 @@ class GameCsvImporter
      * ['handle' => resource, 'delimiter' => string, 'columns' => array] o
      * ['error' => string] si el fichero no se puede leer/está vacío/no tiene
      * columna "Título". El caller es responsable de cerrar el handle.
+     *
+     * @return array{handle: resource, delimiter: string, columns: array<string, int>}|array{error: string}
      */
     public function openFile(string $path): array
     {
@@ -186,6 +188,8 @@ class GameCsvImporter
     /**
      * Busca una plataforma por nombre (sin distinguir mayúsculas) o la crea
      * si no existe todavía. Devuelve [id, se_ha_creado].
+     *
+     * @return array{0: int, 1: bool}
      */
     private function resolvePlatform(string $name): array
     {
@@ -205,6 +209,8 @@ class GameCsvImporter
 
     /**
      * Igual que resolvePlatform() pero para ediciones (sin fabricante ni colores que asignar).
+     *
+     * @return array{0: int, 1: bool}
      */
     private function resolveEdition(string $name): array
     {
@@ -232,6 +238,9 @@ class GameCsvImporter
         return $slug;
     }
 
+    /**
+     * @param  array<string, string>  $map
+     */
     private function mapValue(?string $value, array $map, ?string $default): ?string
     {
         if (blank($value)) {
@@ -241,6 +250,9 @@ class GameCsvImporter
         return $map[Str::lower(trim($value))] ?? $default;
     }
 
+    /**
+     * @return array<int, string>|null
+     */
     private function parseGenres(?string $raw): ?array
     {
         if (blank($raw)) {

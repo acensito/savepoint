@@ -8,6 +8,7 @@ use App\Models\Platform;
 use App\Services\Games\GameCollectionQuery;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\View\View;
 
 /**
  * Exportación de la colección (imprimible/PDF y CSV), separada de
@@ -27,7 +28,7 @@ class GameExportController extends Controller
      * interno de altura fija), para que el navegador la reparta en páginas
      * con normalidad al imprimir o guardar como PDF.
      */
-    public function print(Request $request)
+    public function print(Request $request): View
     {
         $games = $this->collectionQuery->query($request)
             ->select(['id', 'title', 'ean', 'platform_id', 'edition_id', 'play_status', 'status', 'rating', 'price_paid', 'purchase_date'])
@@ -77,25 +78,30 @@ class GameExportController extends Controller
             ->with(['platform:id,name', 'edition:id,name'])
             ->get();
 
-        $rows = $games->map(fn (Game $game) => [
-            $game->title,
-            $game->ean,
-            $game->developer,
-            $game->platform?->name,
-            $game->edition?->name,
-            $game->release_date?->format('Y-m-d'),
-            $game->genres ? implode(', ', $game->genres) : '',
-            self::EXPORT_STATUS_LABELS[$game->status] ?? '',
-            self::EXPORT_PLAY_STATUS_LABELS[$game->play_status] ?? '',
-            $game->rating,
-            $game->price_paid,
-            $game->purchase_place,
-            $game->purchase_date?->format('Y-m-d'),
-            self::EXPORT_MANUAL_LABELS[$game->manual_status] ?? '',
-            $game->region,
-            $game->age_rating,
-            $game->notes,
-        ]);
+        $rows = $games->map(function (Game $game) {
+            /** @var array<int, string>|null $genres */
+            $genres = $game->genres;
+
+            return [
+                $game->title,
+                $game->ean,
+                $game->developer,
+                $game->platform?->name,
+                $game->edition?->name,
+                $game->release_date?->format('Y-m-d'),
+                $genres ? implode(', ', $genres) : '',
+                self::EXPORT_STATUS_LABELS[$game->status] ?? '',
+                self::EXPORT_PLAY_STATUS_LABELS[$game->play_status] ?? '',
+                $game->rating,
+                $game->price_paid,
+                $game->purchase_place,
+                $game->purchase_date?->format('Y-m-d'),
+                self::EXPORT_MANUAL_LABELS[$game->manual_status] ?? '',
+                $game->region,
+                $game->age_rating,
+                $game->notes,
+            ];
+        });
 
         $csv = "\xEF\xBB\xBF".implode("\r\n", array_map(
             fn (array $row) => implode(',', array_map($this->csvEscape(...), array_map('strval', $row))),

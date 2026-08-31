@@ -10,12 +10,15 @@ use App\Models\Platform;
 use App\Services\GameLookup\IgdbGameMatcher;
 use App\Services\GameLookup\IgdbLookupService;
 use App\Services\Games\GameCollectionQuery;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\View\View;
 use Throwable;
 
 class GameController extends Controller
@@ -59,7 +62,7 @@ class GameController extends Controller
     // Colección del usuario, con búsqueda por título/EAN, filtros por plataforma/estado
     // (?q=, ?platform_id=, ?play_status=, ?status=), orden (?sort=, ?dir=) y
     // tamaño de página (?per_page=)
-    public function index(Request $request)
+    public function index(Request $request): View
     {
         // ConvertEmptyStringsToNull (middleware por defecto) transforma los campos
         // vacíos del formulario en null, así que hay que castear a string antes de
@@ -127,7 +130,7 @@ class GameController extends Controller
      * código escaneado o buscado no coincide con ningún juego ya registrado,
      * para no tener que volver a teclearlo aquí.
      */
-    public function create(Request $request)
+    public function create(Request $request): View
     {
         $platforms = Platform::orderBy('name')->get();
         $editions = Edition::with('platforms')->orderBy('name')->get();
@@ -146,7 +149,7 @@ class GameController extends Controller
     }
 
     // Guarda el juego en la base de datos
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
         $validated = $this->validated($request);
 
@@ -185,7 +188,7 @@ class GameController extends Controller
      * (ver MatchGameWithIgdb): es la única vía de entrada al enriquecimiento
      * automático, no hace falta ninguna acción del usuario.
      */
-    public function show(Game $game)
+    public function show(Game $game): View
     {
         Gate::authorize('view', $game);
 
@@ -241,7 +244,7 @@ class GameController extends Controller
      * quitó (ver CHANGELOG) para no arriesgar cambios sin querer al hacer
      * scroll — ahora solo se cambia desde la ficha de edición completa.
      */
-    public function quickUpdate(Request $request, Game $game)
+    public function quickUpdate(Request $request, Game $game): JsonResponse|RedirectResponse
     {
         Gate::authorize('update', $game);
 
@@ -274,7 +277,7 @@ class GameController extends Controller
     /**
      * Muestra el formulario para editar un juego existente.
      */
-    public function edit(Request $request, Game $game)
+    public function edit(Request $request, Game $game): View
     {
         Gate::authorize('update', $game);
 
@@ -293,7 +296,7 @@ class GameController extends Controller
     /**
      * Actualiza el juego en la base de datos.
      */
-    public function update(Request $request, Game $game)
+    public function update(Request $request, Game $game): RedirectResponse
     {
         Gate::authorize('update', $game);
 
@@ -340,7 +343,7 @@ class GameController extends Controller
     /**
      * Elimina (Soft Delete) un juego.
      */
-    public function destroy(Game $game)
+    public function destroy(Game $game): RedirectResponse
     {
         Gate::authorize('delete', $game);
 
@@ -360,6 +363,8 @@ class GameController extends Controller
      * Reglas comunes al alta y la edición. El campo 'cover' se valida aquí
      * (para que @error('cover') funcione) pero el valor final que se guarda
      * se decide en store()/update(), no el que devuelve validate().
+     *
+     * @return array<string, mixed>
      */
     private function validated(Request $request): array
     {
@@ -465,6 +470,8 @@ class GameController extends Controller
      * "duplicados" entre sí. El aviso se puede saltar mandando
      * confirm_duplicate=1 (checkbox "Guardar de todos modos" en el formulario),
      * para permitir el caso legítimo de tener dos copias físicas del mismo juego.
+     *
+     * @param  array<string, mixed>  $validated
      */
     private function duplicateEan(Request $request, array $validated, ?Game $ignore): ?Game
     {
@@ -480,6 +487,8 @@ class GameController extends Controller
 
     /**
      * "Acción, Aventura, RPG" -> ['Acción', 'Aventura', 'RPG']
+     *
+     * @return array<int, string>|null
      */
     private function parseGenres(?string $raw): ?array
     {
@@ -493,6 +502,8 @@ class GameController extends Controller
     /**
      * El desplegable de región manda un valor fijo (PAL-ES, NTSC-U...) o "other",
      * en cuyo caso el valor real viene del campo de texto libre 'region_other'.
+     *
+     * @param  array<string, mixed>  $validated
      */
     private function resolveRegion(array $validated): ?string
     {

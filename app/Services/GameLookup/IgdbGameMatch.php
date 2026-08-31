@@ -10,6 +10,9 @@ namespace App\Services\GameLookup;
  */
 final class IgdbGameMatch
 {
+    /**
+     * @param  array<int, string>|null  $genres
+     */
     public function __construct(
         public readonly int $igdbId,
         public readonly string $title,

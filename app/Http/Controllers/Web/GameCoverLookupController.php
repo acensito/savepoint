@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Game;
 use App\Services\GameLookup\GameLookupInterface;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
@@ -29,7 +30,7 @@ class GameCoverLookupController extends Controller
      * guardado no da con ningún resultado (mal escrito, subtítulo distinto
      * al que usa CEX, etc.).
      */
-    public function coverLookup(Request $request, Game $game)
+    public function coverLookup(Request $request, Game $game): JsonResponse
     {
         Gate::authorize('update', $game);
 
@@ -49,7 +50,7 @@ class GameCoverLookupController extends Controller
      * que el usuario ya haya tecleado en EAN/título antes de pulsar el
      * botón, ver initCexCoverLookup en games/_form.blade.php).
      */
-    public function coverLookupForNew(Request $request)
+    public function coverLookupForNew(Request $request): JsonResponse
     {
         $query = trim((string) $request->query('q', ''));
         if ($query === '') {
@@ -59,7 +60,10 @@ class GameCoverLookupController extends Controller
         return response()->json(['results' => $this->searchCoverLookup($query)]);
     }
 
-    private function searchCoverLookup(string $query)
+    /**
+     * @return array<int, array{title: string, ean: string|null, cover_url: string|null, platform: string|null}>
+     */
+    private function searchCoverLookup(string $query): array
     {
         return collect($this->gameLookup->search($query))
             ->map(fn ($result) => [
@@ -68,6 +72,7 @@ class GameCoverLookupController extends Controller
                 'cover_url' => $result->coverUrl,
                 'platform' => $result->platform,
             ])
-            ->values();
+            ->values()
+            ->all();
     }
 }

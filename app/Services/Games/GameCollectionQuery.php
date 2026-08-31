@@ -19,6 +19,9 @@ use Illuminate\Http\Request;
  */
 class GameCollectionQuery
 {
+    /**
+     * @return Builder<Game>
+     */
     public function query(Request $request): Builder
     {
         $query = trim((string) $request->input('q', ''));
@@ -71,6 +74,8 @@ class GameCollectionQuery
      * ajuste "Orden por defecto" de Ajustes (ver PanelController), y si el
      * usuario tampoco lo ha configurado, se cae a 'desc'. Compartido entre
      * el listado y la exportación para que respeten el mismo criterio.
+     *
+     * @return array{0: string, 1: string}
      */
     public function resolveSort(Request $request): array
     {

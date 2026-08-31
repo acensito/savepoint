@@ -2,9 +2,17 @@
 
 namespace App\Http\Resources\Api;
 
+use App\Models\Game;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/**
+ * JsonResource reenvía por __get() cualquier propiedad no definida aquí al
+ * modelo envuelto ($this->resource): @mixin le dice a PHPStan que trate los
+ * accesos a propiedades de esta clase como si fueran también las de Game.
+ *
+ * @mixin Game
+ */
 class GameResource extends JsonResource
 {
     /**

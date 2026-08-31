@@ -20,6 +20,8 @@ class StoreGameRequest extends FormRequest
 
     /**
      * Las reglas de validación que deben cumplir los datos enviados.
+     *
+     * @return array<string, mixed>
      */
     public function rules(): array
     {

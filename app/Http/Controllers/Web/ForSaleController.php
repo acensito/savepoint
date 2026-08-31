@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Game;
+use Illuminate\View\View;
 
 class ForSaleController extends Controller
 {
@@ -15,7 +16,7 @@ class ForSaleController extends Controller
      * listado sin filtrar de ahí (ver GameCollectionQuery::query());
      * aquí siempre se ven, es la vía pensada justo para eso.
      */
-    public function index()
+    public function index(): View
     {
         $games = Game::where('user_id', auth()->id())
             ->where('for_sale', true)

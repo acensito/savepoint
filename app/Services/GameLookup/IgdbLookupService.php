@@ -51,6 +51,12 @@ class IgdbLookupService
      */
     public static function forUser(?User $user): self
     {
+        // PHPStan marca este "?->" como innecesario porque, en valor, acceder
+        // a una propiedad de null sin "?->" también resuelve a null y "??" lo
+        // captura igual — pero sin "?->", PHP emite un warning ("Attempt to
+        // read property on null") cuando no hay usuario. Se mantiene a
+        // propósito (ver Platform::effectiveBgColor() para el mismo caso).
+        // @phpstan-ignore nullsafe.neverNull
         $enabled = $user?->igdb_enabled ?? false;
 
         return new self(
@@ -112,7 +118,10 @@ class IgdbLookupService
             return [];
         }
 
-        $matches = collect($response->json() ?? [])
+        /** @var array<int, array<string, mixed>> $games */
+        $games = $response->json() ?? [];
+
+        $matches = collect($games)
             ->filter(fn (array $game) => filled($game['name'] ?? null))
             ->map(fn (array $game) => $this->toMatch($game))
             ->values();
@@ -172,7 +181,10 @@ class IgdbLookupService
             return [];
         }
 
-        return collect($response->json() ?? [])
+        /** @var array<int, array<string, mixed>> $artworks */
+        $artworks = $response->json() ?? [];
+
+        return collect($artworks)
             ->pluck('image_id')
             ->filter()
             ->values()
@@ -223,7 +235,10 @@ class IgdbLookupService
             return null;
         }
 
-        $entry = collect($response->json() ?? [])->first();
+        /** @var array<int, array<string, mixed>> $entries */
+        $entries = $response->json() ?? [];
+
+        $entry = collect($entries)->first();
         if ($entry === null) {
             return null;
         }
@@ -251,13 +266,23 @@ class IgdbLookupService
         return $score;
     }
 
+    /**
+     * @param  array<string, mixed>  $game
+     */
     private function toMatch(array $game): IgdbGameMatch
     {
-        $developerEntry = collect($game['involved_companies'] ?? [])
+        /** @var array<int, array<string, mixed>> $involvedCompanies */
+        $involvedCompanies = $game['involved_companies'] ?? [];
+        $developerEntry = collect($involvedCompanies)
             ->first(fn (array $company) => ($company['developer'] ?? false) === true);
 
-        $genres = collect($game['genres'] ?? [])->pluck('name')->filter()->values()->all();
-        $platforms = collect($game['platforms'] ?? [])->pluck('name')->filter()->implode(', ');
+        /** @var array<int, array<string, mixed>> $genresData */
+        $genresData = $game['genres'] ?? [];
+        /** @var array<int, array<string, mixed>> $platformsData */
+        $platformsData = $game['platforms'] ?? [];
+
+        $genres = collect($genresData)->pluck('name')->filter()->values()->all();
+        $platforms = collect($platformsData)->pluck('name')->filter()->implode(', ');
 
         // aggregated_rating (media de críticas) es más fiable que rating (media
         // de usuarios, muy poblada de votos aislados); se cae al segundo solo
