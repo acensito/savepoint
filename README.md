@@ -534,10 +534,10 @@ Cobertura actual:
 
 ## Ideas a futuro
 
-A diferencia de una tarea ya abierta como issue en GitHub (acotada y con intención real de hacerse pronto — ver
+A diferencia de una tarea ya abierta como issue en GitHub (con forma concreta de tarea, ver
 [issues del repositorio](issues) para el estado real de lo pendiente), esto es una lista de ideas sueltas sin
-planificar ni acotar todavía — una tormenta de ideas, no un roadmap. Agrupadas por la sección de la app a la que
-afectarían.
+planificar ni acotar todavía — una tormenta de ideas, no un roadmap ni una previsión de qué se implementará a corto
+plazo. Agrupadas por la sección de la app a la que afectarían.
 
 ### Colección
 
