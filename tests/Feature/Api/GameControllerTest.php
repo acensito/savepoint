@@ -340,6 +340,51 @@ class GameControllerTest extends TestCase
         ]);
     }
 
+    /**
+     * price_paid es decimal(10,2): sin un max: que lo refleje, un valor de 9
+     * dígitos pasaba la validación de Laravel y reventaba como
+     * QueryException (overflow numérico) en vez de un 422 normal (mismo bug
+     * ya corregido en GameController::validated(), el equivalente web).
+     */
+    public function test_creating_a_game_rejects_a_price_paid_beyond_the_database_column_size(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        $platform = Platform::factory()->create();
+
+        $this->postJson('/api/games', [
+            'title' => 'Celeste',
+            'platform_id' => $platform->id,
+            'price_paid' => '123456789.12',
+        ])->assertStatus(422)->assertJsonValidationErrors('price_paid');
+    }
+
+    public function test_creating_a_game_accepts_a_price_paid_at_the_maximum_allowed_value(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        $platform = Platform::factory()->create();
+
+        $this->postJson('/api/games', [
+            'title' => 'Celeste',
+            'platform_id' => $platform->id,
+            'price_paid' => '99999999.99',
+        ])->assertCreated();
+
+        $this->assertDatabaseHas('games', ['title' => 'Celeste', 'price_paid' => '99999999.99']);
+    }
+
+    public function test_updating_a_game_rejects_a_price_paid_beyond_the_database_column_size(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+        $game = Game::factory()->for($user)->create(['price_paid' => 10]);
+
+        $this->putJson("/api/games/{$game->id}", [
+            'price_paid' => '123456789.12',
+        ])->assertStatus(422)->assertJsonValidationErrors('price_paid');
+
+        $this->assertEquals(10, $game->fresh()->price_paid);
+    }
+
     public function test_updating_a_game_ignores_an_attempt_to_reassign_it_to_another_user(): void
     {
         // Mismo caso que en store(): UpdateGameRequest tampoco valida

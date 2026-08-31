@@ -87,7 +87,9 @@ class SalesController extends Controller
         Gate::authorize('update', $game);
 
         $validated = $request->validate([
-            'sale_price' => 'required|numeric|min:0',
+            // max:99999999.99: tope real de la columna decimal(10,2) — ver
+            // GameController::validated() para el mismo motivo.
+            'sale_price' => 'required|numeric|min:0|max:99999999.99',
             'sold_at' => 'required|date',
             'notes' => 'sometimes|nullable|string',
         ]);
