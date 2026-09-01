@@ -25,10 +25,12 @@ class IgdbGameMatcher
      * igdb_rating/igdb_time_to_beat/igdb_age_ratings/igdb_id se sobrescriben
      * siempre porque son campos exclusivos de IGDB, sin equivalente manual
      * que proteger — igdb_age_ratings se guarda aunque age_rating ya
-     * estuviera puesto a mano: es la lista cruda que acota el desplegable
-     * del formulario (ver issue #46), informativa, no pisa nada visible. Se
-     * marca igdb_matched_at haya habido match o no, para no repetir la
-     * búsqueda automática después.
+     * estuviera puesto a mano: es la lista cruda que trajo IGDB, informativa,
+     * no pisa nada visible (el desplegable del formulario siempre ofrece
+     * todas las combinaciones conocidas, no solo estas — IGDB puede
+     * equivocarse, ver games/_form.blade.php e issue #46). Se marca
+     * igdb_matched_at haya habido match o no, para no repetir la búsqueda
+     * automática después.
      */
     public function matchIfNeeded(Game $game): void
     {

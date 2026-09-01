@@ -41,27 +41,23 @@
     $isCustomRegion = $currentRegionSelect !== '' && $currentRegionSelect !== 'other' && !in_array($currentRegionSelect, $regionPresets, true);
     $regionSelectValue = $isCustomRegion ? 'other' : $currentRegionSelect;
 
-    // Clasificación por edad (issue #46): si IGDB ya emparejó el juego y
-    // trajo clasificaciones (games.igdb_age_ratings), el desplegable se
-    // acota a esas combinaciones exactas; sin match todavía (o en el alta),
-    // se listan todas las conocidas (Game::AGE_RATING_SYSTEMS) agrupadas por
-    // sistema. Mismo patrón "preset + otro" que región, pero comparando por
-    // etiqueta ("PEGI 12") en vez de por el valor plano del desplegable
-    // ("PEGI-12", sin equivalente directo en age_rating) para no perder
-    // texto libre raro (importado por CSV, p. ej.) en el "Otra…" a la vuelta.
-    $igdbAgeRatings = $game?->igdb_age_ratings ?? [];
-    $ageRatingSource = $igdbAgeRatings !== []
-        ? collect($igdbAgeRatings)
-        : collect(\App\Models\Game::AGE_RATING_SYSTEMS)->flatMap(
-            fn ($values, $system) => collect($values)->map(fn ($value) => ['organization' => $system, 'value' => $value])
-        );
-    $ageRatingOptions = $ageRatingSource
-        ->map(fn (array $entry) => [
-            'organization' => $entry['organization'],
-            'select_value' => "{$entry['organization']}-{$entry['value']}",
-            'label' => "{$entry['organization']} {$entry['value']}",
-        ])
-        ->unique('label')
+    // Clasificación por edad (issue #46): el desplegable siempre lista todas
+    // las combinaciones conocidas (Game::AGE_RATING_SYSTEMS) agrupadas por
+    // sistema — nunca se acota a lo que IGDB haya traído (games.
+    // igdb_age_ratings), porque IGDB puede equivocarse (una reedición/
+    // remaster con clasificación distinta a la original, p. ej.) y el
+    // usuario tiene que poder corregirlo a mano a cualquier valor válido, no
+    // solo a los que IGDB conoce. Mismo patrón "preset + otro" que región,
+    // pero comparando por etiqueta ("PEGI 12") en vez de por el valor plano
+    // del desplegable ("PEGI-12", sin equivalente directo en age_rating)
+    // para no perder texto libre raro (importado por CSV, p. ej.) en el
+    // "Otra…" a la vuelta.
+    $ageRatingOptions = collect(\App\Models\Game::AGE_RATING_SYSTEMS)
+        ->flatMap(fn ($values, $system) => collect($values)->map(fn ($value) => [
+            'organization' => $system,
+            'select_value' => "{$system}-{$value}",
+            'label' => "{$system} {$value}",
+        ]))
         ->values();
 
     $matchingAgeRatingOption = $ageRatingOptions->firstWhere('label', $game?->age_rating);
@@ -413,35 +409,6 @@
     }
 
     document.getElementById('age_rating_select')?.addEventListener('change', toggleCustomAgeRating);
-
-    // Mismo mapeo región -> sistema que AgeRatingResolver (issue #46), pero
-    // aquí solo como sugerencia en el propio formulario: si al cambiar de
-    // región hay EXACTAMENTE una opción de ese sistema entre las ya
-    // ofrecidas, se preselecciona (se puede cambiar después sin más). No se
-    // toca nada si hay varias (la lista completa sin match de IGDB, p. ej.
-    // las 5 de PEGI): adivinar un valor concreto sin dato real de IGDB
-    // detrás sería inventarlo.
-    const REGION_TO_AGE_RATING_ORGANIZATION = {
-        'PAL-ES': 'PEGI', 'PAL-EU': 'PEGI', 'PAL-UK': 'PEGI', 'PAL-FR': 'PEGI', 'PAL-IT': 'PEGI',
-        'PAL-DE': 'USK',
-        'NTSC-U': 'ESRB',
-        'NTSC-J': 'CERO',
-    };
-
-    function suggestAgeRatingFromRegion() {
-        const organization = REGION_TO_AGE_RATING_ORGANIZATION[document.getElementById('region_select').value];
-        if (!organization) return;
-
-        const ageRatingSelect = document.getElementById('age_rating_select');
-        const matches = Array.from(ageRatingSelect.options).filter((opt) => opt.value.startsWith(`${organization}-`));
-
-        if (matches.length === 1) {
-            ageRatingSelect.value = matches[0].value;
-            toggleCustomAgeRating();
-        }
-    }
-
-    document.getElementById('region_select')?.addEventListener('change', suggestAgeRatingFromRegion);
 
     function filterEditions() {
         const platformId = document.getElementById('platform_id').value;

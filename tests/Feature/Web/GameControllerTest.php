@@ -65,17 +65,21 @@ class GameControllerTest extends TestCase
     }
 
     /**
-     * (#46): con coincidencia de IGDB, el desplegable se acota a exactamente
-     * las combinaciones que IGDB devolvió para ese juego — el resto de
-     * valores conocidos (p. ej. PEGI 3) no se ofrecen, solo "Otra…" sigue
-     * disponible como escape.
+     * (#46, regresión): el desplegable ofrece SIEMPRE todas las
+     * combinaciones conocidas, incluso con coincidencia de IGDB — se probó a
+     * acotarlo a lo que IGDB trajo, pero IGDB puede equivocarse (una
+     * reedición/remaster con clasificación distinta a la original, p. ej.
+     * Soul Reaver Remastered: IGDB lo marca PEGI 16, siendo en realidad
+     * PEGI 18) y el usuario tiene que poder corregirlo a cualquier valor
+     * válido, no solo a los que IGDB conoce para ese juego.
      */
-    public function test_edit_form_narrows_age_rating_options_to_what_igdb_matched(): void
+    public function test_edit_form_lists_every_known_age_rating_option_even_with_an_igdb_match(): void
     {
         $user = User::factory()->create();
         $game = Game::factory()->for($user)->create([
+            'age_rating' => 'PEGI 16',
             'igdb_age_ratings' => [
-                ['organization' => 'PEGI', 'value' => '12'],
+                ['organization' => 'PEGI', 'value' => '16'],
                 ['organization' => 'USK', 'value' => '12'],
             ],
         ]);
@@ -83,11 +87,12 @@ class GameControllerTest extends TestCase
         $response = $this->actingAs($user)->get(route('web.games.edit', $game->id));
 
         $response->assertOk();
-        $response->assertSee('value="PEGI-12"', false);
-        $response->assertSee('value="USK-12"', false);
+        // El valor resuelto de IGDB sigue preseleccionado por defecto.
+        $response->assertSee('value="PEGI-16" selected', false);
+        // Pero el resto de combinaciones conocidas también están disponibles.
+        $response->assertSee('value="PEGI-18"', false);
+        $response->assertSee('value="CERO-A"', false);
         $response->assertSee('value="other"', false);
-        $response->assertDontSee('value="PEGI-18"', false);
-        $response->assertDontSee('value="CERO-A"', false);
     }
 
     public function test_edit_form_lists_every_known_option_without_an_igdb_match(): void
