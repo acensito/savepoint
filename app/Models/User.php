@@ -75,6 +75,7 @@ class User extends Authenticatable
             'igdb_client_secret' => 'encrypted',
             'two_factor_enabled' => 'boolean',
             'two_factor_code_expires_at' => 'datetime',
+            'two_factor_verified_at' => 'datetime',
             'section_wishlist_enabled' => 'boolean',
             'section_commissions_enabled' => 'boolean',
             'section_for_sale_enabled' => 'boolean',
@@ -161,7 +162,8 @@ class User extends Authenticatable
 
     /**
      * Comprueba el código contra el hash guardado y su caducidad. Si es
-     * válido, lo consume (no se puede volver a usar).
+     * válido, lo consume (no se puede volver a usar) y, la primera vez,
+     * marca `two_factor_verified_at` — ver hasAbandonedTwoFactorChallenge().
      */
     public function verifyTwoFactorCode(string $code): bool
     {
@@ -173,9 +175,26 @@ class User extends Authenticatable
             $this->forceFill([
                 'two_factor_code' => null,
                 'two_factor_code_expires_at' => null,
+                'two_factor_verified_at' => $this->two_factor_verified_at ?? now(),
             ])->save();
         }
 
         return $valid;
+    }
+
+    /**
+     * Cuenta con 2FA activo que nunca completó un desafío: o bien un
+     * registro (RegisterController::register() lo activa siempre de
+     * fábrica) del que nunca se introdujo el código, o bien lo activó desde
+     * Ajustes pero PanelController::updateToggle() no llegó a marcar
+     * two_factor_verified_at (no debería pasar salvo dato antiguo/manual).
+     * `two_factor_verified_at` no vuelve a null nunca una vez puesto, así
+     * que un login a medias de una cuenta que ya se verificó alguna vez no
+     * cuenta como abandonada — ver panel/users/index.blade.php y
+     * App\Services\Users\AbandonedAccountPruner.
+     */
+    public function hasAbandonedTwoFactorChallenge(): bool
+    {
+        return $this->two_factor_enabled && $this->two_factor_verified_at === null;
     }
 }

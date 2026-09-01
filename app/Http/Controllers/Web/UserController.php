@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\AppSetting;
 use App\Models\User;
+use App\Services\Users\AbandonedAccountPruner;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,15 +20,41 @@ class UserController extends Controller
      * Listado de todas las cuentas de la plataforma (solo admin, ver
      * UserPolicy): a diferencia del resto de listados de la app, sin
      * buscador/paginación — la escala aquí es de un puñado de cuentas.
+     * Admins primero (son quienes más importa tener localizados) y, dentro
+     * de cada grupo, más recientes primero — antes alfabético por nombre,
+     * sin ninguna forma de distinguir de un vistazo una cuenta recién
+     * llegada (issue #10).
      */
-    public function index(): View
+    public function index(AbandonedAccountPruner $pruner): View
     {
         Gate::authorize('viewAny', User::class);
 
-        $users = User::withCount('games')->orderBy('name')->get();
+        $users = User::withCount('games')
+            ->orderByDesc('is_admin')
+            ->orderByDesc('created_at')
+            ->get();
         $appSetting = AppSetting::current();
+        $abandonedCount = $pruner->pendingCount();
 
-        return view('panel.users.index', compact('users', 'appSetting'));
+        return view('panel.users.index', compact('users', 'appSetting', 'abandonedCount'));
+    }
+
+    /**
+     * Botón manual "Purgar cuentas abandonadas" (issue #10): sin job
+     * programado, es la única forma de limpiarlas — ver
+     * App\Services\Users\AbandonedAccountPruner para el criterio.
+     */
+    public function pruneAbandoned(AbandonedAccountPruner $pruner): RedirectResponse
+    {
+        Gate::authorize('viewAny', User::class);
+
+        $count = $pruner->prune();
+
+        $message = $count === 0
+            ? 'No había ninguna cuenta abandonada que purgar.'
+            : ($count === 1 ? 'Se ha purgado 1 cuenta abandonada.' : "Se han purgado {$count} cuentas abandonadas.");
+
+        return redirect()->route('web.panel.users.index')->with('success', $message);
     }
 
     /**
