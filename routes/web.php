@@ -102,6 +102,7 @@ Route::middleware('auth')->group(function () {
     // /panel/users/{user} por el mismo motivo que /games/create.
     Route::get('/panel/users/create', [UserController::class, 'create'])->name('web.panel.users.create');
     Route::post('/panel/users', [UserController::class, 'store'])->name('web.panel.users.store');
+    Route::post('/panel/users/prune-abandoned', [UserController::class, 'pruneAbandoned'])->name('web.panel.users.prune-abandoned');
     Route::get('/panel/users', [UserController::class, 'index'])->name('web.panel.users.index');
     Route::get('/panel/users/{user}/edit', [UserController::class, 'edit'])->name('web.panel.users.edit');
     Route::put('/panel/users/{user}', [UserController::class, 'update'])->name('web.panel.users.update');

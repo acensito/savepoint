@@ -138,7 +138,22 @@ class PanelController extends Controller
             'value' => ['required', 'boolean'],
         ]);
 
-        $request->user()->update([$validated['field'] => $validated['value']]);
+        $user = $request->user();
+        $user->update([$validated['field'] => $validated['value']]);
+
+        // Activar 2FA desde aquí ya parte de una sesión autenticada: eso
+        // prueba por sí solo que la cuenta es real y está en uso, sin
+        // esperar a que complete un desafío real. Sin esto, un usuario ya
+        // activo (con juegos, de toda la vida) que activa 2FA hoy quedaría
+        // indistinguible de un registro nunca completado — ver
+        // User::hasAbandonedTwoFactorChallenge() y
+        // App\Services\Users\AbandonedAccountPruner (issue #10).
+        // forceFill(), no fillable a propósito (igual que
+        // two_factor_code_expires_at): nunca debe poder spoofearse vía un
+        // update() con datos de petición.
+        if ($validated['field'] === 'two_factor_enabled' && $validated['value'] && ! $user->two_factor_verified_at) {
+            $user->forceFill(['two_factor_verified_at' => now()])->save();
+        }
 
         return response()->json(['ok' => true]);
     }

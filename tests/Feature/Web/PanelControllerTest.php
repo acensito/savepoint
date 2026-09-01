@@ -330,6 +330,44 @@ class PanelControllerTest extends TestCase
         $this->assertFalse($otherUser->fresh()->$field);
     }
 
+    /**
+     * Regresión (#10): sin esto, un usuario ya activo (con juegos, de toda
+     * la vida) que activa 2FA hoy desde Ajustes quedaría indistinguible de
+     * un registro huérfano nunca completado — ver
+     * User::hasAbandonedTwoFactorChallenge() y
+     * App\Services\Users\AbandonedAccountPruner.
+     */
+    public function test_enabling_two_factor_from_settings_marks_it_as_verified_immediately(): void
+    {
+        $user = User::factory()->create(['two_factor_enabled' => false]);
+        Game::factory()->for($user)->create();
+
+        $this->actingAs($user)->patchJson('/panel/settings/toggles', [
+            'field' => 'two_factor_enabled',
+            'value' => true,
+        ]);
+
+        $fresh = $user->fresh();
+        $this->assertTrue($fresh->two_factor_enabled);
+        $this->assertNotNull($fresh->two_factor_verified_at);
+        $this->assertFalse($fresh->hasAbandonedTwoFactorChallenge());
+    }
+
+    public function test_disabling_two_factor_from_settings_does_not_touch_verified_at(): void
+    {
+        $user = User::factory()->create([
+            'two_factor_enabled' => true,
+            'two_factor_verified_at' => now()->subDay(),
+        ]);
+
+        $this->actingAs($user)->patchJson('/panel/settings/toggles', [
+            'field' => 'two_factor_enabled',
+            'value' => false,
+        ]);
+
+        $this->assertNotNull($user->fresh()->two_factor_verified_at);
+    }
+
     public static function toggleFieldProvider(): array
     {
         return [

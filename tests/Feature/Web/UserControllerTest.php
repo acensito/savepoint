@@ -5,6 +5,7 @@ namespace Tests\Feature\Web;
 use App\Models\AppSetting;
 use App\Models\Game;
 use App\Models\User;
+use App\Services\Users\AbandonedAccountPruner;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -24,6 +25,7 @@ class UserControllerTest extends TestCase
         $this->put("/panel/users/{$other->id}")->assertRedirect('/login');
         $this->delete("/panel/users/{$other->id}")->assertRedirect('/login');
         $this->patch('/panel/registration', ['registration_enabled' => '0'])->assertRedirect('/login');
+        $this->post('/panel/users/prune-abandoned')->assertRedirect('/login');
     }
 
     public function test_a_non_admin_is_forbidden_from_every_users_route(): void
@@ -38,6 +40,7 @@ class UserControllerTest extends TestCase
         $this->actingAs($user)->put("/panel/users/{$other->id}", [])->assertForbidden();
         $this->actingAs($user)->delete("/panel/users/{$other->id}")->assertForbidden();
         $this->actingAs($user)->patch('/panel/registration', ['registration_enabled' => '0'])->assertForbidden();
+        $this->actingAs($user)->post('/panel/users/prune-abandoned')->assertForbidden();
     }
 
     public function test_admin_can_list_all_users_with_their_game_count(): void
@@ -55,6 +58,86 @@ class UserControllerTest extends TestCase
         $users = $response->viewData('users')->keyBy('id');
         $this->assertSame(3, $users[$other->id]->games_count);
         $this->assertSame(0, $users[$admin->id]->games_count);
+    }
+
+    /**
+     * (#10): antes alfabético por nombre, sin ninguna forma de distinguir de
+     * un vistazo una cuenta recién llegada.
+     */
+    public function test_users_list_is_ordered_admins_first_then_by_most_recent_signup(): void
+    {
+        $admin = User::factory()->admin()->create(['name' => 'Yo, admin']);
+        $oldRegular = User::factory()->create(['name' => 'Zulema', 'created_at' => now()->subDays(10)]);
+        $newRegular = User::factory()->create(['name' => 'Ana', 'created_at' => now()->subDay()]);
+        $oldAdmin = User::factory()->admin()->create(['name' => 'Otro admin', 'created_at' => now()->subDays(20)]);
+
+        $response = $this->actingAs($admin)->get('/panel/users');
+
+        $ids = $response->viewData('users')->pluck('id')->all();
+
+        $this->assertSame([
+            $admin->id, $oldAdmin->id, $newRegular->id, $oldRegular->id,
+        ], $ids);
+    }
+
+    public function test_abandoned_two_factor_account_shows_a_pending_badge(): void
+    {
+        $admin = User::factory()->admin()->create();
+        User::factory()->twoFactorEnabled()->create(['name' => 'Cuenta huérfana']);
+
+        $response = $this->actingAs($admin)->get('/panel/users');
+
+        $response->assertSee('2FA pendiente');
+    }
+
+    public function test_verified_two_factor_account_does_not_show_a_pending_badge(): void
+    {
+        $admin = User::factory()->admin()->create();
+        User::factory()->twoFactorEnabled()->create([
+            'name' => 'Cuenta normal',
+            'two_factor_verified_at' => now(),
+        ]);
+
+        $response = $this->actingAs($admin)->get('/panel/users');
+
+        $response->assertDontSee('2FA pendiente');
+    }
+
+    /**
+     * Regresión (#10): activar 2FA desde Ajustes (PanelControllerTest cubre
+     * el detalle) no debe dejar a una cuenta real y activa con el mismo
+     * aspecto que una huérfana.
+     */
+    public function test_account_that_enabled_two_factor_from_settings_does_not_show_a_pending_badge(): void
+    {
+        $admin = User::factory()->admin()->create();
+        User::factory()->create([
+            'name' => 'Activó 2FA hoy',
+            'two_factor_enabled' => true,
+            'two_factor_verified_at' => now(),
+        ]);
+
+        $response = $this->actingAs($admin)->get('/panel/users');
+
+        $response->assertDontSee('2FA pendiente');
+    }
+
+    public function test_admin_can_manually_purge_abandoned_accounts(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $abandoned = User::factory()->twoFactorEnabled()->create([
+            'created_at' => now()->subDays(AbandonedAccountPruner::GRACE_PERIOD_DAYS + 1),
+        ]);
+        $tooRecent = User::factory()->twoFactorEnabled()->create([
+            'created_at' => now()->subDay(),
+        ]);
+
+        $response = $this->actingAs($admin)->post('/panel/users/prune-abandoned');
+
+        $response->assertRedirect(route('web.panel.users.index'));
+        $response->assertSessionHas('success');
+        $this->assertDatabaseMissing('users', ['id' => $abandoned->id]);
+        $this->assertDatabaseHas('users', ['id' => $tooRecent->id]);
     }
 
     public function test_admin_can_create_a_user(): void

@@ -5,6 +5,14 @@ sección al final de `README.md`; se separó a este fichero para que el README
 pueda ser un documento de presentación del proyecto en vez de una lista que
 crece sin parar.
 
+## 2026-09-01
+
+- **`/panel/users`: orden por rol/antigüedad, badge de 2FA sin completar y purgado de cuentas abandonadas** (#10, anotado tras el incidente real de cuentas huérfanas por fallo de envío del código 2FA del 2026-08-23): el listado ordenaba alfabético por nombre y no había forma de distinguir una cuenta que se registró con verificación en dos pasos y nunca llegó a introducir el primer código (huérfana de verdad) de una cuenta normal. Cambios:
+  - Orden nuevo: admins primero, y dentro de cada grupo, alta más reciente primero.
+  - Nueva columna `users.two_factor_verified_at`, marcada la primera vez que se completa un desafío de 2FA real (`User::verifyTwoFactorCode()`) — null significa "nunca". Badge ámbar "2FA pendiente" en el listado cuando `two_factor_enabled` está activo y esto sigue a null.
+  - Ojo con el falso positivo: un usuario ya activo (con juegos, de toda la vida) que activa 2FA hoy desde Ajustes también tendría `two_factor_verified_at` a null hasta su próximo login — indistinguible de una cuenta huérfana si no se hacía nada más. `PanelController::updateToggle()` marca ahora esa columna en el momento de activarlo desde una sesión ya autenticada (esa sesión ya prueba que la cuenta es real), así que el hueco solo lo dejan los registros de `/register` sin completar.
+  - Nuevo `App\Services\Users\AbandonedAccountPruner` y botón manual "Purgar cuentas abandonadas" en el panel: purga cuentas con 2FA activo, nunca verificado y con más de 7 días desde el alta. Sin job programado a propósito: un botón basta para un puñado de cuentas ocasionales. No hacía falta resolver ninguna forma especial de "reanudar el registro": quien sigue interesado tiene contraseña válida de sobra para ir a `/login` en cualquier momento, que le reenvía el código igual que "Reenviar código" — sin tocar `/register` (ahí seguiría chocando con el `unique` del email) ni requerir que un admin borre nada a mano.
+
 ## 2026-08-31
 
 - **Vista de tarjetas para mobile en Encargos, Ventas y En venta** (#38): esas tres secciones solo tenían la tabla de escritorio, mostrada con scroll horizontal en pantallas estrechas — la única de las cuatro secciones de listado que ya resolvía esto bien era la colección principal (`games/_results.blade.php`). Mismo patrón `md:hidden`/`hidden md:block` aplicado a las tres, con un subconjunto de campos por tarjeta (el resto sigue accesible desde la ficha del juego cuando existe): Encargos conserva título/plataforma/dirección/precio/fecha y las acciones (editar, marcar enviado/recibido, borrar); Ventas y En venta añaden la carátula y priorizan rendimiento/precio de venta o el botón de marcar vendido sobre columnas como edición/región/notas, que no cabían en una tarjeta. Sin cambios en las tablas de escritorio.

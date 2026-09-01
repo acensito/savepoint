@@ -11,6 +11,17 @@
             <a href="{{ route('web.panel.index') }}" class="text-sm font-medium text-slate-400 hover:text-slate-100">
                 ← Volver al panel
             </a>
+            @if($abandonedCount > 0)
+                <form action="{{ route('web.panel.users.prune-abandoned') }}" method="POST" class="inline js-confirm-delete"
+                    data-confirm-title="Purgar cuentas abandonadas"
+                    data-confirm-message="Se borrarán permanentemente {{ $abandonedCount }} cuenta(s) que se registraron con verificación en dos pasos y nunca completaron el primer código. Quien siga interesado puede simplemente volver a iniciar sesión con su email y contraseña en cualquier momento antes de purgarse."
+                    data-confirm-accept="Purgar cuentas">
+                    @csrf
+                    <button type="submit" class="text-sm font-medium text-amber-400 hover:text-amber-300 whitespace-nowrap">
+                        Purgar {{ $abandonedCount }} cuenta(s) abandonada(s)
+                    </button>
+                </form>
+            @endif
             <a href="{{ route('web.panel.users.create') }}" class="bg-(--color-navbar) text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-(--color-navbar-hover) transition-colors whitespace-nowrap">
                 Nuevo usuario
             </a>
@@ -36,6 +47,7 @@
                     <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Nombre</th>
                     <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Email</th>
                     <th scope="col" class="px-6 py-3.5 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">Rol</th>
+                    <th scope="col" class="px-6 py-3.5 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">Estado</th>
                     <th scope="col" class="px-6 py-3.5 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">Juegos</th>
                     <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Alta</th>
                     <th scope="col" class="px-6 py-3.5 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">Acciones</th>
@@ -54,6 +66,16 @@
                         <td class="px-6 py-4 whitespace-nowrap text-center">
                             @if($user->is_admin)
                                 <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-indigo-500/10 text-indigo-300 border border-indigo-500/30">Admin</span>
+                            @else
+                                <span class="text-sm text-slate-500">—</span>
+                            @endif
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            @if($user->hasAbandonedTwoFactorChallenge())
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-amber-500/10 text-amber-300 border border-amber-500/30"
+                                    title="Se registró con verificación en dos pasos pero nunca completó el primer código">
+                                    2FA pendiente
+                                </span>
                             @else
                                 <span class="text-sm text-slate-500">—</span>
                             @endif
