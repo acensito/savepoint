@@ -44,6 +44,29 @@ class EditionControllerTest extends TestCase
         $response->assertSee('Switch');
     }
 
+    /**
+     * Regresión: _form.blade.php referenciaba `Edition::FORMAT_PHYSICAL` sin
+     * el namespace completo (`\App\Models\Edition`, ya usado dos líneas más
+     * arriba para `Edition::FORMATS`) — los ficheros Blade compilados se
+     * ejecutan en el namespace raíz, así que resolvía a la clase inexistente
+     * `\Edition` y tumbaba /editions/create con un 500. Sin este test, ningún
+     * caso existente llegaba a renderizar el formulario de alta con GET.
+     */
+    public function test_create_form_can_be_rendered(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->get('/editions/create')->assertOk();
+    }
+
+    public function test_edit_form_can_be_rendered(): void
+    {
+        $user = User::factory()->create();
+        $edition = Edition::factory()->create();
+
+        $this->actingAs($user)->get("/editions/{$edition->id}/edit")->assertOk();
+    }
+
     public function test_user_can_create_an_edition_with_platforms(): void
     {
         $user = User::factory()->create();
