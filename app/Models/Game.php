@@ -64,6 +64,7 @@ class Game extends Model
         'igdb_genres',
         'igdb_rating',
         'igdb_time_to_beat',
+        'igdb_age_ratings',
         'igdb_matched_at',
         'igdb_background',
     ];
@@ -88,6 +89,7 @@ class Game extends Model
             'igdb_genres' => 'array',
             'igdb_rating' => 'decimal:2',
             'igdb_time_to_beat' => 'array',
+            'igdb_age_ratings' => 'array',
             'igdb_matched_at' => 'datetime',
         ];
     }
@@ -116,6 +118,35 @@ class Game extends Model
     public const RATING_MIN = 1;
 
     public const RATING_MAX = 5;
+
+    /**
+     * Sistemas de clasificación por edad reconocidos y sus valores válidos
+     * (verificado contra la API real de IGDB, issue #46 — el esquema
+     * age_ratings cambió en 2024). Fuente única para el desplegable del
+     * formulario sin coincidencia de IGDB (games/_form.blade.php) y para lo
+     * que ageRatingBadge() reconoce al parsear age_rating.
+     */
+    public const AGE_RATING_SYSTEMS = [
+        'PEGI' => ['3', '7', '12', '16', '18'],
+        'ESRB' => ['RP', 'EC', 'E', 'E10+', 'T', 'M', 'AO'],
+        'CERO' => ['A', 'B', 'C', 'D', 'Z'],
+        'USK' => ['0', '6', '12', '16', '18'],
+    ];
+
+    /**
+     * "Edad efectiva" de cada valor, para bucketizar la severidad del badge
+     * de forma consistente entre los 4 sistemas (ver ageRatingBadge()) — no
+     * es una equivalencia oficial entre sistemas, solo una escala común para
+     * el color. null (ESRB RP, "Rating Pending") no es una edad real: cae al
+     * badge neutro en vez de a un color.
+     */
+    private const AGE_RATING_EFFECTIVE_AGE = [
+        'PEGI 3' => 3, 'PEGI 7' => 7, 'PEGI 12' => 12, 'PEGI 16' => 16, 'PEGI 18' => 18,
+        'USK 0' => 0, 'USK 6' => 6, 'USK 12' => 12, 'USK 16' => 16, 'USK 18' => 18,
+        'CERO A' => 0, 'CERO B' => 12, 'CERO C' => 15, 'CERO D' => 17, 'CERO Z' => 18,
+        'ESRB RP' => null, 'ESRB EC' => 0, 'ESRB E' => 6, 'ESRB E10+' => 10,
+        'ESRB T' => 13, 'ESRB M' => 17, 'ESRB AO' => 18,
+    ];
 
     // ==========================================
     // BÚSQUEDA
@@ -233,5 +264,87 @@ class Game extends Model
     public function backgroundUrl(string $size = '1080p'): ?string
     {
         return $this->igdb_background ? "https://images.igdb.com/igdb/image/upload/t_{$size}/{$this->igdb_background}.jpg" : null;
+    }
+
+    /**
+     * Parsea age_rating (texto libre — tiene que funcionar igual con lo
+     * importado por CSV, lo escrito a mano y el "PEGI 12" que ahora escribe
+     * IGDB, ver issue #46) para pintarlo como badge en la ficha
+     * (x-age-rating-badge). null si no hay clasificación guardada.
+     *
+     * Si el texto no encaja con ningún sistema/valor de AGE_RATING_SYSTEMS
+     * (formato raro de un CSV importado, o simplemente algo que no es una
+     * clasificación reconocida), se devuelve igual con severity 'neutral' e
+     * iconPath null: el badge cae a mostrar el texto tal cual en vez de
+     * desaparecer sin más.
+     *
+     * @return array{organization: ?string, value: ?string, label: string, severity: string, iconPath: ?string}|null
+     */
+    public function ageRatingBadge(): ?array
+    {
+        $raw = trim((string) $this->age_rating);
+        if ($raw === '') {
+            return null;
+        }
+
+        if (
+            ! preg_match('/^(PEGI|ESRB|CERO|USK)[\s\-]*([A-Z0-9+]+)$/i', $raw, $matches)
+        ) {
+            return $this->neutralAgeRatingBadge($raw);
+        }
+
+        $organization = strtoupper($matches[1]);
+        $value = strtoupper($matches[2]);
+
+        if (! in_array($value, self::AGE_RATING_SYSTEMS[$organization] ?? [], true)) {
+            return $this->neutralAgeRatingBadge($raw);
+        }
+
+        $effectiveAge = self::AGE_RATING_EFFECTIVE_AGE["{$organization} {$value}"] ?? null;
+        $iconFilename = $this->ageRatingIconFilename($organization, $value);
+
+        return [
+            'organization' => $organization,
+            'value' => $value,
+            'label' => "{$organization} {$value}",
+            'severity' => $this->ageRatingSeverity($effectiveAge),
+            'iconPath' => file_exists(public_path("images/age-ratings/{$iconFilename}"))
+                ? asset("images/age-ratings/{$iconFilename}")
+                : null,
+        ];
+    }
+
+    /**
+     * @return array{organization: null, value: null, label: string, severity: 'neutral', iconPath: null}
+     */
+    private function neutralAgeRatingBadge(string $raw): array
+    {
+        return ['organization' => null, 'value' => null, 'label' => $raw, 'severity' => 'neutral', 'iconPath' => null];
+    }
+
+    private function ageRatingSeverity(?int $effectiveAge): string
+    {
+        return match (true) {
+            $effectiveAge === null => 'neutral',
+            $effectiveAge < 12 => 'green',
+            $effectiveAge < 16 => 'amber',
+            $effectiveAge < 18 => 'orange',
+            default => 'red',
+        };
+    }
+
+    /**
+     * Nomenclatura real de los SVG ya colocados en public/images/age-ratings/
+     * (ver issue #46): "{SISTEMA}_{VALOR}.svg" en mayúsculas, sin el "+" de
+     * ESRB E10+. Caso especial: ESRB AO ("Adults Only") usa ESRB_A.svg, no
+     * ESRB_AO.svg.
+     */
+    private function ageRatingIconFilename(string $organization, string $value): string
+    {
+        if ($organization === 'ESRB' && $value === 'AO') {
+            return 'ESRB_A.svg';
+        }
+
+        return $organization.'_'.str_replace('+', '', $value).'.svg';
     }
 }

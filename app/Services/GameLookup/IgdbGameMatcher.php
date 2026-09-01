@@ -16,15 +16,19 @@ class IgdbGameMatcher
 {
     public function __construct(
         private readonly IgdbLookupService $igdbLookup,
+        private readonly AgeRatingResolver $ageRatingResolver,
     ) {}
 
     /**
-     * developer/release_date solo se rellenan si estaban vacíos (nunca pisan
-     * lo que ya haya escrito el usuario a mano); igdb_genres/igdb_rating/
-     * igdb_time_to_beat/igdb_id se sobrescriben siempre porque son campos
-     * exclusivos de IGDB, sin equivalente manual que proteger. Se marca
-     * igdb_matched_at haya habido match o no, para no repetir la búsqueda
-     * automática después.
+     * developer/release_date/age_rating solo se rellenan si estaban vacíos
+     * (nunca pisan lo que ya haya escrito el usuario a mano); igdb_genres/
+     * igdb_rating/igdb_time_to_beat/igdb_age_ratings/igdb_id se sobrescriben
+     * siempre porque son campos exclusivos de IGDB, sin equivalente manual
+     * que proteger — igdb_age_ratings se guarda aunque age_rating ya
+     * estuviera puesto a mano: es la lista cruda que acota el desplegable
+     * del formulario (ver issue #46), informativa, no pisa nada visible. Se
+     * marca igdb_matched_at haya habido match o no, para no repetir la
+     * búsqueda automática después.
      */
     public function matchIfNeeded(Game $game): void
     {
@@ -44,10 +48,12 @@ class IgdbGameMatcher
         $game->fill([
             'developer' => $game->developer ?: $match?->developer,
             'release_date' => $game->release_date ?: $match?->releaseDate,
+            'age_rating' => $game->age_rating ?: $this->ageRatingResolver->pick($match?->ageRatings, $game->region),
             'igdb_id' => $match?->igdbId,
             'igdb_genres' => $match?->genres,
             'igdb_rating' => $match?->rating,
             'igdb_time_to_beat' => $timeToBeat,
+            'igdb_age_ratings' => $match?->ageRatings,
             'igdb_matched_at' => now(),
         ]);
 

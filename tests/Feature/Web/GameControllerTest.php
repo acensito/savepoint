@@ -45,6 +45,63 @@ class GameControllerTest extends TestCase
         $response->assertDontSee('name="wishlist_store"', false);
     }
 
+    /**
+     * (#46): sin coincidencia de IGDB (o en el alta, antes de que exista
+     * match), el desplegable ofrece todas las combinaciones conocidas —
+     * nunca queda bloqueado a escribir texto libre a pelo.
+     */
+    public function test_create_form_lists_every_known_age_rating_option(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get(route('web.games.create'));
+
+        $response->assertOk();
+        $response->assertSee('value="PEGI-12"', false);
+        $response->assertSee('value="ESRB-M"', false);
+        $response->assertSee('value="CERO-Z"', false);
+        $response->assertSee('value="USK-18"', false);
+        $response->assertSee('value="other"', false);
+    }
+
+    /**
+     * (#46): con coincidencia de IGDB, el desplegable se acota a exactamente
+     * las combinaciones que IGDB devolvió para ese juego — el resto de
+     * valores conocidos (p. ej. PEGI 3) no se ofrecen, solo "Otra…" sigue
+     * disponible como escape.
+     */
+    public function test_edit_form_narrows_age_rating_options_to_what_igdb_matched(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create([
+            'igdb_age_ratings' => [
+                ['organization' => 'PEGI', 'value' => '12'],
+                ['organization' => 'USK', 'value' => '12'],
+            ],
+        ]);
+
+        $response = $this->actingAs($user)->get(route('web.games.edit', $game->id));
+
+        $response->assertOk();
+        $response->assertSee('value="PEGI-12"', false);
+        $response->assertSee('value="USK-12"', false);
+        $response->assertSee('value="other"', false);
+        $response->assertDontSee('value="PEGI-18"', false);
+        $response->assertDontSee('value="CERO-A"', false);
+    }
+
+    public function test_edit_form_lists_every_known_option_without_an_igdb_match(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['igdb_age_ratings' => null]);
+
+        $response = $this->actingAs($user)->get(route('web.games.edit', $game->id));
+
+        $response->assertOk();
+        $response->assertSee('value="PEGI-3"', false);
+        $response->assertSee('value="CERO-A"', false);
+    }
+
     public function test_index_only_lists_the_authenticated_users_games(): void
     {
         $user = User::factory()->create();
@@ -603,6 +660,7 @@ class GameControllerTest extends TestCase
                     releaseDate: '2018-01-25',
                     genres: ['Platform', 'Indie'],
                     rating: 87.65,
+                    ageRatings: null,
                 )]);
             $mock->shouldReceive('artworks')->once()->with(305)->andReturn(['ar1abc', 'ar2def']);
             $mock->shouldReceive('timeToBeat')->once()->with(305)->andReturn(['normally' => 64800, 'count' => 150]);
@@ -679,6 +737,7 @@ class GameControllerTest extends TestCase
                 releaseDate: null,
                 genres: null,
                 rating: null,
+                ageRatings: null,
             )]);
             $mock->shouldReceive('artworks')->once()->with(42)->andReturn([]);
             $mock->shouldReceive('timeToBeat')->once()->with(42)->andReturn(null);
@@ -801,6 +860,35 @@ class GameControllerTest extends TestCase
         $response->assertOk();
         $response->assertSee('Hollow Knight');
         $response->assertSee('Platinado');
+    }
+
+    /**
+     * (#46): la clasificación por edad se ve como un badge junto a la
+     * carátula (x-age-rating-badge, Game::ageRatingBadge()), no como una
+     * línea más de texto en el grid de detalles.
+     */
+    public function test_show_displays_the_age_rating_badge_icon_next_to_the_cover(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['age_rating' => 'PEGI 12', 'igdb_matched_at' => now()]);
+
+        $response = $this->actingAs($user)->get("/games/{$game->id}");
+
+        $response->assertOk();
+        $response->assertSee('images/age-ratings/PEGI_12.svg', false);
+        // Ya no aparece como línea de texto plano en el grid de detalles.
+        $response->assertDontSee('Clasificación por edad');
+    }
+
+    public function test_show_displays_no_age_rating_badge_without_one(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['age_rating' => null, 'igdb_matched_at' => now()]);
+
+        $response = $this->actingAs($user)->get("/games/{$game->id}");
+
+        $response->assertOk();
+        $response->assertDontSee('age-rating', false);
     }
 
     public function test_user_cannot_view_another_users_games_detail_page(): void

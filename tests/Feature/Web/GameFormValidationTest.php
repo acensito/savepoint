@@ -201,30 +201,81 @@ class GameFormValidationTest extends TestCase
         $this->assertDatabaseCount('games', 0);
     }
 
-    // --- age_rating --------------------------------------------------------
+    // --- age_rating_select / age_rating_other -------------------------------
 
-    public function test_age_rating_accepts_exactly_20_characters(): void
+    public function test_age_rating_select_accepts_a_known_preset_and_saves_it_with_a_space(): void
     {
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->post('/games', $this->validPayload([
-            'age_rating' => str_repeat('a', 20),
+            'age_rating_select' => 'PEGI-12',
+        ]));
+
+        $response->assertRedirect(route('web.games.index'));
+        $this->assertDatabaseHas('games', ['age_rating' => 'PEGI 12']);
+    }
+
+    public function test_age_rating_select_rejects_more_than_20_characters(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post('/games', $this->validPayload([
+            'age_rating_select' => str_repeat('a', 21),
+        ]));
+
+        $response->assertSessionHasErrors('age_rating_select');
+        $this->assertDatabaseCount('games', 0);
+    }
+
+    public function test_age_rating_other_is_required_when_age_rating_select_is_other(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post('/games', $this->validPayload([
+            'age_rating_select' => 'other',
+        ]));
+
+        $response->assertSessionHasErrors('age_rating_other');
+        $this->assertDatabaseCount('games', 0);
+    }
+
+    public function test_age_rating_other_accepts_exactly_20_characters(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post('/games', $this->validPayload([
+            'age_rating_select' => 'other',
+            'age_rating_other' => str_repeat('a', 20),
         ]));
 
         $response->assertRedirect(route('web.games.index'));
         $this->assertDatabaseHas('games', ['age_rating' => str_repeat('a', 20)]);
     }
 
-    public function test_age_rating_rejects_more_than_20_characters(): void
+    public function test_age_rating_other_rejects_more_than_20_characters(): void
     {
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->post('/games', $this->validPayload([
-            'age_rating' => str_repeat('a', 21),
+            'age_rating_select' => 'other',
+            'age_rating_other' => str_repeat('a', 21),
         ]));
 
-        $response->assertSessionHasErrors('age_rating');
+        $response->assertSessionHasErrors('age_rating_other');
         $this->assertDatabaseCount('games', 0);
+    }
+
+    public function test_age_rating_ignores_age_rating_other_when_age_rating_select_is_a_preset(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post('/games', $this->validPayload([
+            'age_rating_select' => 'USK-18',
+            'age_rating_other' => 'Se ignora',
+        ]));
+
+        $response->assertRedirect(route('web.games.index'));
+        $this->assertDatabaseHas('games', ['age_rating' => 'USK 18']);
     }
 
     // --- notes ---------------------------------------------------------------

@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Game;
+use App\Services\GameLookup\AgeRatingResolver;
 use App\Services\GameLookup\IgdbGameMatcher;
 use App\Services\GameLookup\IgdbLookupService;
 use Illuminate\Bus\Queueable;
@@ -43,6 +44,6 @@ class MatchGameWithIgdb implements ShouldQueue
         // explícitamente las del dueño del juego.
         $igdbLookup = IgdbLookupService::forUser($game->user);
 
-        (new IgdbGameMatcher($igdbLookup))->matchIfNeeded($game);
+        (new IgdbGameMatcher($igdbLookup, new AgeRatingResolver))->matchIfNeeded($game);
     }
 }

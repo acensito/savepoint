@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Game;
+use App\Services\GameLookup\AgeRatingResolver;
 use App\Services\GameLookup\IgdbGameMatch;
 use App\Services\GameLookup\IgdbLookupService;
 use Illuminate\Http\JsonResponse;
@@ -23,6 +24,7 @@ class IgdbController extends Controller
 {
     public function __construct(
         private readonly IgdbLookupService $igdbLookup,
+        private readonly AgeRatingResolver $ageRatingResolver,
     ) {}
 
     /**
@@ -49,6 +51,7 @@ class IgdbController extends Controller
                 'release_date' => $match->releaseDate,
                 'genres' => $match->genres,
                 'rating' => $match->rating,
+                'age_ratings' => $match->ageRatings,
             ])
             ->values();
 
@@ -57,11 +60,13 @@ class IgdbController extends Controller
 
     /**
      * Aplica a mano el resultado de IGDB elegido en search(): a diferencia
-     * del match automático (que solo rellena developer/release_date si
-     * estaban vacíos), aquí sí se sobrescriben porque es una corrección
-     * explícita del usuario — salvo que el resultado elegido no traiga ese
-     * dato, en cuyo caso se conserva el que ya hubiera para no borrar algo
-     * bueno con un match peor.
+     * del match automático (que solo rellena developer/release_date/
+     * age_rating si estaban vacíos), aquí sí se sobrescriben porque es una
+     * corrección explícita del usuario — salvo que el resultado elegido no
+     * traiga ese dato, en cuyo caso se conserva el que ya hubiera para no
+     * borrar algo bueno con un match peor. age_rating se elige entre las
+     * clasificaciones del resultado según la región del juego (ver
+     * AgeRatingResolver, issue #46).
      */
     public function apply(Request $request, Game $game): RedirectResponse
     {
@@ -74,14 +79,23 @@ class IgdbController extends Controller
             'genres' => 'nullable|array',
             'genres.*' => 'string',
             'rating' => 'nullable|numeric',
+            // JSON-encoded por el JS de show.blade.php antes de enviar (ver
+            // applyResult()): un <input type="hidden"> no puede llevar un
+            // array anidado {organization, value} tal cual.
+            'age_ratings' => 'nullable|string',
         ]);
+
+        $ageRatings = json_decode($validated['age_ratings'] ?? '', true);
+        $ageRatings = is_array($ageRatings) && $ageRatings !== [] ? $ageRatings : null;
 
         $game->update([
             'developer' => $validated['developer'] ?? $game->developer,
             'release_date' => $validated['release_date'] ?? $game->release_date,
+            'age_rating' => $this->ageRatingResolver->pick($ageRatings, $game->region) ?? $game->age_rating,
             'igdb_id' => $validated['igdb_id'],
             'igdb_genres' => $validated['genres'] ?? null,
             'igdb_rating' => $validated['rating'] ?? null,
+            'igdb_age_ratings' => $ageRatings,
             'igdb_matched_at' => now(),
         ]);
 

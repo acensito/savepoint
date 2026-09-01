@@ -32,6 +32,7 @@ class IgdbControllerTest extends TestCase
                     releaseDate: '2000-01-01',
                     genres: ['RPG'],
                     rating: 70.0,
+                    ageRatings: [['organization' => 'PEGI', 'value' => '18'], ['organization' => 'ESRB', 'value' => 'M']],
                 )]);
         });
 
@@ -46,6 +47,7 @@ class IgdbControllerTest extends TestCase
             'release_date' => '2000-01-01',
             'genres' => ['RPG'],
             'rating' => 70.0,
+            'age_ratings' => [['organization' => 'PEGI', 'value' => '18'], ['organization' => 'ESRB', 'value' => 'M']],
         ]]]);
     }
 
@@ -137,6 +139,44 @@ class IgdbControllerTest extends TestCase
         $this->actingAs($user)->post("/games/{$game->id}/igdb-apply", ['igdb_id' => 1]);
 
         $this->assertSame('Ya tenía uno', $game->fresh()->developer);
+    }
+
+    /**
+     * (#46): age_rating se sobrescribe con la corrección explícita, eligiendo
+     * entre las clasificaciones del resultado según la región del juego (ver
+     * AgeRatingResolver) — a diferencia del match automático, que no pisa un
+     * age_rating ya puesto (ver IgdbGameMatcherTest).
+     */
+    public function test_igdb_apply_overwrites_age_rating_according_to_the_games_region(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['region' => 'PAL-DE', 'age_rating' => 'PEGI 3']);
+
+        $ageRatings = [
+            ['organization' => 'PEGI', 'value' => '18'],
+            ['organization' => 'USK', 'value' => '18'],
+        ];
+
+        $this->actingAs($user)->post("/games/{$game->id}/igdb-apply", [
+            'igdb_id' => 1,
+            'age_ratings' => json_encode($ageRatings),
+        ]);
+
+        $fresh = $game->fresh();
+        $this->assertSame('USK 18', $fresh->age_rating);
+        $this->assertSame($ageRatings, $fresh->igdb_age_ratings);
+    }
+
+    public function test_igdb_apply_keeps_the_existing_age_rating_when_the_chosen_result_has_none(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['age_rating' => 'PEGI 12']);
+
+        $this->actingAs($user)->post("/games/{$game->id}/igdb-apply", ['igdb_id' => 1]);
+
+        $fresh = $game->fresh();
+        $this->assertSame('PEGI 12', $fresh->age_rating);
+        $this->assertNull($fresh->igdb_age_ratings);
     }
 
     public function test_igdb_apply_requires_an_igdb_id(): void

@@ -2,6 +2,7 @@
 
 namespace App\Services\GameLookup;
 
+use App\Models\Game;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -101,7 +102,8 @@ class IgdbLookupService
                 ])
                 ->withBody(
                     'fields name,first_release_date,involved_companies.company.name,involved_companies.developer,'
-                        .'genres.name,rating,aggregated_rating,platforms.name; '
+                        .'genres.name,rating,aggregated_rating,platforms.name,'
+                        .'age_ratings.organization.name,age_ratings.rating_category.rating; '
                         .'search "'.addslashes($query).'"; limit '.max(1, min($limit, 20)).';',
                     'text/plain',
                 )
@@ -299,7 +301,35 @@ class IgdbLookupService
                 : null,
             genres: $genres !== [] ? $genres : null,
             rating: $rating !== null ? round((float) $rating, 2) : null,
+            ageRatings: $this->parseAgeRatings($game),
         );
+    }
+
+    /**
+     * IGDB devuelve clasificaciones de bastantes más organismos de los que
+     * esta app distingue (CLASS_IND de Brasil, ACB de Australia, GRAC de
+     * Corea...) — se descartan, solo interesan los 4 que reconoce
+     * Game::AGE_RATING_SYSTEMS (ver issue #46).
+     *
+     * @param  array<string, mixed>  $game
+     * @return array<int, array{organization: string, value: string}>|null
+     */
+    private function parseAgeRatings(array $game): ?array
+    {
+        /** @var array<int, array<string, mixed>> $ageRatingsData */
+        $ageRatingsData = $game['age_ratings'] ?? [];
+
+        $ageRatings = collect($ageRatingsData)
+            ->map(fn (array $entry) => [
+                'organization' => $entry['organization']['name'] ?? null,
+                'value' => $entry['rating_category']['rating'] ?? null,
+            ])
+            ->filter(fn (array $entry) => in_array($entry['organization'], array_keys(Game::AGE_RATING_SYSTEMS), true)
+                && $entry['value'] !== null)
+            ->values()
+            ->all();
+
+        return $ageRatings !== [] ? $ageRatings : null;
     }
 
     /**

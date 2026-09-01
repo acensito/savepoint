@@ -7,7 +7,6 @@
         ['icon' => 'calendar_month', 'label' => 'Fecha de lanzamiento', 'value' => $game->release_date?->format('d/m/Y')],
         ['icon' => 'category', 'label' => 'Géneros', 'value' => $game->genres ? implode(', ', $game->genres) : null],
         ['icon' => 'public', 'label' => 'Región', 'value' => $game->region],
-        ['icon' => 'badge', 'label' => 'Clasificación por edad', 'value' => $game->age_rating],
         ['icon' => 'schedule', 'label' => 'Horas jugadas', 'value' => $game->playtime_hours !== null ? number_format((float) $game->playtime_hours, 1, ',', '.').' h' : null],
     ];
 
@@ -106,6 +105,8 @@
                             @endif
                         </div>
                     </div>
+
+                    <x-age-rating-badge :game="$game" class="mx-auto sm:mx-0 sm:self-end shrink-0" />
                 </div>
             </div>
 
@@ -212,6 +213,7 @@
                         <input type="hidden" name="developer">
                         <input type="hidden" name="release_date">
                         <input type="hidden" name="rating">
+                        <input type="hidden" name="age_ratings">
                     </form>
                 </div>
 
@@ -396,6 +398,7 @@
                 applyForm.querySelector('[name="developer"]').value = result.developer ?? '';
                 applyForm.querySelector('[name="release_date"]').value = result.release_date ?? '';
                 applyForm.querySelector('[name="rating"]').value = result.rating ?? '';
+                applyForm.querySelector('[name="age_ratings"]').value = JSON.stringify(result.age_ratings ?? []);
 
                 // Nº de géneros variable: se quitan los de un envío anterior (si
                 // el usuario buscó, aplicó y luego corrigió otra vez) antes de
