@@ -398,19 +398,21 @@ class GameController extends Controller
             'manual_status' => ['nullable', 'string', Rule::in(Game::MANUAL_STATUSES)],
             'region_select' => 'nullable|string|max:20',
             'region_other' => 'required_if:region_select,other|nullable|string|max:50',
-            'age_rating' => 'nullable|string|max:20',
+            'age_rating_select' => 'nullable|string|max:20',
+            'age_rating_other' => 'required_if:age_rating_select,other|nullable|string|max:20',
             'notes' => 'nullable|string|max:2000',
             'cover' => 'nullable|image|max:1024',
         ]);
 
         $validated['genres'] = $this->parseGenres($request->input('genres'));
         $validated['region'] = $this->resolveRegion($validated);
+        $validated['age_rating'] = $this->resolveAgeRating($validated);
         // Checkbox HTML: si no está marcado, el navegador ni siquiera manda el
         // campo, así que no puede tratarse como "sometimes" o desmarcarlo en
         // la edición nunca se guardaría.
         $validated['for_sale'] = $request->boolean('for_sale');
 
-        unset($validated['region_select'], $validated['region_other']);
+        unset($validated['region_select'], $validated['region_other'], $validated['age_rating_select'], $validated['age_rating_other']);
 
         return $validated;
     }
@@ -514,5 +516,24 @@ class GameController extends Controller
         }
 
         return $region;
+    }
+
+    /**
+     * Mismo patrón que resolveRegion(): el desplegable manda "PEGI-12" (o
+     * "other", con el texto libre real en age_rating_other) — se guarda como
+     * "PEGI 12", el mismo formato canónico que escribe IgdbGameMatcher/
+     * IgdbController::apply() (ver issue #46, Game::ageRatingBadge()).
+     *
+     * @param  array<string, mixed>  $validated
+     */
+    private function resolveAgeRating(array $validated): ?string
+    {
+        $ageRating = $validated['age_rating_select'] ?? null;
+
+        if ($ageRating === 'other') {
+            return trim((string) ($validated['age_rating_other'] ?? '')) ?: null;
+        }
+
+        return $ageRating !== null ? str_replace('-', ' ', $ageRating) : null;
     }
 }

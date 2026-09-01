@@ -7,7 +7,6 @@
         ['icon' => 'calendar_month', 'label' => 'Fecha de lanzamiento', 'value' => $game->release_date?->format('d/m/Y')],
         ['icon' => 'category', 'label' => 'Géneros', 'value' => $game->genres ? implode(', ', $game->genres) : null],
         ['icon' => 'public', 'label' => 'Región', 'value' => $game->region],
-        ['icon' => 'badge', 'label' => 'Clasificación por edad', 'value' => $game->age_rating],
         ['icon' => 'schedule', 'label' => 'Horas jugadas', 'value' => $game->playtime_hours !== null ? number_format((float) $game->playtime_hours, 1, ',', '.').' h' : null],
     ];
 
@@ -61,50 +60,54 @@
                 <div class="relative flex flex-col sm:flex-row sm:items-center gap-6">
                     <x-game-cover :game="$game" size="lg" class="!w-36 !rounded-2xl !text-4xl mx-auto sm:mx-0 shrink-0 shadow-lg shadow-black/30" />
 
-                    <div class="flex-1 min-w-0 flex flex-col justify-center">
-                        <h1 class="text-2xl font-bold text-slate-100 tracking-tight">{{ $game->title }}</h1>
+                    <div class="flex-1 min-w-0 flex items-center gap-4">
+                        <div class="flex-1 min-w-0 flex flex-col justify-center">
+                            <h1 class="text-2xl font-bold text-slate-100 tracking-tight">{{ $game->title }}</h1>
 
-                        <div class="mt-2 flex items-center gap-2 flex-wrap">
-                            <x-platform-chip :platform="$game->platform" />
-                            @if($game->edition)
-                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700">
-                                    <x-gicon :name="$game->edition->formatIcon()" :title="$game->edition->formatLabel()" class="text-[13px] text-slate-400" />
-                                    {{ $game->edition->name }}
-                                </span>
-                            @endif
+                            <div class="mt-2 flex items-center gap-2 flex-wrap">
+                                <x-platform-chip :platform="$game->platform" />
+                                @if($game->edition)
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700">
+                                        <x-gicon :name="$game->edition->formatIcon()" :title="$game->edition->formatLabel()" class="text-[13px] text-slate-400" />
+                                        {{ $game->edition->name }}
+                                    </span>
+                                @endif
+                            </div>
+
+                            <div class="mt-3 flex items-center gap-3">
+                                <x-star-rating :rating="$game->rating" size="text-[16px]" />
+                                @if($game->price_paid !== null)
+                                    <span class="text-sm font-semibold text-emerald-400 tabular-nums">{{ number_format($game->price_paid, 2, ',', '.') }} €</span>
+                                @endif
+                            </div>
+
+                            <div class="mt-3 flex items-center gap-1.5 text-sm {{ $game->play_status === 'finished' ? 'text-emerald-400' : 'text-slate-400' }}">
+                                @if($game->play_status === 'finished')
+                                    <x-gicon name="emoji_events" class="text-[18px]" />
+                                @else
+                                    <x-gicon name="schedule" class="text-[18px]" />
+                                @endif
+                                {{ ['pending' => 'Pendiente', 'playing' => 'Jugando', 'finished' => 'Terminado'][$game->play_status] ?? $game->play_status }}
+
+                                @php
+                                    $statusLabels = ['owned' => 'En colección', 'wishlist' => 'Lista de deseos', 'sold' => 'Vendido'];
+                                @endphp
+                                @if($game->status && isset($statusLabels[$game->status]))
+                                    <span class="text-slate-600">·</span>
+                                    <span class="text-slate-400">{{ $statusLabels[$game->status] }}</span>
+                                @endif
+
+                                @if($game->for_sale)
+                                    <span class="text-slate-600">·</span>
+                                    <span class="inline-flex items-center gap-1 text-amber-400">
+                                        <x-gicon name="sell" class="text-[14px]" />
+                                        En venta
+                                    </span>
+                                @endif
+                            </div>
                         </div>
 
-                        <div class="mt-3 flex items-center gap-3">
-                            <x-star-rating :rating="$game->rating" size="text-[16px]" />
-                            @if($game->price_paid !== null)
-                                <span class="text-sm font-semibold text-emerald-400 tabular-nums">{{ number_format($game->price_paid, 2, ',', '.') }} €</span>
-                            @endif
-                        </div>
-
-                        <div class="mt-3 flex items-center gap-1.5 text-sm {{ $game->play_status === 'finished' ? 'text-emerald-400' : 'text-slate-400' }}">
-                            @if($game->play_status === 'finished')
-                                <x-gicon name="emoji_events" class="text-[18px]" />
-                            @else
-                                <x-gicon name="schedule" class="text-[18px]" />
-                            @endif
-                            {{ ['pending' => 'Pendiente', 'playing' => 'Jugando', 'finished' => 'Terminado'][$game->play_status] ?? $game->play_status }}
-
-                            @php
-                                $statusLabels = ['owned' => 'En colección', 'wishlist' => 'Lista de deseos', 'sold' => 'Vendido'];
-                            @endphp
-                            @if($game->status && isset($statusLabels[$game->status]))
-                                <span class="text-slate-600">·</span>
-                                <span class="text-slate-400">{{ $statusLabels[$game->status] }}</span>
-                            @endif
-
-                            @if($game->for_sale)
-                                <span class="text-slate-600">·</span>
-                                <span class="inline-flex items-center gap-1 text-amber-400">
-                                    <x-gicon name="sell" class="text-[14px]" />
-                                    En venta
-                                </span>
-                            @endif
-                        </div>
+                        <x-age-rating-badge :game="$game" class="ml-auto shrink-0 sm:self-end" />
                     </div>
                 </div>
             </div>
@@ -212,6 +215,7 @@
                         <input type="hidden" name="developer">
                         <input type="hidden" name="release_date">
                         <input type="hidden" name="rating">
+                        <input type="hidden" name="age_ratings">
                     </form>
                 </div>
 
@@ -396,6 +400,7 @@
                 applyForm.querySelector('[name="developer"]').value = result.developer ?? '';
                 applyForm.querySelector('[name="release_date"]').value = result.release_date ?? '';
                 applyForm.querySelector('[name="rating"]').value = result.rating ?? '';
+                applyForm.querySelector('[name="age_ratings"]').value = JSON.stringify(result.age_ratings ?? []);
 
                 // Nº de géneros variable: se quitan los de un envío anterior (si
                 // el usuario buscó, aplicó y luego corrigió otra vez) antes de

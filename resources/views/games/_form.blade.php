@@ -41,6 +41,36 @@
     $isCustomRegion = $currentRegionSelect !== '' && $currentRegionSelect !== 'other' && !in_array($currentRegionSelect, $regionPresets, true);
     $regionSelectValue = $isCustomRegion ? 'other' : $currentRegionSelect;
 
+    // Clasificación por edad (issue #46): si IGDB ya emparejó el juego y
+    // trajo clasificaciones (games.igdb_age_ratings), el desplegable se
+    // acota a esas combinaciones exactas; sin match todavía (o en el alta),
+    // se listan todas las conocidas (Game::AGE_RATING_SYSTEMS) agrupadas por
+    // sistema. Mismo patrón "preset + otro" que región, pero comparando por
+    // etiqueta ("PEGI 12") en vez de por el valor plano del desplegable
+    // ("PEGI-12", sin equivalente directo en age_rating) para no perder
+    // texto libre raro (importado por CSV, p. ej.) en el "Otra…" a la vuelta.
+    $igdbAgeRatings = $game?->igdb_age_ratings ?? [];
+    $ageRatingSource = $igdbAgeRatings !== []
+        ? collect($igdbAgeRatings)
+        : collect(\App\Models\Game::AGE_RATING_SYSTEMS)->flatMap(
+            fn ($values, $system) => collect($values)->map(fn ($value) => ['organization' => $system, 'value' => $value])
+        );
+    $ageRatingOptions = $ageRatingSource
+        ->map(fn (array $entry) => [
+            'organization' => $entry['organization'],
+            'select_value' => "{$entry['organization']}-{$entry['value']}",
+            'label' => "{$entry['organization']} {$entry['value']}",
+        ])
+        ->unique('label')
+        ->values();
+
+    $matchingAgeRatingOption = $ageRatingOptions->firstWhere('label', $game?->age_rating);
+    $currentAgeRatingSelect = old('age_rating_select')
+        ?? ($matchingAgeRatingOption ? $matchingAgeRatingOption['select_value'] : ($game?->age_rating ? 'other' : ''));
+    $isCustomAgeRating = $currentAgeRatingSelect === 'other';
+    $ageRatingSelectValue = $isCustomAgeRating ? 'other' : $currentAgeRatingSelect;
+    $currentAgeRatingOtherText = old('age_rating_other', $isCustomAgeRating ? ($game?->age_rating ?? '') : '');
+
     // Carátula sugerida desde la ficha de comprobación de una búsqueda
     // externa (CEX): solo aplica al alta ($game null), nunca a la edición.
     // No se descarga hasta que se guarda el formulario (GameController::store).
@@ -326,9 +356,24 @@
             @error('region_other') <span class="{{ $error }}">{{ $message }}</span> @enderror
         </div>
         <div>
-            <label for="age_rating" class="{{ $label }}">Clasificación por edad</label>
-            <input type="text" name="age_rating" id="age_rating" placeholder="PEGI 12..." value="{{ old('age_rating', $game?->age_rating) }}" autocomplete="off" autocorrect="off" spellcheck="false" class="{{ $input }}">
-            @error('age_rating') <span class="{{ $error }}">{{ $message }}</span> @enderror
+            <label for="age_rating_select" class="{{ $label }}">Clasificación por edad</label>
+            <select name="age_rating_select" id="age_rating_select" class="{{ $input }}">
+                <option value="" {{ $ageRatingSelectValue === '' ? 'selected' : '' }}>Sin especificar</option>
+                @foreach($ageRatingOptions->groupBy('organization') as $organization => $options)
+                    <optgroup label="{{ $organization }}">
+                        @foreach($options as $option)
+                            <option value="{{ $option['select_value'] }}" {{ $ageRatingSelectValue === $option['select_value'] ? 'selected' : '' }}>{{ $option['label'] }}</option>
+                        @endforeach
+                    </optgroup>
+                @endforeach
+                <option value="other" {{ $ageRatingSelectValue === 'other' ? 'selected' : '' }}>Otra…</option>
+            </select>
+            <input type="text" name="age_rating_other" id="age_rating_other" maxlength="20" placeholder="Especifica la clasificación"
+                value="{{ $currentAgeRatingOtherText }}"
+                autocomplete="off" autocorrect="off" spellcheck="false"
+                class="{{ $input }} mt-2 {{ $ageRatingSelectValue === 'other' ? '' : 'hidden' }}">
+            @error('age_rating_select') <span class="{{ $error }}">{{ $message }}</span> @enderror
+            @error('age_rating_other') <span class="{{ $error }}">{{ $message }}</span> @enderror
         </div>
     </div>
 </div>
@@ -361,6 +406,42 @@
     }
 
     document.getElementById('region_select')?.addEventListener('change', toggleCustomRegion);
+
+    function toggleCustomAgeRating() {
+        const isOther = document.getElementById('age_rating_select').value === 'other';
+        document.getElementById('age_rating_other').classList.toggle('hidden', !isOther);
+    }
+
+    document.getElementById('age_rating_select')?.addEventListener('change', toggleCustomAgeRating);
+
+    // Mismo mapeo región -> sistema que AgeRatingResolver (issue #46), pero
+    // aquí solo como sugerencia en el propio formulario: si al cambiar de
+    // región hay EXACTAMENTE una opción de ese sistema entre las ya
+    // ofrecidas, se preselecciona (se puede cambiar después sin más). No se
+    // toca nada si hay varias (la lista completa sin match de IGDB, p. ej.
+    // las 5 de PEGI): adivinar un valor concreto sin dato real de IGDB
+    // detrás sería inventarlo.
+    const REGION_TO_AGE_RATING_ORGANIZATION = {
+        'PAL-ES': 'PEGI', 'PAL-EU': 'PEGI', 'PAL-UK': 'PEGI', 'PAL-FR': 'PEGI', 'PAL-IT': 'PEGI',
+        'PAL-DE': 'USK',
+        'NTSC-U': 'ESRB',
+        'NTSC-J': 'CERO',
+    };
+
+    function suggestAgeRatingFromRegion() {
+        const organization = REGION_TO_AGE_RATING_ORGANIZATION[document.getElementById('region_select').value];
+        if (!organization) return;
+
+        const ageRatingSelect = document.getElementById('age_rating_select');
+        const matches = Array.from(ageRatingSelect.options).filter((opt) => opt.value.startsWith(`${organization}-`));
+
+        if (matches.length === 1) {
+            ageRatingSelect.value = matches[0].value;
+            toggleCustomAgeRating();
+        }
+    }
+
+    document.getElementById('region_select')?.addEventListener('change', suggestAgeRatingFromRegion);
 
     function filterEditions() {
         const platformId = document.getElementById('platform_id').value;

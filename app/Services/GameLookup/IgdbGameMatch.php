@@ -12,6 +12,7 @@ final class IgdbGameMatch
 {
     /**
      * @param  array<int, string>|null  $genres
+     * @param  array<int, array{organization: string, value: string}>|null  $ageRatings
      */
     public function __construct(
         public readonly int $igdbId,
@@ -21,5 +22,6 @@ final class IgdbGameMatch
         public readonly ?string $releaseDate,
         public readonly ?array $genres,
         public readonly ?float $rating,
+        public readonly ?array $ageRatings,
     ) {}
 }
