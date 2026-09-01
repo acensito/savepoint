@@ -47,8 +47,8 @@ class StatsControllerTest extends TestCase
         $byPlatform = $response->viewData('byPlatform');
 
         $this->assertCount(1, $byPlatform);
-        $this->assertSame(3, $byPlatform->first()['total']);
-        $this->assertSame($platform->id, $byPlatform->first()['platform']->id);
+        $this->assertSame(3, $byPlatform[0]['total']);
+        $this->assertSame($platform->id, $byPlatform[0]['platform']->id);
     }
 
     public function test_stats_breaks_down_games_by_play_status_and_ownership(): void
@@ -86,8 +86,8 @@ class StatsControllerTest extends TestCase
         $salesByYear = $response->viewData('salesByYear');
 
         // groupBy()/format('Y') produce claves numéricas: PHP las convierte a
-        // int automáticamente en el array subyacente de la Collection.
-        $this->assertSame([2026], $salesByYear->keys()->all());
+        // int automáticamente en el array.
+        $this->assertSame([2026], array_keys($salesByYear));
         $this->assertSame(1, $salesByYear[2026]['count']);
         $this->assertSame(20.0, $salesByYear[2026]['paid']);
         $this->assertSame(35.0, $salesByYear[2026]['sold']);
@@ -157,7 +157,7 @@ class StatsControllerTest extends TestCase
 
         $response = $this->actingAs($user)->get('/stats');
 
-        $byDecade = $response->viewData('byDecade');
+        $byDecade = collect($response->viewData('byDecade'));
 
         $this->assertSame(['Años 1990', 'Años 2010'], $byDecade->pluck('decade')->all());
         $this->assertSame(1, $byDecade->firstWhere('decade', 'Años 1990')['total']);
