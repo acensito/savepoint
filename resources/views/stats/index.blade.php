@@ -29,7 +29,7 @@
         <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 lg:col-span-2">
             <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-5">Juegos por plataforma</h2>
 
-            @if($byPlatform->isEmpty())
+            @if(empty($byPlatform))
                 <p class="text-sm text-slate-500">Todavía no hay juegos registrados.</p>
             @else
                 <div class="space-y-3">
@@ -66,7 +66,7 @@
         <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 lg:col-span-2">
             <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-5">Evolución del gasto</h2>
 
-            @if($spendingByMonth->isEmpty())
+            @if(empty($spendingByMonth))
                 <p class="text-sm text-slate-500">Todavía no hay compras con fecha registrada.</p>
             @else
                 <div class="flex items-end gap-2">
@@ -88,7 +88,7 @@
         <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 lg:col-span-2">
             <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-5">Ventas por año</h2>
 
-            @if($salesByYear->isEmpty())
+            @if(empty($salesByYear))
                 <p class="text-sm text-slate-500">Todavía no has marcado ningún juego como vendido.
                     <a href="{{ route('web.sales.index') }}" class="text-indigo-400 hover:text-indigo-300">Ver ventas →</a>
                 </p>
@@ -131,7 +131,7 @@
         <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
             <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-5">Top géneros</h2>
 
-            @if($topGenres->isEmpty())
+            @if(empty($topGenres))
                 <p class="text-sm text-slate-500">Todavía no hay géneros registrados.</p>
             @else
                 <div class="space-y-3">
@@ -152,7 +152,7 @@
         <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
             <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-5">Por década de lanzamiento</h2>
 
-            @if($byDecade->isEmpty())
+            @if(empty($byDecade))
                 <p class="text-sm text-slate-500">Todavía no hay juegos con fecha de lanzamiento registrada.</p>
             @else
                 <div class="space-y-3">

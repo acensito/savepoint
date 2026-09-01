@@ -31,7 +31,20 @@ class StatsController extends Controller
             fn () => $this->buildStats($userId),
         );
 
-        return view('stats.index', $stats);
+        return view('stats.index', [
+            'totalGames' => $stats['totalGames'],
+            'totalSpent' => $stats['totalSpent'],
+            'averageRating' => $stats['averageRating'],
+            'byPlatform' => $this->hydrateByPlatform($stats['byPlatform']),
+            'byPlayStatus' => $stats['byPlayStatus'],
+            'byStatus' => $stats['byStatus'],
+            'spendingByMonth' => $stats['spendingByMonth'],
+            'topGenres' => $stats['topGenres'],
+            'byDecade' => $stats['byDecade'],
+            'mostExpensive' => $stats['mostExpensiveId'] ? Game::with('platform')->find($stats['mostExpensiveId']) : null,
+            'topRated' => $stats['topRatedId'] ? Game::with('platform')->find($stats['topRatedId']) : null,
+            'salesByYear' => $stats['salesByYear'],
+        ]);
     }
 
     /**
@@ -52,6 +65,15 @@ class StatsController extends Controller
      * conjunto (ver index()) porque todas dependen de los mismos datos y se
      * invalidan a la vez.
      *
+     * Solo se cachean datos planos (arrays/escalares), nunca Collections ni
+     * modelos Eloquent: config('cache.serializable_classes') está a `false`
+     * (protección de Laravel contra ataques de deserialización si se filtra
+     * el APP_KEY), así que cualquier objeto cacheado volvería como
+     * __PHP_Incomplete_Class al leerlo. Por eso byPlatform() guarda
+     * platform_id en vez del modelo Platform, y aquí se guarda el id de
+     * mostExpensive/topRated en vez del modelo Game — index() los hidrata
+     * fuera de la caché.
+     *
      * @return array<string, mixed>
      */
     private function buildStats(int $userId): array
@@ -68,40 +90,54 @@ class StatsController extends Controller
         $spendingByMonth = $this->spendingByMonth(clone $base);
         $topGenres = $this->topGenres(clone $base);
         $byDecade = $this->byDecade(clone $base);
-        $mostExpensive = (clone $base)->whereNotNull('price_paid')->with('platform')->orderByDesc('price_paid')->first();
-        $topRated = (clone $base)->whereNotNull('rating')->with('platform')->orderByDesc('rating')->orderByDesc('id')->first();
+        $mostExpensiveId = (clone $base)->whereNotNull('price_paid')->orderByDesc('price_paid')->value('id');
+        $topRatedId = (clone $base)->whereNotNull('rating')->orderByDesc('rating')->orderByDesc('id')->value('id');
         $salesByYear = $this->salesByYear($userId);
 
         return compact(
             'totalGames', 'totalSpent', 'averageRating', 'byPlatform', 'byPlayStatus', 'byStatus',
-            'spendingByMonth', 'topGenres', 'byDecade', 'mostExpensive', 'topRated', 'salesByYear',
+            'spendingByMonth', 'topGenres', 'byDecade', 'mostExpensiveId', 'topRatedId', 'salesByYear',
         );
+    }
+
+    /**
+     * Convierte los platform_id planos de byPlatform() en modelos Platform
+     * reales (fuera de la caché, ver buildStats()), con una sola query.
+     *
+     * @param  array<int, array{platform_id: int|null, total: int, percent: float}>  $rows
+     * @return array<int, array{platform: Platform|null, total: int, percent: float}>
+     */
+    private function hydrateByPlatform(array $rows): array
+    {
+        $platformIds = collect($rows)->pluck('platform_id')->filter()->values();
+        $platforms = Platform::whereIn('id', $platformIds)->get()->keyBy('id');
+
+        return array_map(fn (array $row) => [
+            'platform' => $row['platform_id'] ? $platforms->get($row['platform_id']) : null,
+            'total' => $row['total'],
+            'percent' => $row['percent'],
+        ], $rows);
     }
 
     /**
      * Nº de juegos por plataforma, ordenado de mayor a menor.
      *
      * @param  Builder<Game>  $base
-     * @return Collection<int, array{platform: Platform|null, total: int, percent: float}>
+     * @return array<int, array{platform_id: int|null, total: int, percent: float}>
      */
-    private function byPlatform(Builder $base): Collection
+    private function byPlatform(Builder $base): array
     {
         $counts = $base->selectRaw('platform_id, count(*) as total')
             ->groupBy('platform_id')
             ->pluck('total', 'platform_id');
 
-        $platforms = Platform::whereIn('id', $counts->keys()->filter())->get()->keyBy('id');
         $max = $counts->max() ?: 1;
 
-        // Collection<TKey,TValue> no es covariante en PHPStan (la forma real
-        // coincide exactamente con el @return de arriba, pero PHPStan no lo
-        // reconoce): https://phpstan.org/blog/whats-up-with-template-covariant
-        // @phpstan-ignore return.type
         return $counts->map(fn ($total, $platformId) => [
-            'platform' => $platforms->get($platformId),
+            'platform_id' => $platformId !== '' ? (int) $platformId : null,
             'total' => (int) $total,
             'percent' => round($total / $max * 100),
-        ])->sortByDesc('total')->values();
+        ])->sortByDesc('total')->values()->all();
     }
 
     /**
@@ -170,9 +206,9 @@ class StatsController extends Controller
      * igual en Postgres (producción) y SQLite (tests).
      *
      * @param  Builder<Game>  $base
-     * @return Collection<int, array{label: string, total: float, percent: float}>
+     * @return array<int, array{label: string, total: float, percent: float}>
      */
-    private function spendingByMonth(Builder $base): Collection
+    private function spendingByMonth(Builder $base): array
     {
         $grouped = $base->whereNotNull('purchase_date')
             ->get(['purchase_date', 'price_paid'])
@@ -187,7 +223,7 @@ class StatsController extends Controller
             'label' => Carbon::createFromFormat('Y-m-d', "{$month}-01")->startOfMonth()->translatedFormat('M Y'),
             'total' => $total,
             'percent' => $max > 0 ? round($total / $max * 100) : 0.0,
-        ])->values();
+        ])->values()->all();
     }
 
     /**
@@ -195,9 +231,9 @@ class StatsController extends Controller
      * varios), de mayor a menor.
      *
      * @param  Builder<Game>  $base
-     * @return Collection<int, array{genre: string, total: int, percent: float}>
+     * @return array<int, array{genre: string, total: int, percent: float}>
      */
-    private function topGenres(Builder $base): Collection
+    private function topGenres(Builder $base): array
     {
         /** @var Collection<int, array<int, string>|null> $genresColumn */
         $genresColumn = $base->whereNotNull('genres')->pluck('genres');
@@ -215,7 +251,7 @@ class StatsController extends Controller
             'genre' => (string) $genre,
             'total' => (int) $total,
             'percent' => round($total / $max * 100),
-        ])->values();
+        ])->values()->all();
     }
 
     /**
@@ -224,9 +260,9 @@ class StatsController extends Controller
      * en una línea de tiempo importa más ver la evolución que el ranking.
      *
      * @param  Builder<Game>  $base
-     * @return Collection<int, array{decade: string, total: int, percent: float}>
+     * @return array<int, array{decade: string, total: int, percent: float}>
      */
-    private function byDecade(Builder $base): Collection
+    private function byDecade(Builder $base): array
     {
         $counts = $base->whereNotNull('release_date')
             ->pluck('release_date')
@@ -239,7 +275,7 @@ class StatsController extends Controller
             'decade' => "Años {$decade}",
             'total' => (int) $total,
             'percent' => round($total / $max * 100),
-        ])->values();
+        ])->values()->all();
     }
 
     /**
@@ -250,9 +286,9 @@ class StatsController extends Controller
      * spendingByMonth()/byDecade(): funciona igual en Postgres (producción) y
      * SQLite (tests) sin depender de funciones de fecha propias de cada motor.
      *
-     * @return Collection<int|string, array{count: int, paid: float, sold: float, profit: float, profit_percent: float|null}>
+     * @return array<int|string, array{count: int, paid: float, sold: float, profit: float, profit_percent: float|null}>
      */
-    private function salesByYear(int $userId): Collection
+    private function salesByYear(int $userId): array
     {
         $sales = Game::onlyTrashed()
             ->where('user_id', $userId)
@@ -260,10 +296,6 @@ class StatsController extends Controller
             ->whereNotNull('sold_at')
             ->get(['sold_at', 'price_paid', 'sale_price']);
 
-        // Collection<TKey,TValue> no es covariante en PHPStan (la forma real
-        // coincide exactamente con el @return de arriba, pero PHPStan no lo
-        // reconoce): https://phpstan.org/blog/whats-up-with-template-covariant
-        // @phpstan-ignore return.type
         return $sales
             ->groupBy(fn (Game $game) => $game->sold_at->format('Y'))
             ->sortKeysDesc()
@@ -279,6 +311,7 @@ class StatsController extends Controller
                     'profit' => $profit,
                     'profit_percent' => $paid > 0 ? round($profit / $paid * 100, 1) : null,
                 ];
-            });
+            })
+            ->all();
     }
 }
