@@ -574,7 +574,7 @@ plazo. Agrupadas por la sección de la app a la que afectarían.
 
 ### Integraciones
 
-- **HowLongToBeat** para tiempos de completado más fiables que IGDB en ese aspecto concreto.
+- ~~**HowLongToBeat** para tiempos de completado más fiables que IGDB en ese aspecto concreto.~~
 - **Webhook/Discord**: aviso a un canal cuando se da de alta un juego o se completa un backup.
 
 ### Multiusuario / social
