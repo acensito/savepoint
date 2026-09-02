@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Copia de phpunit.xml para la tanda de CI que corre contra PostgreSQL real
+    (ver #100). No se puede reutilizar phpunit.xml: fuerza DB_CONNECTION=sqlite
+    con force="true", que gana a cualquier variable de entorno que se le pase
+    por fuera, así que hace falta un fichero de configuración aparte con las
+    variables de conexión a Postgres en su lugar.
+
+    Mantener el resto de bloques (testsuites, source, y el resto de <env>) en
+    sync con phpunit.xml si cambian ahí.
+-->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+>
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>app</directory>
+        </include>
+    </source>
+    <php>
+        <env name="APP_ENV" value="testing" force="true"/>
+        <env name="APP_MAINTENANCE_DRIVER" value="file" force="true"/>
+        <env name="BCRYPT_ROUNDS" value="4" force="true"/>
+        <env name="BROADCAST_CONNECTION" value="null" force="true"/>
+        <env name="CACHE_STORE" value="array" force="true"/>
+        <env name="DB_CONNECTION" value="pgsql" force="true"/>
+        <env name="DB_HOST" value="127.0.0.1" force="true"/>
+        <env name="DB_PORT" value="5432" force="true"/>
+        <env name="DB_DATABASE" value="savepoint_testing" force="true"/>
+        <env name="DB_USERNAME" value="savepoint" force="true"/>
+        <env name="DB_PASSWORD" value="secreto123" force="true"/>
+        <env name="DB_URL" value="" force="true"/>
+        <env name="LOG_CHANNEL" value="null" force="true"/>
+        <env name="MAIL_MAILER" value="array" force="true"/>
+        <env name="QUEUE_CONNECTION" value="sync" force="true"/>
+        <env name="SESSION_DRIVER" value="array" force="true"/>
+        <env name="PULSE_ENABLED" value="false" force="true"/>
+        <env name="TELESCOPE_ENABLED" value="false" force="true"/>
+        <env name="NIGHTWATCH_ENABLED" value="false" force="true"/>
+    </php>
+</phpunit>

@@ -73,8 +73,13 @@ propios puertos para que varios entornos puedan ejecutarse a la vez sin comparti
 
 ## Tests y estilo
 
-Cualquier cambio de comportamiento debe llevar test y pasar en verde antes de proponerlo. Configura el hook de commits
-una vez por clon:
+Cualquier cambio de comportamiento debe llevar test y pasar en verde antes de proponerlo. La suite local (paso 5) corre
+contra SQLite en memoria por velocidad, pero en CI (GitHub Actions) también se ejecuta completa contra PostgreSQL real
+para detectar diferencias de comportamiento entre motores; si quieres reproducir esa segunda tanda en local, usa
+`docker compose exec app vendor/bin/phpunit --configuration=phpunit.pgsql.xml` contra una base de datos Postgres de
+pruebas (no la de desarrollo).
+
+Configura el hook de commits una vez por clon:
 
 ```bash
 git config core.hooksPath .githooks
