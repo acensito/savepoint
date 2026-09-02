@@ -348,7 +348,7 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 ## Stack técnico
 
 - **Backend:** Laravel 13 / PHP 8.3
-- **Base de datos:** PostgreSQL (usa `JSONB` para campos como `genres`)
+- **Base de datos:** PostgreSQL 16 (usa `JSON` para campos estructurados como `genres`)
 - **Autenticación web:** sesiones con guard `web` (login por email/contraseña)
 - **Autenticación API:** Laravel Sanctum (tokens Bearer)
 - **Frontend web:** Blade + Tailwind CSS + Vite.
