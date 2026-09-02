@@ -5,6 +5,23 @@ if ('serviceWorker' in navigator) {
     });
 }
 
+/**
+ * Escapa texto para insertarlo con seguridad en HTML (incluido dentro de
+ * atributos como src="...") al construir markup con template literals a
+ * partir de datos que no vienen de nuestro propio backend ya escapado por
+ * Blade -- las búsquedas en IGDB y CEX (ver games/show.blade.php y
+ * games/_form.blade.php) insertan su respuesta directamente en innerHTML, así
+ * que sin esto un título/URL con `<`, `"` u otros caracteres especiales
+ * podría romper fuera del nodo/atributo esperado e inyectar HTML/JS.
+ * Expuesta en window por el mismo motivo que showToast: la usan scripts
+ * embebidos en las vistas, no módulos que puedan importarla.
+ */
+window.escapeHtml = function escapeHtml(value) {
+    const ENTITIES = {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'};
+
+    return String(value ?? '').replace(/[&<>"']/g, (char) => ENTITIES[char]);
+};
+
 const SIDEBAR_STORAGE_KEY = 'sp:sidebarCollapsed';
 const THEME_STORAGE_KEY = 'sp:theme';
 const THEME_PENDING_KEY = 'sp:themePending';
