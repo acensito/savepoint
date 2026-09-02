@@ -635,13 +635,13 @@
                     <li>
                         <button type="button" class="js-cex-cover-pick w-full flex items-center gap-2 p-1.5 rounded-lg hover:bg-slate-700 text-left" data-index="${i}">
                             ${r.cover_url
-                                ? `<img src="${r.cover_url}" alt="" class="w-8 h-8 object-cover rounded border border-slate-700 shrink-0">`
+                                ? `<img src="${escapeHtml(r.cover_url)}" alt="" class="w-8 h-8 object-cover rounded border border-slate-700 shrink-0">`
                                 : `<div class="w-8 h-8 rounded bg-slate-800 border border-slate-700 shrink-0"></div>`}
                             <span class="flex-1 min-w-0">
-                                <span class="block text-xs text-slate-200 truncate">${r.title}</span>
-                                ${r.ean ? `<span class="block text-[10px] text-slate-500">EAN ${r.ean}</span>` : ''}
+                                <span class="block text-xs text-slate-200 truncate">${escapeHtml(r.title)}</span>
+                                ${r.ean ? `<span class="block text-[10px] text-slate-500">EAN ${escapeHtml(r.ean)}</span>` : ''}
                             </span>
-                            ${r.platform ? `<span class="text-[9px] font-semibold uppercase text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 rounded px-1 py-0.5 shrink-0">${r.platform}</span>` : ''}
+                            ${r.platform ? `<span class="text-[9px] font-semibold uppercase text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 rounded px-1 py-0.5 shrink-0">${escapeHtml(r.platform)}</span>` : ''}
                         </button>
                     </li>
                 `).join('');
@@ -653,7 +653,7 @@
 
                         if (result.cover_url) {
                             coverFallbackPreview =
-                                `<img id="cover-preview-img" src="${result.cover_url}" alt="Carátula" class="w-24 h-auto rounded-xl border border-slate-700">`;
+                                `<img id="cover-preview-img" src="${escapeHtml(result.cover_url)}" alt="Carátula" class="w-24 h-auto rounded-xl border border-slate-700">`;
                             document.getElementById('cover-wrapper').innerHTML = coverFallbackPreview;
                             coverUrlInput.value = result.cover_url;
                             if (coverFileInput) coverFileInput.value = '';

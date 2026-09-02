@@ -375,9 +375,9 @@
                     resultsEl.innerHTML = results.map((r, i) => `
                         <li>
                             <button type="button" class="js-igdb-pick w-full text-left p-1.5 rounded-lg hover:bg-slate-700" data-index="${i}">
-                                <span class="block text-xs text-slate-200 truncate">${r.title}${r.platforms ? ` <span class="text-slate-500">— ${r.platforms}</span>` : ''}</span>
+                                <span class="block text-xs text-slate-200 truncate">${escapeHtml(r.title)}${r.platforms ? ` <span class="text-slate-500">— ${escapeHtml(r.platforms)}</span>` : ''}</span>
                                 <span class="block text-[10px] text-slate-500 truncate">
-                                    ${r.developer ?? 'Sin desarrollador'} · ${r.release_date ?? 'sin fecha'}${r.genres ? ` · ${r.genres.join(', ')}` : ''}
+                                    ${escapeHtml(r.developer ?? 'Sin desarrollador')} · ${escapeHtml(r.release_date ?? 'sin fecha')}${r.genres ? ` · ${escapeHtml(r.genres.join(', '))}` : ''}
                                 </span>
                             </button>
                         </li>
@@ -448,7 +448,7 @@
                     statusEl.classList.add('hidden');
                     resultsEl.innerHTML = results.map((r, i) => `
                         <button type="button" class="js-igdb-background-pick aspect-video rounded-lg overflow-hidden border border-slate-700 hover:border-indigo-500 transition-colors" data-index="${i}">
-                            <img src="${r.thumb_url}" alt="" class="w-full h-full object-cover">
+                            <img src="${escapeHtml(r.thumb_url)}" alt="" class="w-full h-full object-cover">
                         </button>
                     `).join('');
                     resultsEl.classList.remove('hidden');
