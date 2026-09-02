@@ -7,11 +7,10 @@ services:
         env_file:
             - ./.env
         environment:
-            # Mantenemos estas como fallback por si el .env no carga a tiempo
-            # en el arranque inicial
+            # DB_PASSWORD es obligatoria; las demás tienen valores por defecto
             POSTGRES_DB: ${DB_DATABASE:-savepoint}
             POSTGRES_USER: ${DB_USERNAME:-savepoint}
-            POSTGRES_PASSWORD: ${DB_PASSWORD:-secreto123}
+            POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD debe estar definida en .env}
         # Uso personal / concurrencia baja: menos buffers y menos conexiones
         # reservadas que los valores por defecto de la imagen (pensados para
         # servidores con mucho más tráfico que este).
