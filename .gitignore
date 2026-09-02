@@ -52,5 +52,3 @@ docker-compose.override.yml
 # Claude Code: settings.local.json es local por máquina (permisos, etc.),
 # no debe compartirse entre quien clone el repo.
 .claude/settings.local.json
-# Local Pi runtime state
-.atl/
