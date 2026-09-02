@@ -30,7 +30,7 @@ opcache.revalidate_freq=2\n\
 opcache.fast_shutdown=1" > /usr/local/etc/php/conf.d/opcache-recommended.ini
 
 # 4b. Subida de ficheros (carátulas de juegos, límite real de 1MB validado en Laravel)
-RUN echo -e "upload_max_filesize=2M\n\
+RUN echo -e "upload_max_filesize=4M\n\
 post_max_size=4M" > /usr/local/etc/php/conf.d/uploads.ini
 
 # 5. Instalar Composer obteniéndolo de su imagen oficial
