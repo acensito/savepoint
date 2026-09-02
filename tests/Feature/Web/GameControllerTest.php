@@ -526,6 +526,23 @@ class GameControllerTest extends TestCase
         Storage::disk('public')->assertExists($game->cover);
     }
 
+    public function test_creating_a_game_rejects_an_image_cover_over_one_mb_without_saving(): void
+    {
+        $user = User::factory()->create();
+        $cover = UploadedFile::fake()->image('large-cover.jpg')->size(1025);
+
+        $response = $this->actingAs($user)->post('/games', [
+            'title' => 'Imagen demasiado grande',
+            'play_status' => 'pending',
+            'cover' => $cover,
+        ]);
+
+        $response->assertSessionHasErrors([
+            'cover' => 'No se admiten imágenes superiores a 1 MB.',
+        ]);
+        $this->assertDatabaseMissing('games', ['title' => 'Imagen demasiado grande']);
+    }
+
     public function test_user_can_set_playtime_hours_when_creating_a_game(): void
     {
         $user = User::factory()->create();

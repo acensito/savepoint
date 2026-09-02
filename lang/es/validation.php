@@ -164,7 +164,7 @@ return [
     */
 
     'custom' => [
-        //
+        'cover.max' => 'No se admiten imágenes superiores a 1 MB.',
     ],
 
     /*
