@@ -226,6 +226,13 @@ class ErrorContractTest extends TestCase
 
     public function test_login_throttle_is_not_reported_as_validation_errors(): void
     {
+        // Con el reloj congelado, el número de segundos que reporta el
+        // throttle es siempre el decay completo (60): sin esto, el tiempo
+        // real que tarda en ejecutarse el bucle de abajo podía hacer que
+        // "availableIn" devolviera 59 en vez de 60 según lo rápido o lento
+        // que fuera el entorno (un test flaky visto en CI, no en local).
+        $this->freezeTime();
+
         User::factory()->create(['password' => Hash::make('password')]);
 
         for ($attempt = 0; $attempt < 6; $attempt++) {
@@ -239,7 +246,7 @@ class ErrorContractTest extends TestCase
             ->assertJson([
                 'code' => 'RATE_LIMIT_EXCEEDED',
                 'status' => 429,
-                'message' => 'Demasiados intentos de acceso. Inténtalo de nuevo en 59 segundos.',
+                'message' => 'Demasiados intentos de acceso. Inténtalo de nuevo en 60 segundos.',
             ])
             ->assertJsonMissingPath('errors');
     }
