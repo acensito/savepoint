@@ -814,7 +814,7 @@ class GameFormValidationTest extends TestCase
         $this->assertDatabaseCount('games', 0);
     }
 
-    public function test_cover_reports_a_specific_message_when_php_rejects_the_upload_size(): void
+    public function test_cover_reports_the_generic_upload_failure_message_when_php_rejects_the_upload(): void
     {
         Storage::fake('public');
         $user = User::factory()->create();
@@ -826,7 +826,7 @@ class GameFormValidationTest extends TestCase
                 'cover' => new SymfonyUploadedFile($path, 'cover.jpg', 'image/jpeg', UPLOAD_ERR_INI_SIZE, true),
             ]));
 
-            $response->assertSessionHasErrors(['cover' => 'La carátula supera el límite permitido de 1 MB.']);
+            $response->assertSessionHasErrors(['cover' => 'No se pudo subir la carátula. Comprueba el archivo e inténtalo de nuevo.']);
             $this->assertDatabaseCount('games', 0);
         } finally {
             unlink($path);

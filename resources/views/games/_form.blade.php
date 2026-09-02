@@ -382,13 +382,18 @@
 </div>
 
 <script nonce="{{ $cspNonce }}">
+    // Vista previa "de respaldo" a la que volver si se rechaza un fichero
+    // local: arranca con la carátula ya guardada (o las iniciales) y el
+    // buscador de CEX la actualiza cada vez que se elige un resultado, para
+    // que un rechazo posterior no la deje desincronizada de cover_url_input.
+    let coverFallbackPreview = document.getElementById('cover-wrapper')?.innerHTML ?? '';
+
     (function () {
         const coverInput = document.getElementById('cover');
         const coverWrapper = document.getElementById('cover-wrapper');
         const coverError = document.getElementById('cover-error');
         if (!coverInput || !coverWrapper || !coverError) return;
 
-        const initialPreview = coverWrapper.innerHTML;
         let previewUrl = null;
 
         function clearPreview() {
@@ -396,7 +401,7 @@
                 URL.revokeObjectURL(previewUrl);
                 previewUrl = null;
             }
-            coverWrapper.innerHTML = initialPreview;
+            coverWrapper.innerHTML = coverFallbackPreview;
         }
 
         function showError(message) {
@@ -647,8 +652,9 @@
                         const result = results[Number(el.dataset.index)];
 
                         if (result.cover_url) {
-                            document.getElementById('cover-wrapper').innerHTML =
+                            coverFallbackPreview =
                                 `<img id="cover-preview-img" src="${result.cover_url}" alt="Carátula" class="w-24 h-auto rounded-xl border border-slate-700">`;
+                            document.getElementById('cover-wrapper').innerHTML = coverFallbackPreview;
                             coverUrlInput.value = result.cover_url;
                             if (coverFileInput) coverFileInput.value = '';
                             if (removeCoverCheckbox) removeCoverCheckbox.checked = false;
