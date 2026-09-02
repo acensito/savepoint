@@ -98,7 +98,7 @@
                 JPG, PNG o WEBP, máx. 1MB. Si no subes ninguna, se muestran las iniciales del título.
             @endif
         </p>
-        @error('cover') <span class="{{ $error }}">{{ $message }}</span> @enderror
+        <span id="cover-error" class="{{ $error }}{{ $errors->has('cover') ? '' : ' hidden' }}">{{ $errors->first('cover') }}</span>
 
         <input type="hidden" name="cover_url" id="cover_url_input" value="{{ $externalCoverUrl }}">
 
@@ -382,12 +382,47 @@
 </div>
 
 <script nonce="{{ $cspNonce }}">
-    document.getElementById('cover')?.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        document.getElementById('cover-wrapper').innerHTML =
-            `<img id="cover-preview-img" src="${URL.createObjectURL(file)}" alt="Carátula" class="w-24 h-auto rounded-xl border border-slate-700">`;
-    });
+    (function () {
+        const coverInput = document.getElementById('cover');
+        const coverWrapper = document.getElementById('cover-wrapper');
+        const coverError = document.getElementById('cover-error');
+        if (!coverInput || !coverWrapper || !coverError) return;
+
+        const initialPreview = coverWrapper.innerHTML;
+        let previewUrl = null;
+
+        function clearPreview() {
+            if (previewUrl) {
+                URL.revokeObjectURL(previewUrl);
+                previewUrl = null;
+            }
+            coverWrapper.innerHTML = initialPreview;
+        }
+
+        function showError(message) {
+            coverError.textContent = message;
+            coverError.classList.remove('hidden');
+        }
+
+        coverInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            coverError.textContent = '';
+            coverError.classList.add('hidden');
+            if (!file) return;
+
+            if (file.size > 1024 * 1024) {
+                coverInput.value = '';
+                clearPreview();
+                showError('No se admiten imágenes superiores a 1 MB.');
+                return;
+            }
+
+            if (previewUrl) URL.revokeObjectURL(previewUrl);
+            previewUrl = URL.createObjectURL(file);
+            coverWrapper.innerHTML =
+                `<img id="cover-preview-img" src="${previewUrl}" alt="Carátula" class="w-24 h-auto rounded-xl border border-slate-700">`;
+        });
+    })();
 
     document.getElementById('title')?.addEventListener('input', (e) => {
         const initialsEl = document.getElementById('cover-initials');

@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\File\UploadedFile as SymfonyUploadedFile;
 use Tests\TestCase;
 
 /**
@@ -809,8 +810,27 @@ class GameFormValidationTest extends TestCase
             'cover' => UploadedFile::fake()->image('cover.jpg')->size(1025),
         ]));
 
-        $response->assertSessionHasErrors('cover');
+        $response->assertSessionHasErrors(['cover' => 'No se admiten imágenes superiores a 1 MB.']);
         $this->assertDatabaseCount('games', 0);
+    }
+
+    public function test_cover_reports_a_specific_message_when_php_rejects_the_upload_size(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create();
+        $path = tempnam(sys_get_temp_dir(), 'cover-upload-');
+        file_put_contents($path, 'placeholder');
+
+        try {
+            $response = $this->actingAs($user)->post('/games', $this->validPayload([
+                'cover' => new SymfonyUploadedFile($path, 'cover.jpg', 'image/jpeg', UPLOAD_ERR_INI_SIZE, true),
+            ]));
+
+            $response->assertSessionHasErrors(['cover' => 'La carátula supera el límite permitido de 1 MB.']);
+            $this->assertDatabaseCount('games', 0);
+        } finally {
+            unlink($path);
+        }
     }
 
     public function test_cover_accepts_a_file_at_exactly_the_size_limit(): void
