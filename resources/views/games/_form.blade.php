@@ -98,7 +98,7 @@
                 JPG, PNG o WEBP, máx. 1MB. Si no subes ninguna, se muestran las iniciales del título.
             @endif
         </p>
-        @error('cover') <span class="{{ $error }}">{{ $message }}</span> @enderror
+        <span id="cover-error" class="{{ $error }}{{ $errors->has('cover') ? '' : ' hidden' }}">{{ $errors->first('cover') }}</span>
 
         <input type="hidden" name="cover_url" id="cover_url_input" value="{{ $externalCoverUrl }}">
 
@@ -382,12 +382,52 @@
 </div>
 
 <script nonce="{{ $cspNonce }}">
-    document.getElementById('cover')?.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        document.getElementById('cover-wrapper').innerHTML =
-            `<img id="cover-preview-img" src="${URL.createObjectURL(file)}" alt="Carátula" class="w-24 h-auto rounded-xl border border-slate-700">`;
-    });
+    // Vista previa "de respaldo" a la que volver si se rechaza un fichero
+    // local: arranca con la carátula ya guardada (o las iniciales) y el
+    // buscador de CEX la actualiza cada vez que se elige un resultado, para
+    // que un rechazo posterior no la deje desincronizada de cover_url_input.
+    let coverFallbackPreview = document.getElementById('cover-wrapper')?.innerHTML ?? '';
+
+    (function () {
+        const coverInput = document.getElementById('cover');
+        const coverWrapper = document.getElementById('cover-wrapper');
+        const coverError = document.getElementById('cover-error');
+        if (!coverInput || !coverWrapper || !coverError) return;
+
+        let previewUrl = null;
+
+        function clearPreview() {
+            if (previewUrl) {
+                URL.revokeObjectURL(previewUrl);
+                previewUrl = null;
+            }
+            coverWrapper.innerHTML = coverFallbackPreview;
+        }
+
+        function showError(message) {
+            coverError.textContent = message;
+            coverError.classList.remove('hidden');
+        }
+
+        coverInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            coverError.textContent = '';
+            coverError.classList.add('hidden');
+            if (!file) return;
+
+            if (file.size > 1024 * 1024) {
+                coverInput.value = '';
+                clearPreview();
+                showError('No se admiten imágenes superiores a 1 MB.');
+                return;
+            }
+
+            if (previewUrl) URL.revokeObjectURL(previewUrl);
+            previewUrl = URL.createObjectURL(file);
+            coverWrapper.innerHTML =
+                `<img id="cover-preview-img" src="${previewUrl}" alt="Carátula" class="w-24 h-auto rounded-xl border border-slate-700">`;
+        });
+    })();
 
     document.getElementById('title')?.addEventListener('input', (e) => {
         const initialsEl = document.getElementById('cover-initials');
@@ -612,8 +652,9 @@
                         const result = results[Number(el.dataset.index)];
 
                         if (result.cover_url) {
-                            document.getElementById('cover-wrapper').innerHTML =
+                            coverFallbackPreview =
                                 `<img id="cover-preview-img" src="${result.cover_url}" alt="Carátula" class="w-24 h-auto rounded-xl border border-slate-700">`;
+                            document.getElementById('cover-wrapper').innerHTML = coverFallbackPreview;
                             coverUrlInput.value = result.cover_url;
                             if (coverFileInput) coverFileInput.value = '';
                             if (removeCoverCheckbox) removeCoverCheckbox.checked = false;
