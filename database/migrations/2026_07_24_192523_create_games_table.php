@@ -20,7 +20,7 @@ return new class extends Migration
             $table->longText('data')->nullable();
             $table->date('release_date')->nullable();
             $table->string('developer')->nullable();
-            $table->json('genres')->nullable(); // En Postgres, Laravel lo traduce a JSONB (muy rápido)
+            $table->json('genres')->nullable(); // En Postgres, Laravel lo traduce a JSON (no JSONB)
 
             // Estados y condiciones (Cambiados a string para usar PHP Enums)
             $table->string('status')->nullable();
