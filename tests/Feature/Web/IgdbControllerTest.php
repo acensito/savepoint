@@ -118,6 +118,28 @@ class IgdbControllerTest extends TestCase
         $this->assertSame('88.50', $fresh->igdb_rating);
     }
 
+    /**
+     * Regresión (#49): un juego ya emparejado antes de que existiera
+     * igdb_time_to_beat se quedaba sin ese campo para siempre, porque
+     * IgdbGameMatcher::matchIfNeeded() solo corre una vez. apply() (el
+     * "Corregir coincidencia" de la ficha) es el mecanismo para refrescarlo:
+     * debe pedir y guardar la duración media igual que el match automático,
+     * no solo los campos que ya traía search().
+     */
+    public function test_igdb_apply_refreshes_the_time_to_beat_field(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['igdb_matched_at' => now(), 'igdb_time_to_beat' => null]);
+
+        $this->mock(IgdbLookupService::class, function ($mock) {
+            $mock->shouldReceive('timeToBeat')->once()->with(42)->andReturn(['normally' => 36000]);
+        });
+
+        $this->actingAs($user)->post("/games/{$game->id}/igdb-apply", ['igdb_id' => 42]);
+
+        $this->assertSame(['normally' => 36000], $game->fresh()->igdb_time_to_beat);
+    }
+
     public function test_igdb_apply_overwrites_an_existing_developer_with_an_explicit_choice(): void
     {
         $user = User::factory()->create();
