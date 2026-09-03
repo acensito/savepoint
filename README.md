@@ -360,10 +360,10 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 
 ### Arranque rápido con Docker
 
-Todo lo que hace falta es Docker y Docker Compose. El stack (`docker-compose.yml`) levanta cinco contenedores:
-`postgres`, `redis`, `app` (PHP-FPM), `queue` (worker de Redis) y `nginx`. La inicialización de la app (instalación de
-dependencias, generación de `APP_KEY`, migraciones, seeders y compilación de assets) es 100% automatizada vía entrypoint
-en el arranque:
+Todo lo que hace falta es Docker y Docker Compose. El stack (`docker-compose.yml`) levanta seis contenedores:
+`postgres`, `postgres-backup` (copias de seguridad diarias, ver más abajo), `redis`, `app` (PHP-FPM), `queue` (worker de
+Redis) y `nginx`. La inicialización de la app (instalación de dependencias, generación de `APP_KEY`, migraciones,
+seeders y compilación de assets) es 100% automatizada vía entrypoint en el arranque:
 
 ```bash
 git clone <url-del-repo> savepoint && cd savepoint
@@ -387,6 +387,34 @@ contraseña de Postgres, copia
 `.env.example` a `.env` en la raíz del proyecto (si no lo has hecho ya) y edita lo que necesites — es el **único**
 `.env` del proyecto: el mismo fichero que lee Docker Compose para las credenciales de Postgres/Redis y los puertos es,
 directamente, el que carga Laravel. Tras cambiarlo, `docker compose up -d --build` para que se aplique.
+
+### Copias de seguridad
+
+El servicio `postgres-backup` hace un volcado diario de la base de datos (`pg_dump -Fc`, formato comprimido) a las 03:00,
+programado con `crond` dentro del propio contenedor. Los dumps se guardan en `BACKUP_PATH` (por defecto
+`./backups/postgres`, en el host — no en el volumen `postgres_data`, para que borrar ese volumen no se lleve los
+backups por delante) y se rotan solos: cualquiera con más de `BACKUP_RETENTION_DAYS` días (7 por defecto) se borra en
+cada ejecución. Ambos valores se ajustan en `.env`.
+
+```bash
+# Ver los backups existentes
+ls backups/postgres/
+
+# Forzar un backup manual (además del programado a las 03:00)
+docker compose exec postgres-backup sh /docker/backup.sh
+
+# Ver el histórico de ejecuciones
+docker compose logs postgres-backup
+
+# Restaurar un dump (pg_restore, no psql: es formato -Fc). Contra una base de
+# datos vacía o de pruebas, nunca directamente sobre la de producción sin
+# comprobarlo antes.
+docker compose exec -T postgres pg_restore -U savepoint -d savepoint --clean --if-exists < backups/postgres/savepoint_<fecha>.dump
+```
+
+Alcance deliberadamente mínimo: sin subida a almacenamiento externo, sin cifrado de los dumps y sin restore
+automatizado/probado periódicamente. Válido para una instancia personal; para un despliegue con datos más sensibles,
+copia además `BACKUP_PATH` a otro disco u otra máquina por tu cuenta.
 
 ### Exponer la app fuera de `localhost`
 

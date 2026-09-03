@@ -52,3 +52,7 @@ docker-compose.override.yml
 # Claude Code: settings.local.json es local por máquina (permisos, etc.),
 # no debe compartirse entre quien clone el repo.
 .claude/settings.local.json
+
+# Dumps de pg_dump del servicio "postgres-backup" (ruta por defecto de
+# BACKUP_PATH en .env.example): nunca a git.
+/backups
