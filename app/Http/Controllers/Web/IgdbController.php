@@ -67,6 +67,13 @@ class IgdbController extends Controller
      * borrar algo bueno con un match peor. age_rating se elige entre las
      * clasificaciones del resultado según la región del juego (ver
      * AgeRatingResolver, issue #46).
+     *
+     * También sirve como mecanismo de "reemparejar" para refrescar campos
+     * IGDB añadidos después del primer match automático (ver
+     * IgdbGameMatcher::matchIfNeeded(), que solo corre una vez por juego):
+     * el usuario corrige/reconfirma aquí y se reaplican todos los campos de
+     * IGDB, no solo los que existían cuando se emparejó por primera vez
+     * (issue #49).
      */
     public function apply(Request $request, Game $game): RedirectResponse
     {
@@ -95,6 +102,10 @@ class IgdbController extends Controller
             'igdb_id' => $validated['igdb_id'],
             'igdb_genres' => $validated['genres'] ?? null,
             'igdb_rating' => $validated['rating'] ?? null,
+            // Petición aparte (ver IgdbGameMatcher e IgdbLookupService::
+            // timeToBeat()): solo tiene sentido pedirla ya con un igdb_id
+            // concreto, no para los hasta 8 candidatos de search().
+            'igdb_time_to_beat' => $this->igdbLookup->timeToBeat($validated['igdb_id']),
             'igdb_age_ratings' => $ageRatings,
             'igdb_matched_at' => now(),
         ]);
