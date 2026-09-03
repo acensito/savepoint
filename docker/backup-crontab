@@ -1,0 +1,4 @@
+# Backup diario de Postgres a las 03:00 (hora del contenedor). Log al stdout
+# del propio contenedor (/proc/1/fd/1 = PID 1 = crond), visible con
+# `docker compose logs postgres-backup`.
+0 3 * * * sh /docker/backup.sh >> /proc/1/fd/1 2>&1

@@ -5,6 +5,10 @@ sección al final de `README.md`; se separó a este fichero para que el README
 pueda ser un documento de presentación del proyecto en vez de una lista que
 crece sin parar.
 
+## 2026-09-03
+
+- **Backup automatizado básico de PostgreSQL** (#98, hallazgo de mayor impacto real de la auditoría #93: hasta ahora cero referencias a `pg_dump` o backup en todo el repo, solo el volumen Docker `postgres_data` como única protección de los datos): nuevo servicio `postgres-backup` en `docker-compose.yml`, misma imagen `postgres:16-alpine` que el servidor a propósito (mismo `pg_dump` que la versión real, sin desajustes). `crond` dentro del contenedor ejecuta `docker/backup.sh` cada día a las 03:00: `pg_dump -Fc` a `BACKUP_PATH` (por defecto `./backups/postgres` en el host, fuera del volumen `postgres_data` — un `docker compose down -v` no se lleva los backups por delante) y rotación de dumps con más de `BACKUP_RETENTION_DAYS` días (7 por defecto). Alcance mínimo a propósito, sin subida externa, cifrado ni restore automatizado — de cero backups a "al menos uno reciente en disco".
+
 ## 2026-09-01
 
 - **`/panel/users`: orden por rol/antigüedad, badge de 2FA sin completar y purgado de cuentas abandonadas** (#10, anotado tras el incidente real de cuentas huérfanas por fallo de envío del código 2FA del 2026-08-23): el listado ordenaba alfabético por nombre y no había forma de distinguir una cuenta que se registró con verificación en dos pasos y nunca llegó a introducir el primer código (huérfana de verdad) de una cuenta normal. Cambios:

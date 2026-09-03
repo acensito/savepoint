@@ -36,6 +36,34 @@ services:
         networks:
             - savepoint_net
 
+    # Backup diario de Postgres (#98): pg_dump -Fc programado con crond,
+    # rotación simple de dumps antiguos. Misma imagen que "postgres" a
+    # propósito, para que pg_dump sea siempre de la misma versión que el
+    # servidor. Los dumps van a una ruta host (BACKUP_PATH) fuera del volumen
+    # postgres_data: un "docker compose down -v" o un borrado accidental de
+    # ese volumen no se lleva también los backups por delante.
+    postgres-backup:
+        image: postgres:16-alpine
+        restart: unless-stopped
+        environment:
+            PGHOST: ${DB_HOST:-postgres}
+            PGUSER: ${DB_USERNAME:-savepoint}
+            PGPASSWORD: ${DB_PASSWORD:?DB_PASSWORD debe estar definida en .env}
+            PGDATABASE: ${DB_DATABASE:-savepoint}
+            BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-7}
+        entrypoint: [ "crond", "-f", "-l", "2" ]
+        volumes:
+            - ./docker/backup.sh:/docker/backup.sh:ro
+            - ./docker/backup-crontab:/etc/crontabs/root:ro
+            - ${BACKUP_PATH:-./backups/postgres}:/backups
+        mem_limit: 64m
+        cpus: "0.1"
+        depends_on:
+            postgres:
+                condition: service_healthy
+        networks:
+            - savepoint_net
+
     redis:
         image: redis:7-alpine
         restart: unless-stopped
