@@ -30,6 +30,7 @@ class DatabaseSeederTest extends TestCase
         $this->assertNotNull($user);
         $this->assertSame(1, User::where('email', 'configured@example.test')->count());
         $this->assertTrue(Hash::check('configured-password', $user->password));
+        $this->assertTrue($user->is_admin);
     }
 
     public function test_seeder_skips_development_user_when_credentials_are_empty(): void
