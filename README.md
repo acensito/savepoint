@@ -348,7 +348,7 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 ## Stack técnico
 
 - **Backend:** Laravel 13 / PHP 8.3
-- **Base de datos:** PostgreSQL 16 (usa `JSON` para campos estructurados como `genres`)
+- **Base de datos:** PostgreSQL 18 (usa `JSON` para campos estructurados como `genres`)
 - **Autenticación web:** sesiones con guard `web` (login por email/contraseña)
 - **Autenticación API:** Laravel Sanctum (tokens Bearer)
 - **Frontend web:** Blade + Tailwind CSS + Vite.
@@ -415,6 +415,47 @@ docker compose exec -T postgres pg_restore -U savepoint -d savepoint --clean --i
 Alcance deliberadamente mínimo: sin subida a almacenamiento externo, sin cifrado de los dumps y sin restore
 automatizado/probado periódicamente. Válido para una instancia personal; para un despliegue con datos más sensibles,
 copia además `BACKUP_PATH` a otro disco u otra máquina por tu cuenta.
+
+### Actualizar de PostgreSQL 16 a 18
+
+Un salto de versión mayor de Postgres cambia el formato interno de los datos: no basta con recrear el contenedor
+`postgres` contra el volumen `postgres_data` que ya tenías con la 16, hace falta migrar los datos explícitamente vía
+`pg_dump`/`pg_restore`. Además, la imagen oficial `postgres:18-alpine` cambió su convención de directorio de datos: ya
+no acepta un volumen montado en `/var/lib/postgresql/data` (el punto de montaje de siempre) — ahora espera un único
+punto de montaje en `/var/lib/postgresql`, dentro del cual gestiona ella misma una subcarpeta versionada. Este repo ya
+usa esa ruta nueva; si vienes de una instancia con datos reales en la 16, sigue estos pasos **en orden**, sin saltarte
+ninguno:
+
+```bash
+# 1. Backup completo mientras el contenedor sigue en la 16 (antes de tocar nada)
+docker compose exec -T postgres pg_dump -U savepoint -d savepoint -Fc > pg16_pre_upgrade.dump
+
+# 2. Parar los contenedores (el volumen postgres_data con los datos de la 16 no se toca todavía)
+docker compose down
+
+# 3. Actualizar el repo a la versión con postgres:18-alpine (git pull / checkout de este cambio)
+
+# 4. El volumen postgres_data existente tiene datos de la 16 en el punto de montaje antiguo, incompatibles
+#    con como los espera la 18 — hay que partir de un volumen nuevo y vacío. Comprueba antes el nombre exacto
+#    con el backup del paso 1 ya a salvo:
+docker volume ls | grep postgres_data
+docker volume rm <nombre_del_volumen_anterior>
+
+# 5. Arrancar con la 18: crea un volumen postgres_data nuevo y vacío, con la base de datos "savepoint" recién
+#    inicializada (sin tablas todavía)
+docker compose up -d --build
+
+# 6. Restaurar el backup del paso 1 sobre esa base de datos vacía
+docker compose exec -T postgres pg_restore -U savepoint -d savepoint --clean --if-exists < pg16_pre_upgrade.dump
+
+# 7. Verificar antes de dar por buena la migración
+docker compose exec app php artisan migrate:status   # todas "Ran", ninguna pendiente
+docker compose exec postgres psql -U savepoint -d savepoint -c "SELECT count(*) FROM games;"
+```
+
+Repasa la app (colección, wishlist, estadísticas) antes de borrar `pg16_pre_upgrade.dump` — es tu única vía de vuelta
+atrás si algo no cuadra. Procedimiento verificado en un entorno de pruebas aislado, con datos reales de catálogo y
+juegos, tests de la suite completa (`phpunit.pgsql.xml`) en verde contra la 18 y las mismas comprobaciones de arriba.
 
 ### Exponer la app fuera de `localhost`
 

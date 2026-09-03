@@ -1,6 +1,6 @@
 services:
     postgres:
-        image: postgres:16-alpine
+        image: postgres:18-alpine
         restart: unless-stopped
         # Lee las credenciales de base de datos directamente desde el .env
         # de la raíz
@@ -26,8 +26,14 @@ services:
         ports:
             # Cerrado al exterior: Solo accesible desde localhost (tu PC)
             - "127.0.0.1:${POSTGRES_FORWARD_PORT:-5432}:5432"
+        # Desde la 18, la imagen oficial ya no acepta un volumen montado
+        # directamente en /var/lib/postgresql/data: gestiona ella misma una
+        # subcarpeta versionada (p. ej. /var/lib/postgresql/18/docker) dentro
+        # de un único punto de montaje en /var/lib/postgresql (ver
+        # docker-library/postgres#1259). Montar en la ruta antigua hace que
+        # el contenedor se niegue a arrancar, incluso con un volumen vacío.
         volumes:
-            - postgres_data:/var/lib/postgresql/data
+            - postgres_data:/var/lib/postgresql
         healthcheck:
             test: [ "CMD-SHELL", "pg_isready -U ${DB_USERNAME:-savepoint}" ]
             interval: 10s
@@ -43,7 +49,7 @@ services:
     # postgres_data: un "docker compose down -v" o un borrado accidental de
     # ese volumen no se lleva también los backups por delante.
     postgres-backup:
-        image: postgres:16-alpine
+        image: postgres:18-alpine
         restart: unless-stopped
         environment:
             PGHOST: ${DB_HOST:-postgres}
