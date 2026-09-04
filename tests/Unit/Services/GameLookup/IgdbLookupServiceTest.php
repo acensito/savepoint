@@ -124,6 +124,35 @@ class IgdbLookupServiceTest extends TestCase
         });
     }
 
+    /**
+     * Regresión (#50): antes se escapaba $query con addslashes(), que
+     * también escapa la comilla simple — colaba una barra invertida literal
+     * delante de cada apóstrofo del título buscado ("Assassin\'s Creed"),
+     * rompiendo el matching de texto libre de IGDB para cualquier título con
+     * uno. Apicalypse delimita con comillas dobles: solo hace falta escapar
+     * barra invertida y comilla doble.
+     */
+    public function test_search_does_not_escape_an_apostrophe_in_the_query(): void
+    {
+        $this->fakeToken();
+        Http::fake(['api.igdb.com/v4/games' => Http::response([], 200)]);
+
+        $this->makeService()->search("Assassin's Creed: Mirage");
+
+        Http::assertSent(fn ($request) => str_contains($request->body(), 'search "Assassin\'s Creed: Mirage";')
+            && ! str_contains($request->body(), "Assassin\\'s"));
+    }
+
+    public function test_search_escapes_a_double_quote_in_the_query(): void
+    {
+        $this->fakeToken();
+        Http::fake(['api.igdb.com/v4/games' => Http::response([], 200)]);
+
+        $this->makeService()->search('The "Special" Edition');
+
+        Http::assertSent(fn ($request) => str_contains($request->body(), 'search "The \"Special\" Edition";'));
+    }
+
     public function test_search_lists_results_matching_the_given_platform_first(): void
     {
         $this->fakeToken();
