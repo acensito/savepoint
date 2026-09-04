@@ -113,6 +113,95 @@ class IgdbGameMatcherTest extends TestCase
     }
 
     /**
+     * (#50): con dos candidatos empatados a la mejor puntuación (aquí,
+     * ninguno de los dos coincide con el título exacto y ninguno trae nota),
+     * no hay forma fiable de elegir uno solo — se deja el juego sin
+     * emparejar y marcado como ambiguo para que el usuario elija a mano
+     * desde la ficha (ver IgdbController::search()/apply()), en vez de
+     * arriesgarse a quedarse con un bundle/DLC al azar.
+     */
+    public function test_match_if_needed_leaves_the_game_unmatched_and_flags_it_ambiguous_on_a_real_tie(): void
+    {
+        $game = Game::factory()->create(['title' => 'Ambiguous Game', 'platform_id' => null]);
+
+        $igdbLookup = Mockery::mock(IgdbLookupService::class);
+        $igdbLookup->shouldReceive('search')->once()->andReturn([
+            $bundle = new IgdbGameMatch(
+                igdbId: 1,
+                title: 'Ambiguous Game Collection',
+                platforms: null,
+                developer: null,
+                releaseDate: null,
+                genres: null,
+                rating: null,
+                ageRatings: null,
+            ),
+            $otherBundle = new IgdbGameMatch(
+                igdbId: 2,
+                title: 'Ambiguous Game Anthology',
+                platforms: null,
+                developer: null,
+                releaseDate: null,
+                genres: null,
+                rating: null,
+                ageRatings: null,
+            ),
+        ]);
+        $igdbLookup->shouldReceive('matchScore')->with($bundle, 'Ambiguous Game', null)->andReturn(0);
+        $igdbLookup->shouldReceive('matchScore')->with($otherBundle, 'Ambiguous Game', null)->andReturn(0);
+        $igdbLookup->shouldNotReceive('timeToBeat');
+
+        $this->matcher($igdbLookup)->matchIfNeeded($game);
+
+        $this->assertNull($game->igdb_id);
+        $this->assertTrue($game->igdb_match_ambiguous);
+        $this->assertNotNull($game->igdb_matched_at);
+    }
+
+    /**
+     * (#50): con un único candidato en cabeza (puntuación estrictamente
+     * mayor que la del segundo), el match automático sigue eligiéndolo sin
+     * pedir confirmación — el empate solo bloquea la elección cuando de
+     * verdad es un empate.
+     */
+    public function test_match_if_needed_still_auto_picks_a_clear_winner(): void
+    {
+        $game = Game::factory()->create(['title' => 'Celeste', 'platform_id' => null]);
+
+        $igdbLookup = Mockery::mock(IgdbLookupService::class);
+        $igdbLookup->shouldReceive('search')->once()->andReturn([
+            $winner = new IgdbGameMatch(
+                igdbId: 305,
+                title: 'Celeste',
+                platforms: null,
+                developer: 'Maddy Makes Games',
+                releaseDate: null,
+                genres: null,
+                rating: 87.65,
+                ageRatings: null,
+            ),
+            $bundle = new IgdbGameMatch(
+                igdbId: 1,
+                title: 'Celeste Collector\'s Bundle',
+                platforms: null,
+                developer: null,
+                releaseDate: null,
+                genres: null,
+                rating: null,
+                ageRatings: null,
+            ),
+        ]);
+        $igdbLookup->shouldReceive('matchScore')->with($winner, 'Celeste', null)->andReturn(2);
+        $igdbLookup->shouldReceive('matchScore')->with($bundle, 'Celeste', null)->andReturn(0);
+        $igdbLookup->shouldReceive('timeToBeat')->once()->with(305)->andReturn(null);
+
+        $this->matcher($igdbLookup)->matchIfNeeded($game);
+
+        $this->assertSame(305, $game->igdb_id);
+        $this->assertFalse($game->igdb_match_ambiguous);
+    }
+
+    /**
      * (#46): age_rating se elige según la región del juego (ver
      * AgeRatingResolver) entre las clasificaciones que IGDB devuelve.
      */

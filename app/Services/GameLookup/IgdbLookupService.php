@@ -104,7 +104,7 @@ class IgdbLookupService
                     'fields name,first_release_date,involved_companies.company.name,involved_companies.developer,'
                         .'genres.name,rating,aggregated_rating,platforms.name,'
                         .'age_ratings.organization.name,age_ratings.rating_category.rating; '
-                        .'search "'.addslashes($query).'"; limit '.max(1, min($limit, 20)).';',
+                        .'search "'.$this->escapeSearchQuery($query).'"; limit '.max(1, min($limit, 20)).';',
                     'text/plain',
                 )
                 ->post('https://api.igdb.com/v4/games');
@@ -253,11 +253,18 @@ class IgdbLookupService
         return $times !== [] ? $times : null;
     }
 
-    private function matchScore(IgdbGameMatch $match, string $query, ?string $platformName): int
+    /**
+     * Puntuación de un candidato para una búsqueda dada — misma lógica que
+     * usa search() internamente para reordenar. Pública para que
+     * IgdbGameMatcher pueda detectar un empate a la mejor puntuación entre
+     * los resultados ya ordenados y, en ese caso, no elegir ninguno por su
+     * cuenta (ver issue #50).
+     */
+    public function matchScore(IgdbGameMatch $match, string $query, ?string $platformName): int
     {
         $score = 0;
 
-        if (Str::lower(trim($match->title)) === Str::lower($query)) {
+        if ($this->normalizeTitleForComparison($match->title) === $this->normalizeTitleForComparison($query)) {
             $score += 2;
         }
 
@@ -265,7 +272,50 @@ class IgdbLookupService
             $score += 1;
         }
 
+        // Un bundle/pack sin apenas datos propios (sin nota agregada) es un
+        // candidato peor que el juego base aunque empate a título exacto —
+        // ver issue #50: para muchos títulos, todos los candidatos empatan a
+        // título exacto salvo por diferencias triviales de puntuación, así
+        // que sin este desempate el orden final vuelve a depender del orden
+        // de relevancia (inestable) que devuelve IGDB.
+        if ($match->rating === null) {
+            $score -= 1;
+        }
+
         return $score;
+    }
+
+    /**
+     * Apicalypse (el lenguaje de consulta de IGDB) delimita las cadenas con
+     * comillas dobles: solo hace falta escapar barra invertida y comilla
+     * doble, nunca el apóstrofo. Antes se usaba addslashes(), que también
+     * escapa la comilla simple — colando una barra invertida literal delante
+     * de cada apóstrofo del título buscado y rompiendo el matching de texto
+     * libre de IGDB para cualquier título con uno (p. ej. "Assassin's Creed:
+     * Mirage" no encontraba nada, pero "Assassins Creed: Mirage" sin
+     * apóstrofo sí — ver issue #50).
+     */
+    private function escapeSearchQuery(string $query): string
+    {
+        return str_replace(['\\', '"'], ['\\\\', '\\"'], $query);
+    }
+
+    /**
+     * Normaliza un título para comparar por igualdad exacta tolerando
+     * diferencias triviales de puntuación (dos puntos, guiones, apóstrofo
+     * tipográfico vs recto) que no cambian el juego que se busca — ver
+     * issue #50. A propósito no toca palabras ("Deluxe Edition", "&" vs
+     * "y", artículo inicial...): ensanchar la tolerancia ahí sí podría hacer
+     * que un bundle con el mismo título base que el juego pasara a
+     * considerarse "exacto".
+     */
+    private function normalizeTitleForComparison(string $title): string
+    {
+        $normalized = Str::lower(trim($title));
+        $normalized = str_replace(['’', '‘', '´', '`', "'"], '', $normalized);
+        $normalized = str_replace(['–', '—', '-', ':'], ' ', $normalized);
+
+        return trim(preg_replace('/\s+/', ' ', $normalized) ?? $normalized);
     }
 
     /**

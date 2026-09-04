@@ -41,7 +41,24 @@ class IgdbGameMatcher
         // limit 10, no 1: search() reordena por título exacto/plataforma
         // dentro de lo que devuelva IGDB (ver IgdbLookupService::search()),
         // así que hace falta margen para que esa prioridad sirva de algo.
-        $match = $this->igdbLookup->search($game->title, $game->platform?->name, limit: 10)[0] ?? null;
+        $matches = $this->igdbLookup->search($game->title, $game->platform?->name, limit: 10);
+
+        // search() ya devuelve $matches ordenado de mejor a peor, pero no
+        // expone la puntuación — se recalcula aquí (misma lógica, ver
+        // IgdbLookupService::matchScore()) solo para saber si el primer y el
+        // segundo puesto están empatados. Con empate real en la mejor
+        // puntuación (p. ej. varios candidatos sin coincidencia exacta de
+        // título y sin nota IGDB, indistinguibles entre sí) no hay forma
+        // fiable de elegir uno solo automáticamente — mejor no arriesgarse a
+        // quedarse con un bundle/DLC y dejar que el usuario elija a mano
+        // desde la ficha (ver issue #50 e IgdbController::search()/apply()).
+        $best = $matches[0] ?? null;
+        $runnerUp = $matches[1] ?? null;
+        $ambiguous = $best !== null && $runnerUp !== null
+            && $this->igdbLookup->matchScore($runnerUp, $game->title, $game->platform?->name)
+                === $this->igdbLookup->matchScore($best, $game->title, $game->platform?->name);
+
+        $match = $ambiguous ? null : $best;
 
         // Petición aparte (ver IgdbLookupService::timeToBeat()): solo tiene
         // sentido pedirla si ya se sabe el id de IGDB del juego.
@@ -57,6 +74,7 @@ class IgdbGameMatcher
             'igdb_time_to_beat' => $timeToBeat,
             'igdb_age_ratings' => $match?->ageRatings,
             'igdb_matched_at' => now(),
+            'igdb_match_ambiguous' => $ambiguous,
         ]);
 
         $game->save();

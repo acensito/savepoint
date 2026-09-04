@@ -124,6 +124,35 @@ class IgdbLookupServiceTest extends TestCase
         });
     }
 
+    /**
+     * Regresión (#50): antes se escapaba $query con addslashes(), que
+     * también escapa la comilla simple — colaba una barra invertida literal
+     * delante de cada apóstrofo del título buscado ("Assassin\'s Creed"),
+     * rompiendo el matching de texto libre de IGDB para cualquier título con
+     * uno. Apicalypse delimita con comillas dobles: solo hace falta escapar
+     * barra invertida y comilla doble.
+     */
+    public function test_search_does_not_escape_an_apostrophe_in_the_query(): void
+    {
+        $this->fakeToken();
+        Http::fake(['api.igdb.com/v4/games' => Http::response([], 200)]);
+
+        $this->makeService()->search("Assassin's Creed: Mirage");
+
+        Http::assertSent(fn ($request) => str_contains($request->body(), 'search "Assassin\'s Creed: Mirage";')
+            && ! str_contains($request->body(), "Assassin\\'s"));
+    }
+
+    public function test_search_escapes_a_double_quote_in_the_query(): void
+    {
+        $this->fakeToken();
+        Http::fake(['api.igdb.com/v4/games' => Http::response([], 200)]);
+
+        $this->makeService()->search('The "Special" Edition');
+
+        Http::assertSent(fn ($request) => str_contains($request->body(), 'search "The \"Special\" Edition";'));
+    }
+
     public function test_search_lists_results_matching_the_given_platform_first(): void
     {
         $this->fakeToken();
@@ -152,6 +181,49 @@ class IgdbLookupServiceTest extends TestCase
         ]);
 
         $results = $this->makeService()->search('Breath of the Wild');
+
+        $this->assertSame(2, $results[0]->igdbId);
+    }
+
+    /**
+     * Regresión (#50): "Assassins Creed: Mirage" (guardado en Savepoint, sin
+     * apóstrofo y con dos puntos) no coincidía con "Assassin's Creed Mirage"
+     * (título real en IGDB, con apóstrofo tipográfico y sin dos puntos), así
+     * que el bonus de título exacto nunca se activaba y el orden final
+     * dependía de la relevancia de texto libre —inestable— de IGDB, pudiendo
+     * elegir cualquiera de los bundles/DLC sin apenas datos.
+     */
+    public function test_search_treats_trivial_punctuation_differences_as_an_exact_title_match(): void
+    {
+        $this->fakeToken();
+        Http::fake([
+            'api.igdb.com/v4/games' => Http::response([
+                ['id' => 1, 'name' => 'Assassin’s Creed Mirage: Deluxe Edition Bundle'],
+                ['id' => 2, 'name' => 'Assassin’s Creed Mirage'],
+            ], 200),
+        ]);
+
+        $results = $this->makeService()->search('Assassins Creed: Mirage');
+
+        $this->assertSame(2, $results[0]->igdbId);
+    }
+
+    /**
+     * Complementario a #50: en empate real de título, un candidato sin nota
+     * agregada (típico de un bundle/pack sin apenas metadatos propios) se
+     * pospone frente a uno con datos reales.
+     */
+    public function test_search_prefers_a_candidate_with_a_rating_over_one_without_on_an_exact_title_tie(): void
+    {
+        $this->fakeToken();
+        Http::fake([
+            'api.igdb.com/v4/games' => Http::response([
+                ['id' => 1, 'name' => 'Celeste'],
+                ['id' => 2, 'name' => 'Celeste', 'aggregated_rating' => 87.65],
+            ], 200),
+        ]);
+
+        $results = $this->makeService()->search('Celeste');
 
         $this->assertSame(2, $results[0]->igdbId);
     }

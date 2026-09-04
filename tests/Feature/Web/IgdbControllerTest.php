@@ -140,6 +140,21 @@ class IgdbControllerTest extends TestCase
         $this->assertSame(['normally' => 36000], $game->fresh()->igdb_time_to_beat);
     }
 
+    /**
+     * (#50): apply() es también el mecanismo con el que el usuario resuelve
+     * a mano un match automático que quedó marcado como ambiguo (ver
+     * IgdbGameMatcherTest) — al elegir explícitamente, el aviso desaparece.
+     */
+    public function test_igdb_apply_clears_the_ambiguous_flag(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['igdb_matched_at' => now(), 'igdb_match_ambiguous' => true]);
+
+        $this->actingAs($user)->post("/games/{$game->id}/igdb-apply", ['igdb_id' => 42]);
+
+        $this->assertFalse($game->fresh()->igdb_match_ambiguous);
+    }
+
     public function test_igdb_apply_overwrites_an_existing_developer_with_an_explicit_choice(): void
     {
         $user = User::factory()->create();
