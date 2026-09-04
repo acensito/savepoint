@@ -8,6 +8,7 @@ use App\Models\Platform;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -194,6 +195,34 @@ class GameImportControllerTest extends TestCase
         $this->actingAs($user)->getJson("/games/import/status/{$importId}")
             ->assertOk()
             ->assertJsonPath('done', false);
+    }
+
+    /**
+     * Regresión (#119): con el TTL de una hora de antes, una importación que
+     * tardara más en pasar por la cola (servidor cargado, colección real de
+     * 1000+ juegos) perdía su entrada de caché mientras seguía en curso de
+     * verdad, y el sondeo veía un 404 indistinguible de un fallo real. El
+     * TTL ahora es de un día (ver GameImportController::cacheTtl()).
+     */
+    public function test_import_status_still_reports_the_result_more_than_an_hour_after_finishing(): void
+    {
+        $user = User::factory()->create();
+        $csv = "Título\r\nCeleste\r\n";
+
+        // QUEUE_CONNECTION=sync (phpunit.xml) deja el job ya terminado —y su
+        // resultado en caché con el nuevo TTL— para cuando llega aquí.
+        $response = $this->actingAs($user)->post('/games/import', ['file' => $this->csvFile($csv)]);
+
+        Carbon::setTestNow(now()->addHours(2));
+
+        try {
+            $this->importStatus($response)
+                ->assertOk()
+                ->assertJsonPath('done', true)
+                ->assertJsonPath('imported', 1);
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 
     public function test_import_status_returns_404_for_an_unknown_import_id(): void
