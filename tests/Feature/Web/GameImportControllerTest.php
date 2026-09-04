@@ -198,6 +198,29 @@ class GameImportControllerTest extends TestCase
     }
 
     /**
+     * Complementario a #119: el TTL más largo por sí solo no evita que el
+     * sondeo del navegador (ver initImportStatusPolling en app.js) siga
+     * indefinidamente si el job muere sin escribir nunca el resultado final
+     * — el aviso de "esto está tardando más de lo normal" (pasados los
+     * SLOW_IMPORT_WARNING_MS del JS) es lo que informa al usuario en ese
+     * caso, en vez de dejarlo sondeando en silencio. Aquí solo se comprueba
+     * que el marcado existe y empieza oculto; la lógica de cuándo mostrarlo
+     * vive en JS, sin cobertura de tests (el proyecto no tiene runner JS).
+     */
+    public function test_import_page_includes_a_hidden_slow_import_warning(): void
+    {
+        $user = User::factory()->create();
+        $csv = "Título\r\nCeleste\r\n";
+
+        $this->actingAs($user)->post('/games/import', ['file' => $this->csvFile($csv)]);
+
+        $response = $this->get('/games/import');
+
+        $response->assertOk();
+        $response->assertSee('id="import-status-slow-warning" class="hidden', false);
+    }
+
+    /**
      * Regresión (#119): con el TTL de una hora de antes, una importación que
      * tardara más en pasar por la cola (servidor cargado, colección real de
      * 1000+ juegos) perdía su entrada de caché mientras seguía en curso de
