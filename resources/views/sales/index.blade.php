@@ -38,8 +38,10 @@
                         </div>
                     </div>
 
-                    <!-- Tarjetas: listado en pantallas estrechas, sin scroll horizontal -->
-                    <div class="md:hidden space-y-2.5">
+                    <!-- Tarjetas: listado en pantallas estrechas, sin scroll horizontal.
+                         Breakpoint en xl, no md (issue #127): con md la tabla —pensada
+                         para escritorio con ratón— se veía también en tablet. -->
+                    <div class="xl:hidden space-y-2.5">
                         @foreach($data['games'] as $game)
                             @php
                                 $rowPaid = (float) ($game->price_paid ?? 0);
@@ -87,8 +89,8 @@
                         @endforeach
                     </div>
 
-                    <!-- Tabla: listado en pantallas medianas y grandes -->
-                    <div class="hidden md:block bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
+                    <!-- Tabla: listado en pantallas grandes (ver comentario del breakpoint arriba) -->
+                    <div class="hidden xl:block bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
                         <table class="min-w-full divide-y divide-slate-800">
                             <thead class="bg-slate-800/50">
                                 <tr>
