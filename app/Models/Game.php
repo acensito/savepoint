@@ -66,6 +66,7 @@ class Game extends Model
         'igdb_time_to_beat',
         'igdb_age_ratings',
         'igdb_matched_at',
+        'igdb_match_ambiguous',
         'igdb_background',
     ];
 
@@ -91,6 +92,7 @@ class Game extends Model
             'igdb_time_to_beat' => 'array',
             'igdb_age_ratings' => 'array',
             'igdb_matched_at' => 'datetime',
+            'igdb_match_ambiguous' => 'boolean',
         ];
     }
 

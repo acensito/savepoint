@@ -151,7 +151,11 @@
                         </h2>
                         <button type="button" id="igdb-search-trigger"
                             class="text-xs font-medium text-indigo-400 hover:text-indigo-300">
-                            {{ $game->igdb_id ? 'Corregir coincidencia' : 'Buscar en IGDB' }}
+                            {{ match(true) {
+                                $game->igdb_id !== null => 'Corregir coincidencia',
+                                $game->igdb_match_ambiguous => 'Elegir coincidencia',
+                                default => 'Buscar en IGDB',
+                            } }}
                         </button>
                     </div>
 
@@ -190,6 +194,11 @@
                                 </div>
                             @endif
                         </div>
+                    @elseif($game->igdb_match_ambiguous)
+                        <p class="text-sm text-amber-400">
+                            Hay varios candidatos en IGDB igual de probables (posible bundle/DLC en vez del juego
+                            base) — elige tú cuál es el correcto.
+                        </p>
                     @else
                         <p class="text-sm text-slate-500">
                             {{ $game->igdb_matched_at ? 'Sin coincidencia en IGDB todavía.' : 'Buscando en IGDB…' }}
@@ -352,6 +361,13 @@
                     search(input.value.trim());
                 }
             });
+
+            @if($game->igdb_match_ambiguous)
+                // Empate real entre varios candidatos (ver IgdbGameMatcher::
+                // matchIfNeeded(), issue #50): se abre el buscador ya mismo en
+                // vez de dejar que el usuario tenga que encontrar el botón.
+                trigger.click();
+            @endif
 
             async function search(query) {
                 searchBtn.disabled = true;

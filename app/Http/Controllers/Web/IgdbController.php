@@ -108,6 +108,7 @@ class IgdbController extends Controller
             'igdb_time_to_beat' => $this->igdbLookup->timeToBeat($validated['igdb_id']),
             'igdb_age_ratings' => $ageRatings,
             'igdb_matched_at' => now(),
+            'igdb_match_ambiguous' => false,
         ]);
 
         return redirect()->route('web.games.show', $game)->with('success', 'Datos de IGDB actualizados.');
