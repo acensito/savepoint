@@ -148,7 +148,7 @@ class GameImportController extends Controller
         $path = $request->file('file')->store('imports');
 
         $importId = (string) Str::uuid();
-        Cache::put(self::cacheKey($importId), ['user_id' => $request->user()->id, 'done' => false], now()->addHour());
+        Cache::put(self::cacheKey($importId), ['user_id' => $request->user()->id, 'done' => false], self::cacheTtl());
 
         ImportGamesFromCsv::dispatch($request->user()->id, $path, $importId);
 
@@ -179,6 +179,22 @@ class GameImportController extends Controller
     public static function cacheKey(string $importId): string
     {
         return "game-import:{$importId}";
+    }
+
+    /**
+     * TTL de la caché de estado, compartida con Jobs\ImportGamesFromCsv
+     * (ver cacheKey()). Antes era una hora, escasa para la colección real
+     * (1000+ juegos, ver README): si el job tardaba más en pasar por la
+     * cola en un servidor cargado, la clave expiraba mientras la
+     * importación seguía en curso de verdad, y el sondeo de importStatus()
+     * devolvía 404 — indistinguible de un fallo real (#119). El propio
+     * import no debería tardar tanto (sin llamadas de red por fila, ver
+     * GameCsvImporter), pero un TTL generoso cuesta poco y cubre también un
+     * worker de cola momentáneamente parado/con backlog.
+     */
+    public static function cacheTtl(): \DateTimeInterface
+    {
+        return now()->addDay();
     }
 
     /**

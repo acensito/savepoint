@@ -29,6 +29,14 @@
                     <x-gicon name="progress_activity" class="text-[20px] animate-spin" />
                     Importando tu colección… puede tardar un poco con ficheros grandes.
                 </div>
+                <!-- Aviso tras SLOW_IMPORT_WARNING_MS de sondeo sin terminar (ver
+                     initImportStatusPolling en app.js, issue #119): una importación
+                     normal no debería tardar más de unos minutos, así que pasado ese
+                     margen probablemente algo ha ido mal (worker de cola caído...),
+                     aunque el sondeo sigue igual por si de verdad solo va lento. -->
+                <p id="import-status-slow-warning" class="hidden mt-2 text-sm text-amber-400">
+                    Esto está tardando más de lo normal. Puede que algo haya ido mal — prueba a recargar esta página más tarde para comprobar si terminó, o repite la importación si sigue igual.
+                </p>
                 <div id="import-status-result" class="hidden"></div>
             </div>
         @endif

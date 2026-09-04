@@ -40,7 +40,7 @@ class ImportGamesFromCsv implements ShouldQueue
             Cache::put(
                 GameImportController::cacheKey($this->importId),
                 ['user_id' => $this->userId, 'done' => true, ...$result],
-                now()->addHour(),
+                GameImportController::cacheTtl(),
             );
         } finally {
             // Solo hacía falta mientras el job la procesaba; no tiene sentido

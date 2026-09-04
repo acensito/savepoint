@@ -502,6 +502,13 @@ function initImportPreview() {
 
 initImportPreview();
 
+// Una importación normal (sin llamadas de red por fila, ver GameCsvImporter)
+// no debería tardar más de un par de minutos ni con la colección real
+// (1000+ juegos, ver README) — pasado este margen, probablemente algo ha
+// ido mal (worker de cola caído, servidor sobrecargado...), aunque el
+// sondeo sigue igual por si de verdad solo va lento (issue #119).
+const SLOW_IMPORT_WARNING_MS = 10 * 60 * 1000;
+
 /**
  * Sondea el resultado de una importación en curso (games/import.blade.php,
  * ver GameImportController::store()/importStatus()): el CSV ya no se
@@ -515,10 +522,13 @@ function initImportStatusPolling() {
 
     const statusUrl = statusEl.dataset.statusUrl;
     const pendingEl = document.getElementById('import-status-pending');
+    const slowWarningEl = document.getElementById('import-status-slow-warning');
     const resultEl = document.getElementById('import-status-result');
+    const startedAt = Date.now();
 
     function renderResult(data) {
         pendingEl.classList.add('hidden');
+        slowWarningEl.classList.add('hidden');
         resultEl.classList.remove('hidden');
         resultEl.innerHTML = '';
 
@@ -569,6 +579,9 @@ function initImportStatusPolling() {
             const data = await response.json();
 
             if (!data.done) {
+                if (Date.now() - startedAt > SLOW_IMPORT_WARNING_MS) {
+                    slowWarningEl.classList.remove('hidden');
+                }
                 setTimeout(poll, 1500);
                 return;
             }
