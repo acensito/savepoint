@@ -45,35 +45,45 @@
                     <div class="flex-1 min-w-0">
                         <a href="{{ route('web.games.show', $game->id) }}" class="flex items-start justify-between gap-2">
                             <span class="min-w-0 text-[15px] font-bold text-slate-100 line-clamp-2 leading-snug">{{ $game->title }}</span>
-                            <x-platform-chip :platform="$game->platform" class="!px-2 !py-0.5 !text-[10px] shrink-0" />
+                            <span class="flex items-center gap-1.5 shrink-0">
+                                @if($game->for_sale)
+                                    <x-gicon name="sell" class="text-[14px] text-amber-400" title="En venta" />
+                                @endif
+                                <x-platform-chip :platform="$game->platform" class="!px-2 !py-0.5 !text-[10px]" />
+                            </span>
                         </a>
 
-                        <!-- Conservación de solo lectura aquí (se cambia desde la ficha de
-                             edición completa, en móvil o web): un toque accidental al
-                             hacer scroll en la tarjeta no debe poder cambiar la valoración. -->
-                        <div class="mt-1.5 flex items-center gap-2 flex-wrap">
+                        <!-- Rejilla 2x2 (en vez de una tira que se amontona a la
+                             izquierda y salta de línea sin criterio): conservación
+                             y región arriba, formato físico y manual abajo — cada
+                             dato en su celda, aunque alguna quede vacía, para que
+                             la tarjeta se lea igual de ordenada con cualquier
+                             combinación de datos. Conservación de solo lectura
+                             aquí (se cambia desde la ficha de edición completa, en
+                             móvil o web): un toque accidental al hacer scroll en
+                             la tarjeta no debe poder cambiar la valoración. -->
+                        <div class="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-slate-400">
                             <x-star-rating :rating="$game->rating" size="text-[11px]" />
-                            @if($game->edition)
-                                <span class="inline-flex items-center gap-1 text-[11px] text-slate-400">
-                                    <x-gicon :name="$game->edition->formatIcon()" class="text-[12px]" />
-                                    {{ $game->edition->formatLabel() }}
-                                </span>
-                            @endif
-                            @if($game->region)
-                                <span class="text-[11px] text-slate-400">{{ $game->region }}</span>
-                            @endif
-                            @if($game->manual_status === 'included')
-                                <span class="text-[10px] font-semibold text-emerald-400">CON MANUAL</span>
-                            @elseif($game->manual_status === 'booklet')
-                                <span class="text-[10px] font-semibold text-emerald-400">CON FOLLETO</span>
-                            @elseif($game->manual_status === 'missing')
-                                <span class="text-[10px] font-semibold text-amber-400">FALTA</span>
-                            @endif
-                            @if($game->for_sale)
-                                <span class="inline-flex items-center gap-0.5 text-[10px] font-medium text-amber-400" title="En venta">
-                                    <x-gicon name="sell" class="text-[12px]" />
-                                </span>
-                            @endif
+                            <div class="flex justify-end min-w-0">
+                                @if($game->region)
+                                    <span class="truncate">{{ $game->region }}</span>
+                                @endif
+                            </div>
+                            <div class="flex items-center gap-1 min-w-0">
+                                @if($game->edition)
+                                    <x-gicon :name="$game->edition->formatIcon()" class="text-[12px] shrink-0" />
+                                    <span class="truncate">{{ $game->edition->formatLabel() }}</span>
+                                @endif
+                            </div>
+                            <div class="flex justify-end min-w-0">
+                                @if($game->manual_status === 'included')
+                                    <span class="font-semibold text-emerald-400 truncate">CON MANUAL</span>
+                                @elseif($game->manual_status === 'booklet')
+                                    <span class="font-semibold text-emerald-400 truncate">CON FOLLETO</span>
+                                @elseif($game->manual_status === 'missing')
+                                    <span class="font-semibold text-amber-400 truncate">FALTA</span>
+                                @endif
+                            </div>
                         </div>
 
                         <a href="{{ route('web.games.show', $game->id) }}" class="mt-2 flex items-center justify-between gap-2">
