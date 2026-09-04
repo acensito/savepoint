@@ -71,12 +71,8 @@
                     </div>
                 </div>
             @empty
-                <div class="bg-slate-900 border border-slate-800 rounded-xl px-6 py-12 text-center text-slate-500 text-sm">
-                    @if($hasActiveFilters)
-                        No hay juegos que coincidan con la búsqueda o los filtros aplicados.
-                    @else
-                        No hay juegos registrados todavía.
-                    @endif
+                <div class="bg-slate-900 border border-slate-800 rounded-xl px-6 py-12">
+                    @include('games._empty-state')
                 </div>
             @endforelse
         </div>
@@ -174,12 +170,8 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="px-6 py-12 text-center text-slate-500 text-sm">
-                                @if($hasActiveFilters)
-                                    No hay juegos que coincidan con la búsqueda o los filtros aplicados.
-                                @else
-                                    No hay juegos registrados todavía.
-                                @endif
+                            <td colspan="9" class="px-6 py-12">
+                                @include('games._empty-state')
                             </td>
                         </tr>
                     @endforelse
@@ -227,12 +219,8 @@
                 </div>
             </div>
         @empty
-            <div class="col-span-full bg-slate-900 border border-slate-800 rounded-xl px-6 py-12 text-center text-slate-500 text-sm">
-                @if($hasActiveFilters)
-                    No hay juegos que coincidan con la búsqueda o los filtros aplicados.
-                @else
-                    No hay juegos registrados todavía.
-                @endif
+            <div class="col-span-full bg-slate-900 border border-slate-800 rounded-xl px-6 py-12">
+                @include('games._empty-state')
             </div>
         @endforelse
     </div>

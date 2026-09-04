@@ -134,6 +134,42 @@ class GameControllerTest extends TestCase
         $response->assertDontSee('Deseado');
     }
 
+    /**
+     * (#122): el primer momento real de la app (antes de dar de alta o
+     * importar nada) no puede quedarse en una pantalla en blanco con solo
+     * una frase — necesita una llamada a la acción.
+     */
+    public function test_index_shows_a_call_to_action_to_add_the_first_game_when_the_collection_is_empty(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get('/');
+
+        $response->assertOk();
+        $response->assertSee('Añadir tu primer juego');
+        $response->assertSee(route('web.games.create'), false);
+        $response->assertSee('Importar colección');
+        $response->assertSee(route('web.games.import'), false);
+    }
+
+    /**
+     * (#122): cuando el vacío es consecuencia de un filtro/búsqueda sin
+     * resultados (no de una colección realmente vacía), la llamada a la
+     * acción es quitar los filtros, no dar de alta un juego.
+     */
+    public function test_index_shows_a_call_to_action_to_clear_filters_when_a_filtered_search_has_no_results(): void
+    {
+        $user = User::factory()->create();
+        Game::factory()->for($user)->create(['title' => 'Celeste']);
+
+        $response = $this->actingAs($user)->get('/?q='.urlencode('no existe ningún juego así'));
+
+        $response->assertOk();
+        $response->assertSee('Quitar filtros');
+        $response->assertSee(route('web.games.index'), false);
+        $response->assertDontSee('Añadir tu primer juego');
+    }
+
     public function test_collection_totals_exclude_wishlist_games(): void
     {
         $user = User::factory()->create();
