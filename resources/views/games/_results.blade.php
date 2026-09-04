@@ -13,8 +13,12 @@
 <div id="games-results-meta" class="hidden" data-total="{{ $games->total() }}"></div>
 
 <div id="view-list">
-        <!-- Tarjetas: listado en pantallas estrechas, sin scroll horizontal -->
-        <div class="md:hidden space-y-2.5">
+        <!-- Tarjetas: listado en pantallas estrechas, sin scroll horizontal.
+             Breakpoint en xl (1280px) en vez de md (768px, issue #127): la
+             mayoría de tablets caen en o por encima de 768px (iPad vertical:
+             768px, horizontal: 1024px), así que con md se veía la tabla —
+             pensada para escritorio con ratón, columnas densas — en tablet. -->
+        <div class="xl:hidden space-y-2.5">
             @forelse($games as $game)
                 <div class="js-game-card bg-slate-900 border border-slate-800 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs shadow-black/10 hover:bg-slate-800/40 active:border-slate-700 transition-colors cursor-pointer"
                     data-href="{{ route('web.games.show', $game->id) }}">
@@ -47,10 +51,23 @@
                         <!-- Conservación de solo lectura aquí (se cambia desde la ficha de
                              edición completa, en móvil o web): un toque accidental al
                              hacer scroll en la tarjeta no debe poder cambiar la valoración. -->
-                        <div class="mt-1.5 flex items-center gap-2">
+                        <div class="mt-1.5 flex items-center gap-2 flex-wrap">
                             <x-star-rating :rating="$game->rating" size="text-[11px]" />
-                            @if($game->edition && $game->edition->format !== \App\Models\Edition::FORMAT_PHYSICAL)
-                                <x-gicon :name="$game->edition->formatIcon()" :title="$game->edition->formatLabel()" class="text-[12px] text-sky-400" />
+                            @if($game->edition)
+                                <span class="inline-flex items-center gap-1 text-[11px] text-slate-400">
+                                    <x-gicon :name="$game->edition->formatIcon()" class="text-[12px]" />
+                                    {{ $game->edition->formatLabel() }}
+                                </span>
+                            @endif
+                            @if($game->region)
+                                <span class="text-[11px] text-slate-400">{{ $game->region }}</span>
+                            @endif
+                            @if($game->manual_status === 'included')
+                                <span class="text-[10px] font-semibold text-emerald-400">CON MANUAL</span>
+                            @elseif($game->manual_status === 'booklet')
+                                <span class="text-[10px] font-semibold text-emerald-400">CON FOLLETO</span>
+                            @elseif($game->manual_status === 'missing')
+                                <span class="text-[10px] font-semibold text-amber-400">FALTA</span>
                             @endif
                             @if($game->for_sale)
                                 <span class="inline-flex items-center gap-0.5 text-[10px] font-medium text-amber-400" title="En venta">
@@ -77,8 +94,8 @@
             @endforelse
         </div>
 
-        <!-- Tabla: listado en pantallas medianas y grandes -->
-        <div class="hidden md:block bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
+        <!-- Tabla: listado en pantallas grandes (ver comentario del breakpoint arriba) -->
+        <div class="hidden xl:block bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
             <table class="min-w-full divide-y divide-slate-800">
                 <thead class="bg-slate-800/50">
                     <tr>
@@ -143,11 +160,11 @@
                             <!-- Manual -->
                             <td class="px-6 py-4 whitespace-nowrap text-center">
                                 @if($game->manual_status === 'included')
-                                    <x-gicon name="check_circle" class="text-[18px] text-emerald-400" title="Con Manual" />
+                                    <span class="text-xs font-semibold text-emerald-400">CON MANUAL</span>
                                 @elseif($game->manual_status === 'booklet')
-                                    <x-gicon name="description" class="text-[18px] text-emerald-400" title="Folleto" />
+                                    <span class="text-xs font-semibold text-emerald-400">CON FOLLETO</span>
                                 @elseif($game->manual_status === 'missing')
-                                    <x-gicon name="warning" class="text-[18px] text-amber-400" title="Sin Manual" />
+                                    <span class="text-xs font-semibold text-amber-400">FALTA</span>
                                 @else
                                     <span class="text-sm text-slate-500">—</span>
                                 @endif
