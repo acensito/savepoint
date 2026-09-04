@@ -27,8 +27,10 @@
             No tienes ningún encargo{{ $direction !== '' ? ' en este filtro' : '' }} todavía.
         </div>
     @else
-        <!-- Tarjetas: listado en pantallas estrechas, sin scroll horizontal -->
-        <div class="md:hidden space-y-2.5">
+        <!-- Tarjetas: listado en pantallas estrechas, sin scroll horizontal.
+             Breakpoint en xl, no md (issue #127): con md la tabla —pensada
+             para escritorio con ratón— se veía también en tablet. -->
+        <div class="xl:hidden space-y-2.5">
             @foreach($commissions as $commission)
                 <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5">
                     <div class="flex items-start justify-between gap-2">
@@ -103,8 +105,8 @@
             @endforeach
         </div>
 
-        <!-- Tabla: listado en pantallas medianas y grandes -->
-        <div class="hidden md:block bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
+        <!-- Tabla: listado en pantallas grandes (ver comentario del breakpoint arriba) -->
+        <div class="hidden xl:block bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
             <table class="min-w-full divide-y divide-slate-800">
                 <thead class="bg-slate-800/50">
                     <tr>
