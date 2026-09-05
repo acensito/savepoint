@@ -87,12 +87,10 @@
 
         @php
             $playStatusLabels = ['pending' => 'Pendiente', 'playing' => 'Jugando', 'finished' => 'Terminado'];
-            $statusLabels = ['owned' => 'En colección', 'sold' => 'Vendido'];
             $filters = array_filter([
                 $query !== '' ? "búsqueda «{$query}»" : null,
                 $platform ? "plataforma {$platform->name}" : null,
                 $playStatus !== '' ? 'estado ' . ($playStatusLabels[$playStatus] ?? $playStatus) : null,
-                $status !== '' ? 'propiedad ' . ($statusLabels[$status] ?? $status) : null,
             ]);
         @endphp
         <p class="meta">{{ $filters ? 'Filtros aplicados: ' . implode(', ', $filters) . '.' : 'Colección completa, sin filtros.' }}</p>

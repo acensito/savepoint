@@ -70,7 +70,6 @@ class GameController extends Controller
         $query = trim((string) $request->input('q', ''));
         $platformId = (string) $request->input('platform_id', '');
         $playStatus = (string) $request->input('play_status', '');
-        $status = (string) $request->input('status', '');
         $forSale = (string) $request->input('for_sale', '');
         [$sort, $dir] = $this->collectionQuery->resolveSort($request);
         $perPage = in_array((int) $request->input('per_page'), self::PER_PAGE_OPTIONS, true)
@@ -79,9 +78,9 @@ class GameController extends Controller
 
         // Calculados aquí (no en la vista) porque los necesitan tanto la página
         // completa como el fragmento que se devuelve por AJAX al buscar en vivo.
-        $hasActiveFilters = $query !== '' || $platformId !== '' || $playStatus !== '' || $status !== '' || $forSale !== '';
-        $hasAdvancedFilters = $platformId !== '' || $playStatus !== '' || $status !== '' || $forSale !== '';
-        $activeFilterCount = collect([$query !== '', $platformId !== '', $playStatus !== '', $status !== '', $forSale !== ''])->filter()->count();
+        $hasActiveFilters = $query !== '' || $platformId !== '' || $playStatus !== '' || $forSale !== '';
+        $hasAdvancedFilters = $platformId !== '' || $playStatus !== '' || $forSale !== '';
+        $activeFilterCount = collect([$query !== '', $platformId !== '', $playStatus !== '', $forSale !== ''])->filter()->count();
 
         $games = $this->collectionQuery->query($request)
             // Solo las columnas que pinta el listado: notes/data/genres/etc. serían
@@ -119,7 +118,7 @@ class GameController extends Controller
         ];
 
         return view('games.index', compact(
-            'games', 'query', 'platforms', 'platformId', 'playStatus', 'status', 'forSale', 'sort', 'dir', 'perPage',
+            'games', 'query', 'platforms', 'platformId', 'playStatus', 'forSale', 'sort', 'dir', 'perPage',
             'collectionTotals', 'hasActiveFilters', 'hasAdvancedFilters', 'activeFilterCount',
         ));
     }

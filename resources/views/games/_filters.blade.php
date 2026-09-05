@@ -51,11 +51,6 @@
             <option value="finished" {{ $playStatus === 'finished' ? 'selected' : '' }}>Terminado</option>
         </select>
 
-        <select name="status" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden text-sm">
-            <option value="">Cualquier propiedad</option>
-            <option value="owned" {{ $status === 'owned' ? 'selected' : '' }}>En colección</option>
-        </select>
-
         <select name="for_sale" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden text-sm">
             <option value="">En venta o no</option>
             <option value="1" {{ ($forSale ?? '') === '1' ? 'selected' : '' }}>Solo en venta</option>
