@@ -38,7 +38,6 @@ class GameExportController extends Controller
         $query = trim((string) $request->input('q', ''));
         $platformId = (string) $request->input('platform_id', '');
         $playStatus = (string) $request->input('play_status', '');
-        $status = (string) $request->input('status', '');
         $platform = ctype_digit($platformId) ? Platform::find($platformId) : null;
 
         $totals = [
@@ -46,7 +45,7 @@ class GameExportController extends Controller
             'spent' => (float) $games->sum('price_paid'),
         ];
 
-        return view('games.print-collection', compact('games', 'totals', 'query', 'platform', 'playStatus', 'status'));
+        return view('games.print-collection', compact('games', 'totals', 'query', 'platform', 'playStatus'));
     }
 
     /**

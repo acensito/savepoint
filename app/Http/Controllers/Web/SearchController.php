@@ -31,7 +31,7 @@ class SearchController extends Controller
      * Resultados en vivo para la búsqueda rápida (Ctrl+K): mismo criterio de
      * coincidencia que el buscador de la colección (título o EAN exacto),
      * acotado al usuario autenticado, y admite los mismos filtros
-     * (plataforma/estado de juego/propiedad) que el listado paginado. Devuelve
+     * (plataforma/estado de juego) que el listado paginado. Devuelve
      * un fragmento Blade (no JSON) para poder reutilizar los mismos
      * componentes de carátula/chip/estrellas que el resto de la app.
      *
@@ -44,8 +44,7 @@ class SearchController extends Controller
         $query = trim((string) $request->input('q', ''));
         $platformId = (string) $request->input('platform_id', '');
         $playStatus = (string) $request->input('play_status', '');
-        $status = (string) $request->input('status', '');
-        $hasFilters = $platformId !== '' || $playStatus !== '' || $status !== '';
+        $hasFilters = $platformId !== '' || $playStatus !== '';
 
         $games = ($query === '' && ! $hasFilters)
             ? collect()
@@ -58,7 +57,6 @@ class SearchController extends Controller
                 ->when($query !== '', fn ($q) => $q->search($query))
                 ->when($platformId !== '', fn ($q) => $q->where('platform_id', $platformId))
                 ->when($playStatus !== '', fn ($q) => $q->where('play_status', $playStatus))
-                ->when($status !== '', fn ($q) => $q->where('status', $status))
                 // Ajuste "Excluir la wishlist" de Ajustes (ver
                 // PanelController::updateSettings): desactivado por defecto,
                 // así que por defecto sigue apareciendo como hasta ahora. Si
@@ -93,7 +91,6 @@ class SearchController extends Controller
             'q' => $query ?: null,
             'platform_id' => $platformId ?: null,
             'play_status' => $playStatus ?: null,
-            'status' => $status ?: null,
         ]));
 
         return view('games._quick-search-results', compact(
