@@ -822,7 +822,6 @@ function initQuickSearch() {
     const triggers = document.querySelectorAll('.js-quick-search-trigger');
     const platformFilter = document.getElementById('quick-search-platform');
     const playStatusFilter = document.getElementById('quick-search-play-status');
-    const statusFilter = document.getElementById('quick-search-status');
     const url = dialog?.dataset.url;
 
     if (!dialog || !input || !results || !url) return;
@@ -833,7 +832,6 @@ function initQuickSearch() {
         const params = new URLSearchParams({q: input.value.trim()});
         if (platformFilter?.value) params.set('platform_id', platformFilter.value);
         if (playStatusFilter?.value) params.set('play_status', playStatusFilter.value);
-        if (statusFilter?.value) params.set('status', statusFilter.value);
 
         results.innerHTML = quickSearchSkeleton();
 
@@ -858,7 +856,6 @@ function initQuickSearch() {
         input.value = trigger?.dataset.prefillQuery || '';
         if (platformFilter) platformFilter.value = '';
         if (playStatusFilter) playStatusFilter.value = '';
-        if (statusFilter) statusFilter.value = '';
         dialog.showModal();
         input.focus();
         input.select();
@@ -897,7 +894,7 @@ function initQuickSearch() {
         debounceTimer = setTimeout(runSearch, QUICK_SEARCH_DEBOUNCE_MS);
     });
 
-    [platformFilter, playStatusFilter, statusFilter].forEach((select) => {
+    [platformFilter, playStatusFilter].forEach((select) => {
         select?.addEventListener('change', runSearch);
     });
 

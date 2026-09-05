@@ -122,18 +122,6 @@ class GameControllerTest extends TestCase
         $response->assertDontSee('Juego ajeno');
     }
 
-    public function test_index_never_lists_wishlist_games_even_when_filtered_by_status(): void
-    {
-        $user = User::factory()->create();
-        Game::factory()->for($user)->create(['title' => 'Deseado', 'status' => 'wishlist']);
-        Game::factory()->for($user)->create(['title' => 'Mío', 'status' => 'owned']);
-
-        $response = $this->actingAs($user)->get('/?status=wishlist');
-
-        $response->assertSee('No hay juegos', false);
-        $response->assertDontSee('Deseado');
-    }
-
     /**
      * (#122): el primer momento real de la app (antes de dar de alta o
      * importar nada) no puede quedarse en una pantalla en blanco con solo

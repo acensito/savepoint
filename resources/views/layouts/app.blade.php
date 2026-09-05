@@ -411,13 +411,6 @@
             <option value="playing">Jugando</option>
             <option value="finished">Terminado</option>
         </select>
-
-        <select id="quick-search-status"
-                class="shrink-0 rounded-lg border border-slate-700 bg-slate-800 text-slate-300 px-2 py-1.5 text-xs focus:border-indigo-500 focus:ring-indigo-500 outline-hidden">
-            <option value="">Cualquier propiedad</option>
-            <option value="owned">En colección</option>
-            <option value="sold">Vendido</option>
-        </select>
     </div>
 
     <div id="quick-search-results" class="max-h-[60vh] overflow-y-auto"></div>
