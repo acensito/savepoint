@@ -217,7 +217,7 @@
                     aria-label="Seleccionar {{ $game->title }}">
 
                 <a href="{{ route('web.games.show', $game->id) }}" class="block relative">
-                    <x-game-cover :game="$game" size="lg" class="!w-full !aspect-[3/4] !h-auto !rounded-xl !text-3xl group-hover:opacity-80 transition-opacity" />
+                    <x-game-cover :game="$game" size="lg" class="!w-full !aspect-[3/4] !h-auto !rounded-xl !text-3xl object-contain object-bottom group-hover:opacity-80 transition-opacity" />
                     @if($game->edition && $game->edition->format !== \App\Models\Edition::FORMAT_PHYSICAL)
                         <span class="absolute top-1.5 left-1.5 flex items-center justify-center w-5 h-5 rounded-full bg-sky-500 text-slate-950" title="{{ $game->edition->formatLabel() }}">
                             <x-gicon :name="$game->edition->formatIcon()" class="text-[12px]" />
