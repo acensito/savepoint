@@ -20,9 +20,15 @@
              pensada para escritorio con ratón, columnas densas — en tablet. -->
         <div class="xl:hidden space-y-2.5">
             @forelse($games as $game)
-                {{-- #152: aviso de "necesita atención" para juegos en mal estado
-                     (2 estrellas o menos) — en prueba en las tres vistas. --}}
-                <div class="js-game-card {{ $game->needsAttention() ? 'bg-amber-500/15 hover:bg-amber-500/20' : 'bg-slate-900 hover:bg-slate-800/40' }} border border-slate-800 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs shadow-black/10 active:border-slate-700 transition-colors cursor-pointer"
+                {{-- #152: aviso de "necesita atención" para juegos en mal estado (2
+                     estrellas o menos). El amarillo (bg-amber-500/15) es semitransparente,
+                     así que si sustituyera aquí el bg-slate-900 de base, se vería sobre el
+                     fondo de la página (bg-slate-950 en <main>, más oscuro) en vez de sobre
+                     un panel bg-slate-900 como en la fila de la tabla — mismo color de
+                     clase, resultado distinto. Se mantiene bg-slate-900 fijo y el amarillo
+                     se pinta encima con un ::after, para que el resultado sea idéntico
+                     independientemente de qué haya detrás. --}}
+                <div class="js-game-card relative bg-slate-900 {{ $game->needsAttention() ? 'after:absolute after:inset-0 after:rounded-2xl after:bg-amber-500/15 after:pointer-events-none hover:after:bg-amber-500/20' : 'hover:bg-slate-800/40' }} border border-slate-800 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs shadow-black/10 active:border-slate-700 transition-colors cursor-pointer"
                     data-href="{{ route('web.games.show', $game->id) }}">
                     <input type="checkbox" form="bulk-form" name="game_ids[]" value="{{ $game->id }}"
                         class="js-bulk-checkbox self-start mt-1 w-4 h-4 shrink-0 rounded border-slate-600 bg-slate-800 text-indigo-600 focus:ring-indigo-500"
@@ -225,10 +231,14 @@
     <div id="view-grid" class="grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
         @forelse($games as $game)
             {{-- #152: aviso de "necesita atención" para juegos en mal estado (2
-                 estrellas o menos) — en prueba en las tres vistas. Padding +
-                 margen negativo para que el fondo se vea alrededor de la
-                 carátula/texto sin desplazar la rejilla del resto de tarjetas. --}}
-            <div class="group relative {{ $game->needsAttention() ? 'bg-amber-500/15 rounded-xl p-2 -m-2' : '' }}">
+                 estrellas o menos). Igual que en la tarjeta de móvil: base opaca
+                 bg-slate-900 (aquí no existía ninguna, la estantería normalmente
+                 no lleva fondo propio) + amarillo en un ::after encima, para que
+                 el resultado sea idéntico al de la tabla en vez de depender de
+                 qué haya detrás. Padding + margen negativo para que la base se
+                 vea alrededor de la carátula/texto sin desplazar la rejilla del
+                 resto de tarjetas. --}}
+            <div class="group relative {{ $game->needsAttention() ? 'bg-slate-900 rounded-xl p-2 -m-2 after:absolute after:inset-0 after:rounded-xl after:bg-amber-500/15 after:pointer-events-none' : '' }}">
                 <input type="checkbox" form="bulk-form" name="game_ids[]" value="{{ $game->id }}"
                     class="js-bulk-checkbox absolute top-2 left-2 z-10 w-4 h-4 rounded border-slate-500 bg-slate-900/80 text-indigo-600 focus:ring-indigo-500"
                     aria-label="Seleccionar {{ $game->title }}">
