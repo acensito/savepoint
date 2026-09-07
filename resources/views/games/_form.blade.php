@@ -156,12 +156,17 @@
             <label for="ean" class="{{ $label }}">EAN</label>
             <input type="text" name="ean" id="ean" value="{{ old('ean', $game?->ean ?? $prefill['ean'] ?? null) }}" autocomplete="off" autocorrect="off" spellcheck="false" class="{{ $input }}">
             @error('ean')
-                <span class="{{ $error }}">{{ $message }}</span>
-                <label class="flex items-center gap-2 text-sm text-slate-400 mt-1.5">
-                    <input type="checkbox" name="confirm_duplicate" value="1" {{ old('confirm_duplicate') ? 'checked' : '' }}
-                        class="rounded border-slate-600 bg-slate-800 text-indigo-600 focus:ring-indigo-500">
-                    Guardar de todos modos (ya tengo otra copia física)
-                </label>
+                <div class="flex items-center gap-3 flex-wrap mt-1.5">
+                    <span class="{{ $error }} !mt-0">{{ $message }}</span>
+                    {{-- name/value en el propio botón (sin JS): al pulsarlo,
+                         el navegador reenvía el formulario completo con
+                         confirm_duplicate=1 en un solo clic, en vez de tener
+                         que localizar y marcar una casilla en el resto del
+                         formulario y darle luego a Guardar (#124). --}}
+                    <button type="submit" name="confirm_duplicate" value="1" class="text-sm font-medium text-indigo-400 hover:text-indigo-300 underline underline-offset-2">
+                        Guardar igualmente (ya tengo otra copia física)
+                    </button>
+                </div>
             @enderror
         </div>
         <div>
@@ -706,15 +711,19 @@
      */
     (function () {
         const form = document.currentScript.closest('form');
-        const submitBtn = form?.querySelector('button[type="submit"]');
-        if (!form || !submitBtn) return;
+        // querySelectorAll, no solo el primero: el aviso de EAN duplicado
+        // añade un segundo botón "Guardar igualmente" más arriba en el
+        // formulario — con un solo botón buscado, el que de verdad se pulsa
+        // podía quedarse sin deshabilitar si no era el primero del DOM.
+        const submitBtns = form ? [...form.querySelectorAll('button[type="submit"]')] : [];
+        if (!form || submitBtns.length === 0) return;
 
         form.addEventListener('submit', () => {
-            submitBtn.disabled = true;
+            submitBtns.forEach((btn) => { btn.disabled = true; });
         });
 
         window.addEventListener('pageshow', (e) => {
-            if (e.persisted) submitBtn.disabled = true;
+            if (e.persisted) submitBtns.forEach((btn) => { btn.disabled = true; });
         });
     })();
 </script>

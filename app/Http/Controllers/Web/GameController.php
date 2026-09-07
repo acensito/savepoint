@@ -469,8 +469,9 @@ class GameController extends Controller
      * duplicar sin querer). Muchos juegos antiguos no tienen EAN, así que
      * nunca se compara cuando viene vacío: dos juegos sin EAN no son
      * "duplicados" entre sí. El aviso se puede saltar mandando
-     * confirm_duplicate=1 (checkbox "Guardar de todos modos" en el formulario),
-     * para permitir el caso legítimo de tener dos copias físicas del mismo juego.
+     * confirm_duplicate=1 (botón "Guardar igualmente" del propio aviso, ver
+     * games/_form.blade.php), para permitir el caso legítimo de tener dos
+     * copias físicas del mismo juego.
      *
      * @param  array<string, mixed>  $validated
      */
