@@ -342,6 +342,15 @@ html.games-compact-view #view-list table th {
     padding-bottom: 0.5rem;
 }
 
+/* Vista "solo texto" (#139): oculta la carátula de la tabla de escritorio
+   (ver .js-list-cover en games/_results.blade.php) para hojear más filas por
+   pantalla sin ninguna imagen de por medio. Solo afecta a la tabla, nunca a
+   la tarjeta móvil (que no tiene esta clase) ni a la estantería, así que no
+   hace falta ningún guard aparte para dejar la tarjeta con su carátula. */
+html.games-text-view #view-list table .js-list-cover {
+    display: none;
+}
+
 /* Casillas de selección de la colección (acciones en bloque): ocultas por
    defecto para no ocupar espacio permanentemente en cada fila/tarjeta, solo
    visibles al activar el "modo selección" (botón junto a "Añadir Juego"). */

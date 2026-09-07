@@ -73,11 +73,11 @@
          botones alternan y persisten en localStorage. -->
     <div class="flex items-center justify-end gap-2 mb-3">
         <div class="inline-flex items-stretch h-8 bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">
-            <!-- Lista y compacta son variantes de la TABLA de escritorio: en móvil,
-                 donde siempre se ve la tarjeta (no la tabla), no tienen ningún efecto,
-                 así que se ocultan y solo queda el botón de estantería (que sí cambia
-                 algo visible en cualquier ancho). Compacta va primero por ser la vista
-                 por defecto (ver users.games_view). -->
+            <!-- Lista, compacta y texto son variantes de la TABLA de escritorio: en
+                 móvil, donde siempre se ve la tarjeta (no la tabla), no tienen ningún
+                 efecto, así que se ocultan y solo queda el botón de estantería (que sí
+                 cambia algo visible en cualquier ancho). Compacta va primero por ser la
+                 vista por defecto (ver users.games_view). -->
             <button type="button" id="games-view-compact-btn" aria-label="Ver como tabla compacta" aria-pressed="false"
                 class="hidden md:flex items-center justify-center w-8 text-slate-500 hover:bg-slate-800 transition-colors">
                 <x-gicon name="view_list" class="text-[15px]" />
@@ -85,6 +85,14 @@
             <button type="button" id="games-view-list-btn" aria-label="Ver como lista" aria-pressed="true"
                 class="hidden md:flex items-center justify-center w-8 text-indigo-400 hover:bg-slate-800 md:border-l md:border-slate-800 transition-colors">
                 <x-gicon name="density_small" class="text-[15px]" />
+            </button>
+            <!-- #139: solo texto, sin carátulas ni espacio reservado para ellas —
+                 pensada para hojear rápido por título con la colección real (1000+
+                 juegos) cargando el mínimo de imágenes posible. Solo tiene sentido en
+                 escritorio (la tarjeta móvil siempre lleva carátula, ver arriba). -->
+            <button type="button" id="games-view-text-btn" aria-label="Ver solo texto, sin carátulas" aria-pressed="false"
+                class="hidden md:flex items-center justify-center w-8 text-slate-500 hover:bg-slate-800 md:border-l md:border-slate-800 transition-colors">
+                <x-gicon name="description" class="text-[15px]" />
             </button>
             <button type="button" id="games-view-grid-btn" aria-label="Ver como estantería" aria-pressed="false"
                 class="flex items-center justify-center w-8 text-slate-500 hover:bg-slate-800 md:border-l md:border-slate-800 transition-colors">

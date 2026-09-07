@@ -258,11 +258,12 @@ function initBulkActions() {
 
 initBulkActions();
 
-const GAMES_VIEW_CLASSES = {compact: 'games-compact-view', grid: 'games-grid-view'};
+const GAMES_VIEW_CLASSES = {compact: 'games-compact-view', grid: 'games-grid-view', text: 'games-text-view'};
 
 /**
- * Alterna la colección entre tres vistas: la habitual (tarjetas en móvil,
- * tabla en escritorio), una tabla compacta (menos alto por fila) y la
+ * Alterna la colección entre cuatro vistas: la habitual (tarjetas en móvil,
+ * tabla en escritorio), una tabla compacta (menos alto por fila), solo texto
+ * (misma tabla, sin carátulas ni espacio reservado para ellas — #139) y la
  * estantería (grid de carátulas grandes). Igual que el tema, el cambio de
  * vista en sí lo hace app.css según la clase en <html>; aquí solo se
  * gestiona esa clase y su persistencia (ver saveDisplayPreference), y el
@@ -273,9 +274,10 @@ function initGamesViewToggle() {
     const buttons = {
         list: document.getElementById('games-view-list-btn'),
         compact: document.getElementById('games-view-compact-btn'),
+        text: document.getElementById('games-view-text-btn'),
         grid: document.getElementById('games-view-grid-btn'),
     };
-    if (!buttons.list && !buttons.compact && !buttons.grid) return;
+    if (!buttons.list && !buttons.compact && !buttons.text && !buttons.grid) return;
 
     const syncButtons = (mode) => {
         Object.entries(buttons).forEach(([key, btn]) => {
@@ -287,7 +289,8 @@ function initGamesViewToggle() {
         });
     };
 
-    let currentMode = document.documentElement.classList.contains('games-grid-view') ? 'grid' : document.documentElement.classList.contains('games-compact-view') ? 'compact' : 'list';
+    const activeClass = Object.values(GAMES_VIEW_CLASSES).find((cls) => document.documentElement.classList.contains(cls));
+    let currentMode = Object.keys(GAMES_VIEW_CLASSES).find((key) => GAMES_VIEW_CLASSES[key] === activeClass) ?? 'list';
 
     const setMode = (mode) => {
         currentMode = mode;
@@ -303,7 +306,8 @@ function initGamesViewToggle() {
 
     buttons.list?.addEventListener('click', () => setMode('list'));
     buttons.compact?.addEventListener('click', () => setMode('compact'));
-    // En escritorio hay botones separados para volver a lista/compacta, pero en
+    buttons.text?.addEventListener('click', () => setMode('text'));
+    // En escritorio hay botones separados para volver a lista/compacta/texto, pero en
     // móvil el de estantería es el único visible (ver comentario más arriba),
     // así que tiene que servir también para volver: si ya está activo, alterna
     // de vuelta a la vista normal en vez de quedarse fijo en estantería.

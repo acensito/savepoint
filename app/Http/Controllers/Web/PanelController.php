@@ -118,7 +118,7 @@ class PanelController extends Controller
     {
         $validated = $request->validate([
             'theme' => 'sometimes|in:dark,light',
-            'games_view' => 'sometimes|in:list,compact,grid',
+            'games_view' => 'sometimes|in:list,compact,grid,text',
         ]);
 
         $request->user()->update($validated);
