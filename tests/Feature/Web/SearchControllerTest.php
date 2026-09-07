@@ -12,17 +12,69 @@ class SearchControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_quick_shows_local_matches_without_querying_the_external_service(): void
+    public function test_quick_shows_local_matches_and_still_offers_external_suggestions(): void
     {
-        Http::fake();
+        // #108: antes, tener ya "Resident Evil" en la colección dejaba sin
+        // ninguna sugerencia de CEX al buscar para dar de alta una entrega
+        // nueva ("Resident Evil 3") con el mismo título de partida.
+        Http::fake([
+            'search.webuy.io/*' => Http::response([
+                'hits' => [[
+                    'boxName' => 'Resident Evil 3',
+                    'boxId' => '5060146467999',
+                    'imageUrls' => ['large' => 'https://es.static.webuy.com/re3_l.jpg'],
+                ]],
+            ], 200),
+        ]);
         $user = User::factory()->create();
-        Game::factory()->for($user)->create(['title' => 'Hollow Knight']);
+        Game::factory()->for($user)->create(['title' => 'Resident Evil']);
 
-        $response = $this->actingAs($user)->get(route('web.search.quick', ['q' => 'Hollow']));
+        $response = $this->actingAs($user)->get(route('web.search.quick', ['q' => 'Resident Evil']));
 
         $response->assertOk();
-        $response->assertSee('Hollow Knight');
-        Http::assertNothingSent();
+        $response->assertSee('Resident Evil');
+        $response->assertSee('Sugerencias de CEX');
+        $response->assertSee('Resident Evil 3');
+    }
+
+    public function test_quick_caps_external_suggestions_to_two_when_there_is_a_local_match(): void
+    {
+        Http::fake([
+            'search.webuy.io/*' => Http::response([
+                'hits' => [
+                    ['boxName' => 'Resident Evil 2', 'boxId' => '1'],
+                    ['boxName' => 'Resident Evil 3', 'boxId' => '2'],
+                    ['boxName' => 'Resident Evil 4', 'boxId' => '3'],
+                ],
+            ], 200),
+        ]);
+        $user = User::factory()->create();
+        Game::factory()->for($user)->create(['title' => 'Resident Evil']);
+
+        $response = $this->actingAs($user)->get(route('web.search.quick', ['q' => 'Resident Evil']));
+
+        $response->assertOk();
+        $this->assertSame(2, substr_count($response->getContent(), 'js-cex-result'));
+    }
+
+    public function test_quick_does_not_suggest_a_title_already_owned_alongside_a_local_match(): void
+    {
+        Http::fake([
+            'search.webuy.io/*' => Http::response([
+                'hits' => [
+                    ['boxName' => 'Resident Evil', 'boxId' => '1'],
+                    ['boxName' => 'Resident Evil 3', 'boxId' => '2'],
+                ],
+            ], 200),
+        ]);
+        $user = User::factory()->create();
+        Game::factory()->for($user)->create(['title' => 'Resident Evil']);
+
+        $response = $this->actingAs($user)->get(route('web.search.quick', ['q' => 'Resident Evil']));
+
+        $response->assertOk();
+        $this->assertSame(1, substr_count($response->getContent(), 'js-cex-result'));
+        $response->assertSee('Resident Evil 3');
     }
 
     public function test_quick_does_not_query_the_external_service_for_very_short_queries(): void
@@ -67,6 +119,7 @@ class SearchControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertDontSee('Sugerencias de CEX');
+        $response->assertSee('Prueba a acortar el título o revisar cómo está escrito.');
         $response->assertSee('Dar de alta «Un juego inventado» a mano');
     }
 
