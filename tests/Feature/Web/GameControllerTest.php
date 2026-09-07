@@ -97,7 +97,7 @@ class GameControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('id="games-view-text-btn"', false);
-        $response->assertSee('hidden md:flex items-center justify-center w-8 text-slate-500 hover:bg-slate-800 md:border-l md:border-slate-800 transition-colors', false);
+        $response->assertSee('hidden xl:flex items-center justify-center w-8 text-slate-500 hover:bg-slate-800 xl:border-l xl:border-slate-800 transition-colors', false);
     }
 
     public function test_index_marks_html_with_the_text_only_view_class_when_that_is_the_users_preference(): void
