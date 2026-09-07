@@ -65,6 +65,26 @@ class GameControllerTest extends TestCase
     }
 
     /**
+     * #142 dejó de forzar un único "Físico": ahora es legítimo tener varias
+     * ediciones con el mismo nombre y distinto soporte (p. ej. "Normal" de
+     * disco, diskette y cartucho) — sin el formato en el propio texto de la
+     * opción, el desplegable las mostraría tres veces idénticas y sin forma
+     * de distinguirlas.
+     */
+    public function test_create_form_disambiguates_editions_with_the_same_name_by_format(): void
+    {
+        $user = User::factory()->create();
+        Edition::factory()->create(['name' => 'Normal', 'format' => Edition::FORMAT_PHYSICAL_DISC]);
+        Edition::factory()->create(['name' => 'Normal', 'format' => Edition::FORMAT_PHYSICAL_CARTRIDGE]);
+
+        $response = $this->actingAs($user)->get(route('web.games.create'));
+
+        $response->assertOk();
+        $response->assertSee('Normal · '.Edition::FORMATS[Edition::FORMAT_PHYSICAL_DISC]['label']);
+        $response->assertSee('Normal · '.Edition::FORMATS[Edition::FORMAT_PHYSICAL_CARTRIDGE]['label']);
+    }
+
+    /**
      * (#46, regresión): el desplegable ofrece SIEMPRE todas las
      * combinaciones conocidas, incluso con coincidencia de IGDB — se probó a
      * acotarlo a lo que IGDB trajo, pero IGDB puede equivocarse (una

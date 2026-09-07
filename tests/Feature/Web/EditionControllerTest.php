@@ -165,6 +165,11 @@ class EditionControllerTest extends TestCase
 
         $response->assertCreated();
         $response->assertJsonPath('name', 'Edición al vuelo');
+        // El JS del alta rápida (games/_form.blade.php) lo usa para que la
+        // opción añadida al desplegable distinga ediciones con el mismo
+        // nombre pero distinto formato, igual que las que ya vienen del
+        // servidor (#142).
+        $response->assertJsonPath('formatLabel', Edition::FORMATS[Edition::FORMAT_PHYSICAL_DISC]['label']);
         $this->assertDatabaseHas('editions', ['name' => 'Edición al vuelo']);
     }
 
