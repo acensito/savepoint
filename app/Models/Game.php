@@ -237,6 +237,52 @@ class Game extends Model
     }
 
     /**
+     * Paleta de respaldo para coverPlaceholderColors() cuando el juego no
+     * tiene plataforma asignada (p. ej. deseados sin plataforma decidida
+     * todavía). Mismo estilo que Platform::effectiveBgColor() (chip claro
+     * sobre fondo oscuro), pero en varios tonos para que no todos los
+     * placeholders sin plataforma salgan del mismo color.
+     */
+    private const PLACEHOLDER_PALETTE = [
+        ['bg' => '#EEF2FF', 'text' => '#4338CA', 'border' => '#C7D2FE'], // indigo
+        ['bg' => '#ECFDF5', 'text' => '#047857', 'border' => '#A7F3D0'], // esmeralda
+        ['bg' => '#FFFBEB', 'text' => '#B45309', 'border' => '#FDE68A'], // ámbar
+        ['bg' => '#FFF1F2', 'text' => '#BE123C', 'border' => '#FECDD3'], // rosa
+        ['bg' => '#EFF6FF', 'text' => '#1D4ED8', 'border' => '#BFDBFE'], // azul
+        ['bg' => '#F5F3FF', 'text' => '#6D28D9', 'border' => '#DDD6FE'], // violeta
+        ['bg' => '#F0FDFA', 'text' => '#0F766E', 'border' => '#99F6E4'], // verde azulado
+        ['bg' => '#FFF7ED', 'text' => '#C2410C', 'border' => '#FED7AA'], // naranja
+    ];
+
+    /**
+     * Colores del recuadro de iniciales que sustituye a la carátula (ver
+     * coverInitials()): los de la plataforma si tiene una asignada (mismo
+     * color que ya se ve en su chip, para reconocerla de un vistazo aunque
+     * falte la carátula), o si no, uno determinista sacado de un hash del
+     * título — así el mismo juego siempre cae en el mismo color en vez de
+     * que todos los placeholders salgan del mismo gris.
+     *
+     * @return array{bg: string, text: string, border: string}
+     */
+    public function coverPlaceholderColors(): array
+    {
+        // relationLoaded() en vez de acceder directo a $this->platform: así
+        // nunca dispara una consulta N+1 de fondo si algún listado olvida
+        // hacer eager load de la plataforma, y de paso evita que este método
+        // necesite conexión a BD en tests unitarios sin Eloquent arrancado
+        // del todo (ver GameTest).
+        if ($this->relationLoaded('platform') && $this->platform) {
+            return [
+                'bg' => $this->platform->effectiveBgColor(),
+                'text' => $this->platform->effectiveTextColor(),
+                'border' => $this->platform->effectiveBorderColor(),
+            ];
+        }
+
+        return self::PLACEHOLDER_PALETTE[crc32($this->title) % count(self::PLACEHOLDER_PALETTE)];
+    }
+
+    /**
      * igdb_time_to_beat en horas enteras en vez de segundos (formato crudo de
      * la API), para pintarlo en la ficha (ver games/show.blade.php). null si
      * no hay dato todavía (sin match, o el juego no tiene tiempos en IGDB).

@@ -14,7 +14,11 @@
     <img src="{{ $game->coverUrl() }}" alt="{{ $game->title }}"
         {{ $attributes->merge(['class' => "$width h-auto $rounded border border-slate-700 shrink-0"]) }}>
 @else
-    <div {{ $attributes->merge(['class' => "$width aspect-square $textSize $rounded flex items-center justify-center bg-slate-800 border border-slate-700 text-slate-400 font-bold shrink-0"]) }}>
+    @php $colors = $game?->coverPlaceholderColors() ?? ['bg' => '#1e293b', 'text' => '#94a3b8', 'border' => '#334155']; @endphp
+    <div
+        {{ $attributes->merge(['class' => "$width aspect-square $textSize $rounded flex items-center justify-center border font-bold shrink-0"]) }}
+        style="background-color: {{ $colors['bg'] }}; color: {{ $colors['text'] }}; border-color: {{ $colors['border'] }};"
+    >
         {{ $game?->coverInitials() ?? '?' }}
     </div>
 @endif
