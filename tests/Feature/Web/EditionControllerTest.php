@@ -83,14 +83,39 @@ class EditionControllerTest extends TestCase
         $this->assertTrue($edition->platforms->contains($platform));
     }
 
-    public function test_creating_an_edition_without_a_format_defaults_to_physical(): void
+    public function test_creating_an_edition_without_a_format_defaults_to_physical_disc(): void
     {
         $user = User::factory()->create();
 
         $this->actingAs($user)->post('/editions', ['name' => 'Edición al vuelo']);
 
         $edition = Edition::where('name', 'Edición al vuelo')->firstOrFail();
-        $this->assertSame(Edition::FORMAT_PHYSICAL, $edition->format);
+        $this->assertSame(Edition::FORMAT_PHYSICAL_DISC, $edition->format);
+    }
+
+    /**
+     * #142: físico desglosado en subtipos de soporte — cubre los cinco a la
+     * vez para no repetir cinco tests casi idénticos.
+     */
+    public function test_user_can_create_an_edition_with_any_physical_media_subtype(): void
+    {
+        $user = User::factory()->create();
+
+        foreach ([
+            Edition::FORMAT_PHYSICAL_CARTRIDGE,
+            Edition::FORMAT_PHYSICAL_DISC,
+            Edition::FORMAT_PHYSICAL_FLOPPY,
+            Edition::FORMAT_PHYSICAL_TAPE,
+            Edition::FORMAT_PHYSICAL_OTHER,
+        ] as $format) {
+            $this->actingAs($user)->post('/editions', [
+                'name' => "Edición {$format}",
+                'format' => $format,
+            ]);
+
+            $edition = Edition::where('name', "Edición {$format}")->firstOrFail();
+            $this->assertSame($format, $edition->format);
+        }
     }
 
     public function test_user_can_create_an_edition_with_a_specific_format(): void
@@ -119,7 +144,7 @@ class EditionControllerTest extends TestCase
     public function test_user_can_update_an_editions_format(): void
     {
         $user = User::factory()->create();
-        $edition = Edition::factory()->create(['format' => Edition::FORMAT_PHYSICAL]);
+        $edition = Edition::factory()->create(['format' => Edition::FORMAT_PHYSICAL_DISC]);
 
         $response = $this->actingAs($user)->put("/editions/{$edition->id}", [
             'name' => $edition->name,
@@ -140,6 +165,11 @@ class EditionControllerTest extends TestCase
 
         $response->assertCreated();
         $response->assertJsonPath('name', 'Edición al vuelo');
+        // El JS del alta rápida (games/_form.blade.php) lo usa para que la
+        // opción añadida al desplegable distinga ediciones con el mismo
+        // nombre pero distinto formato, igual que las que ya vienen del
+        // servidor (#142).
+        $response->assertJsonPath('formatLabel', Edition::FORMATS[Edition::FORMAT_PHYSICAL_DISC]['label']);
         $this->assertDatabaseHas('editions', ['name' => 'Edición al vuelo']);
     }
 

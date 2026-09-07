@@ -32,7 +32,7 @@ class EditionController extends Controller
 
         $edition = Edition::create([
             'name' => $validated['name'],
-            'format' => $validated['format'] ?? Edition::FORMAT_PHYSICAL,
+            'format' => $validated['format'] ?? Edition::FORMAT_PHYSICAL_DISC,
         ]);
         $edition->platforms()->sync($validated['platform_ids'] ?? []);
 
@@ -40,7 +40,12 @@ class EditionController extends Controller
         // navegar fuera del formulario) para no perder lo ya rellenado; en
         // ese caso responde JSON en vez de redirigir.
         if ($request->wantsJson()) {
-            return response()->json(['id' => $edition->id, 'name' => $edition->name], 201);
+            // formatLabel para que la opción que añade el JS al desplegable
+            // (ver games/_form.blade.php) quede igual de identificable que
+            // las que ya vienen renderizadas por Blade — si no, una edición
+            // creada al vuelo se distinguiría peor que el resto en cuanto
+            // hubiera otra con el mismo nombre (#142).
+            return response()->json(['id' => $edition->id, 'name' => $edition->name, 'formatLabel' => $edition->formatLabel()], 201);
         }
 
         return redirect()->route('web.editions.index')->with('success', 'Edición creada correctamente.');
@@ -60,7 +65,7 @@ class EditionController extends Controller
 
         $edition->update([
             'name' => $validated['name'],
-            'format' => $validated['format'] ?? Edition::FORMAT_PHYSICAL,
+            'format' => $validated['format'] ?? Edition::FORMAT_PHYSICAL_DISC,
         ]);
         $edition->platforms()->sync($validated['platform_ids'] ?? []);
 

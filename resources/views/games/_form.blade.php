@@ -197,7 +197,11 @@
                     @foreach($editions as $edition)
                         <option value="{{ $edition->id }}" data-platforms="{{ $edition->platforms->pluck('id')->implode(',') }}"
                             {{ old('edition_id', $defaultEditionId) == $edition->id ? 'selected' : '' }}>
-                            {{ $edition->name }}
+                            {{-- El formato distingue ediciones con el mismo nombre pero
+                                 distinto soporte (p. ej. varias "Normal": disco, diskette,
+                                 cartucho) — sin esto eran indistinguibles en el desplegable
+                                 desde que #142 dejó de forzar un único "Físico" (#142). --}}
+                            {{ $edition->name }} · {{ $edition->formatLabel() }}
                         </option>
                     @endforeach
                 </select>
@@ -528,7 +532,7 @@
                 const select = document.getElementById('edition_id');
                 const option = document.createElement('option');
                 option.value = edition.id;
-                option.textContent = edition.name;
+                option.textContent = `${edition.name} · ${edition.formatLabel}`;
                 option.dataset.platforms = '';
                 select.appendChild(option);
                 select.value = edition.id;

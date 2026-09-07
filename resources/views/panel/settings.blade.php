@@ -193,7 +193,7 @@
                                     <option value="">Ninguna</option>
                                     @foreach($editions as $edition)
                                         <option value="{{ $edition->id }}" {{ (string) old('default_edition_id', $user->default_edition_id) === (string) $edition->id ? 'selected' : '' }}>
-                                            {{ $edition->name }}
+                                            {{ $edition->name }} · {{ $edition->formatLabel() }}
                                         </option>
                                     @endforeach
                                 </select>

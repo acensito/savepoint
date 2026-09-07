@@ -48,7 +48,7 @@
                             @foreach($editions as $edition)
                                 <option value="{{ $edition->id }}" data-platforms="{{ $edition->platforms->pluck('id')->implode(',') }}"
                                     {{ old('edition_id') == $edition->id ? 'selected' : '' }}>
-                                    {{ $edition->name }}
+                                    {{ $edition->name }} · {{ $edition->formatLabel() }}
                                 </option>
                             @endforeach
                         </select>
