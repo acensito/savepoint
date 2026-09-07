@@ -20,7 +20,9 @@
              pensada para escritorio con ratón, columnas densas — en tablet. -->
         <div class="xl:hidden space-y-2.5">
             @forelse($games as $game)
-                <div class="js-game-card bg-slate-900 border border-slate-800 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs shadow-black/10 hover:bg-slate-800/40 active:border-slate-700 transition-colors cursor-pointer"
+                {{-- #152: aviso de "necesita atención" para juegos en mal estado
+                     (2 estrellas o menos) — en prueba en las tres vistas. --}}
+                <div class="js-game-card {{ $game->needsAttention() ? 'bg-amber-500/15 hover:bg-amber-500/20' : 'bg-slate-900 hover:bg-slate-800/40' }} border border-slate-800 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs shadow-black/10 active:border-slate-700 transition-colors cursor-pointer"
                     data-href="{{ route('web.games.show', $game->id) }}">
                     <input type="checkbox" form="bulk-form" name="game_ids[]" value="{{ $game->id }}"
                         class="js-bulk-checkbox self-start mt-1 w-4 h-4 shrink-0 rounded border-slate-600 bg-slate-800 text-indigo-600 focus:ring-indigo-500"
@@ -126,7 +128,9 @@
                 </thead>
                 <tbody class="divide-y divide-slate-800">
                     @forelse($games as $game)
-                        <tr class="hover:bg-slate-800/40 transition-colors">
+                        {{-- #152: aviso de "necesita atención" para juegos en mal estado
+                             (2 estrellas o menos) — en prueba en las tres vistas. --}}
+                        <tr class="{{ $game->needsAttention() ? 'bg-amber-500/15 hover:bg-amber-500/20' : 'hover:bg-slate-800/40' }} transition-colors">
                             <!-- Selección para acciones en bloque -->
                             <td class="js-bulk-select-col pl-6 pr-2 py-4">
                                 <input type="checkbox" form="bulk-form" name="game_ids[]" value="{{ $game->id }}"
@@ -220,7 +224,11 @@
          de arriba (oculta por defecto, ver #view-grid en app.css). -->
     <div id="view-grid" class="grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
         @forelse($games as $game)
-            <div class="group relative">
+            {{-- #152: aviso de "necesita atención" para juegos en mal estado (2
+                 estrellas o menos) — en prueba en las tres vistas. Padding +
+                 margen negativo para que el fondo se vea alrededor de la
+                 carátula/texto sin desplazar la rejilla del resto de tarjetas. --}}
+            <div class="group relative {{ $game->needsAttention() ? 'bg-amber-500/15 rounded-xl p-2 -m-2' : '' }}">
                 <input type="checkbox" form="bulk-form" name="game_ids[]" value="{{ $game->id }}"
                     class="js-bulk-checkbox absolute top-2 left-2 z-10 w-4 h-4 rounded border-slate-500 bg-slate-900/80 text-indigo-600 focus:ring-indigo-500"
                     aria-label="Seleccionar {{ $game->title }}">

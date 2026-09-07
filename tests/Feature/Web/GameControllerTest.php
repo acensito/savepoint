@@ -472,6 +472,33 @@ class GameControllerTest extends TestCase
         $response->assertSee(Edition::FORMATS[Edition::FORMAT_DIGITAL]['icon']);
     }
 
+    /**
+     * #152: aviso visual de "necesita atención" para juegos en mal estado (2
+     * estrellas o menos), en las tres vistas de la colección a la vez (solo
+     * una es visible según games_view, pero las tres se pintan siempre).
+     */
+    public function test_index_highlights_a_low_rated_game_in_amber(): void
+    {
+        $user = User::factory()->create();
+        Game::factory()->for($user)->create(['title' => 'Juego maltrecho', 'rating' => 1]);
+
+        $response = $this->actingAs($user)->get('/');
+
+        $response->assertOk();
+        $response->assertSee('bg-amber-500/15', false);
+    }
+
+    public function test_index_does_not_highlight_a_well_rated_game(): void
+    {
+        $user = User::factory()->create();
+        Game::factory()->for($user)->create(['title' => 'Juego impecable', 'rating' => 5]);
+
+        $response = $this->actingAs($user)->get('/');
+
+        $response->assertOk();
+        $response->assertDontSee('bg-amber-500/15', false);
+    }
+
     public function test_index_ignores_an_unknown_sort_column(): void
     {
         $user = User::factory()->create();

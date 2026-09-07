@@ -283,6 +283,16 @@ class Game extends Model
     }
 
     /**
+     * 2 estrellas o menos (Malo/Regular): aviso visual de "necesita atención"
+     * en el listado de la colección (#152). Sin puntuación (null) no cuenta
+     * como mal estado, solo como "todavía sin valorar".
+     */
+    public function needsAttention(): bool
+    {
+        return $this->rating !== null && $this->rating <= 2;
+    }
+
+    /**
      * igdb_time_to_beat en horas enteras en vez de segundos (formato crudo de
      * la API), para pintarlo en la ficha (ver games/show.blade.php). null si
      * no hay dato todavía (sin match, o el juego no tiene tiempos en IGDB).
