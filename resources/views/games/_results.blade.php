@@ -137,7 +137,16 @@
                             <!-- Título -->
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="flex items-center gap-3">
-                                    <x-game-cover :game="$game" size="sm" />
+                                    {{-- Vista "solo texto" (games-text-view, #139): oculta esta
+                                         carátula por CSS (ver app.css), igual que ya hace la
+                                         estantería con su propio bloque — instantáneo al cambiar
+                                         de vista sin recargar, mismo patrón que compacta/estantería.
+                                         Ojo: el <img> se sigue pidiendo igual, esto no ahorra
+                                         peticiones por sí solo (eso depende de loading="lazy",
+                                         ver #116) — aquí solo se libera espacio en pantalla. --}}
+                                    <span class="js-list-cover shrink-0">
+                                        <x-game-cover :game="$game" size="sm" />
+                                    </span>
                                     <a href="{{ route('web.games.show', $game->id) }}" class="text-sm font-bold text-slate-100 hover:text-indigo-300 transition-colors">{{ $game->title }}</a>
                                     @if($game->for_sale)
                                         <x-gicon name="sell" class="text-[15px] text-amber-400" title="En venta" />

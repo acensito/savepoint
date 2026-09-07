@@ -255,6 +255,17 @@ class PanelControllerTest extends TestCase
         $this->assertSame('grid', $fresh->games_view);
     }
 
+    public function test_user_can_switch_to_the_text_only_games_view(): void
+    {
+        // #139: cuarta vista, sin carátulas.
+        $user = User::factory()->create(['games_view' => 'compact']);
+
+        $response = $this->actingAs($user)->patchJson('/panel/settings/display', ['games_view' => 'text']);
+
+        $response->assertOk()->assertJson(['ok' => true]);
+        $this->assertSame('text', $user->fresh()->games_view);
+    }
+
     public function test_updating_display_preferences_accepts_a_partial_payload(): void
     {
         $user = User::factory()->create(['theme' => 'dark', 'games_view' => 'grid']);

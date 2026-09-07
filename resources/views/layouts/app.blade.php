@@ -11,6 +11,7 @@
         match (auth()->user()->games_view) {
             'grid' => 'games-grid-view',
             'compact' => 'games-compact-view',
+            'text' => 'games-text-view',
             default => null,
         },
         'navbar-' . auth()->user()->navbar_color,

@@ -85,6 +85,32 @@ class GameControllerTest extends TestCase
     }
 
     /**
+     * #139: cuarta vista de la colección, sin carátulas — solo tiene sentido
+     * en escritorio, así que su botón se oculta en móvil igual que
+     * compacta/lista (ver comentario de games/index.blade.php).
+     */
+    public function test_index_shows_the_text_only_view_button(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get('/');
+
+        $response->assertOk();
+        $response->assertSee('id="games-view-text-btn"', false);
+        $response->assertSee('hidden md:flex items-center justify-center w-8 text-slate-500 hover:bg-slate-800 md:border-l md:border-slate-800 transition-colors', false);
+    }
+
+    public function test_index_marks_html_with_the_text_only_view_class_when_that_is_the_users_preference(): void
+    {
+        $user = User::factory()->create(['games_view' => 'text']);
+
+        $response = $this->actingAs($user)->get('/');
+
+        $response->assertOk();
+        $response->assertSee('games-text-view', false);
+    }
+
+    /**
      * (#46, regresión): el desplegable ofrece SIEMPRE todas las
      * combinaciones conocidas, incluso con coincidencia de IGDB — se probó a
      * acotarlo a lo que IGDB trajo, pero IGDB puede equivocarse (una
