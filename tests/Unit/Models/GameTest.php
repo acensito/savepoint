@@ -56,4 +56,24 @@ class GameTest extends TestCase
         $this->assertSame($first->coverPlaceholderColors(), $second->coverPlaceholderColors());
         $this->assertNotSame($first->coverPlaceholderColors(), $other->coverPlaceholderColors());
     }
+
+    #[DataProvider('ratingsAndWhetherTheyNeedAttention')]
+    public function test_needs_attention(?int $rating, bool $expected): void
+    {
+        $game = new Game(['rating' => $rating]);
+
+        $this->assertSame($expected, $game->needsAttention());
+    }
+
+    public static function ratingsAndWhetherTheyNeedAttention(): array
+    {
+        return [
+            'malo (1)' => [1, true],
+            'regular (2)' => [2, true],
+            'bueno (3)' => [3, false],
+            'muy bueno (4)' => [4, false],
+            'nuevo/precintado (5)' => [5, false],
+            'sin valorar' => [null, false],
+        ];
+    }
 }
