@@ -849,6 +849,26 @@ class GameControllerTest extends TestCase
         $this->assertDatabaseMissing('games', ['title' => 'Copia']);
     }
 
+    public function test_the_duplicate_ean_warning_offers_a_one_click_save_anyway_button(): void
+    {
+        // #124: antes había que localizar y marcar una casilla en el resto
+        // del formulario y reenviarlo entero; ahora hay un botón en el
+        // propio aviso que ya manda confirm_duplicate=1 al pulsarlo.
+        $user = User::factory()->create();
+        Game::factory()->for($user)->create(['title' => 'Original', 'ean' => '1234567890123']);
+
+        $this->actingAs($user)->from(route('web.games.create'))->post('/games', [
+            'title' => 'Copia',
+            'ean' => '1234567890123',
+            'play_status' => 'pending',
+        ]);
+
+        $response = $this->get(route('web.games.create'));
+
+        $response->assertSee('name="confirm_duplicate" value="1"', false);
+        $response->assertSee('Guardar igualmente');
+    }
+
     public function test_creating_a_game_with_a_duplicate_ean_saves_when_confirmed(): void
     {
         $user = User::factory()->create();
