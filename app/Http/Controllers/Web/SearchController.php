@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Game;
 use App\Services\GameLookup\GameLookupInterface;
+use App\Services\GameLookup\GameLookupResult;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class SearchController extends Controller
@@ -24,6 +26,14 @@ class SearchController extends Controller
      * sobra, son 8+ dígitos).
      */
     private const MIN_EXTERNAL_QUERY_LENGTH = 3;
+
+    /**
+     * Con coincidencias locales ya a la vista, CEX pasa a ser un
+     * complemento por si hay una entrega nueva que añadir (#108) — se
+     * recorta a un par para no competir en espacio con el resultado
+     * principal, que ya es útil de por sí.
+     */
+    private const MAX_EXTERNAL_SUGGESTIONS_WITH_LOCAL_MATCHES = 2;
 
     public function __construct(private readonly GameLookupInterface $gameLookup) {}
 
@@ -79,10 +89,31 @@ class SearchController extends Controller
         $isEan = ctype_digit($query) && strlen($query) >= 8;
 
         // Solo tiene sentido consultar CEX por texto: no hay forma de buscar
-        // ahí "juegos de PS2 pendientes de jugar", solo título/EAN.
-        $externalResults = $games->isEmpty() && $query !== '' && mb_strlen($query) >= self::MIN_EXTERNAL_QUERY_LENGTH
+        // ahí "juegos de PS2 pendientes de jugar", solo título/EAN. Se
+        // consulta siempre que haya texto suficiente, haya o no coincidencias
+        // locales (#108: antes, tener "Resident Evil" y "Resident Evil 2" ya
+        // en la colección dejaba sin sugerencias de CEX al buscar para dar de
+        // alta "Resident Evil 3").
+        $externalResults = $query !== '' && mb_strlen($query) >= self::MIN_EXTERNAL_QUERY_LENGTH
             ? $this->gameLookup->search($query)
             : [];
+
+        if ($games->isNotEmpty() && ! empty($externalResults)) {
+            // Con coincidencias locales, CEX es solo un complemento: se
+            // descartan las sugerencias que ya son un título que el usuario
+            // tiene (no tiene sentido "sugerir añadir" algo ya poseído) y se
+            // recorta a un par para no competir en espacio con el resultado
+            // principal.
+            $ownedTitles = $games->pluck('title')
+                ->map(fn (string $title) => Str::lower($title))
+                ->all();
+
+            $externalResults = collect($externalResults)
+                ->reject(fn (GameLookupResult $result) => in_array(Str::lower($result->title), $ownedTitles, true))
+                ->take(self::MAX_EXTERNAL_SUGGESTIONS_WITH_LOCAL_MATCHES)
+                ->values()
+                ->all();
+        }
 
         // Enlace a la colección paginada con la misma búsqueda/filtros ya
         // aplicados, para cuando el resultado se queda corto en el modal
