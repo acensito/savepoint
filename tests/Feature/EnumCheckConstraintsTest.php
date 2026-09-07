@@ -71,6 +71,26 @@ class EnumCheckConstraintsTest extends TestCase
         Edition::query()->create(['name' => 'Test', 'format' => 'not-a-real-format']);
     }
 
+    /**
+     * #142: 'physical' era válido antes de desglosar el soporte físico en
+     * subtipos (cartucho/disco/diskette/cassette/otros) y ya no lo es.
+     */
+    public function test_the_old_generic_physical_format_is_rejected(): void
+    {
+        $this->expectException(QueryException::class);
+
+        Edition::query()->create(['name' => 'Test', 'format' => 'physical']);
+    }
+
+    public function test_every_current_edition_format_is_accepted(): void
+    {
+        foreach (array_keys(Edition::FORMATS) as $format) {
+            $edition = Edition::query()->create(['name' => "Test {$format}", 'format' => $format]);
+
+            $this->assertNotNull($edition->id);
+        }
+    }
+
     public function test_invalid_commission_direction_is_rejected(): void
     {
         $this->expectException(QueryException::class);

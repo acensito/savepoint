@@ -144,8 +144,8 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
   viene creada de fábrica y es la que se preselecciona por defecto al dar de alta un juego (configurable desde Ajustes,
   junto con la región por defecto). Si la edición que necesitas no existe todavía, se puede crear al vuelo desde el
   propio formulario de alta/edición de juego sin perder lo ya rellenado. Cada edición tiene además un **formato**
-  (físico/digital/CIAB, físico por defecto) marcado con icono en la gestión de ediciones, la ficha del juego y el
-  listado de la colección.
+  (cartucho/disco/diskette/cassette/otros para lo físico, más digital y CIAB — disco por defecto) marcado con icono
+  en la gestión de ediciones, la ficha del juego y el listado de la colección.
 - **Marcar un juego como "en venta"**: etiqueta independiente del estado de Propiedad (un juego sigue en tu colección y
   además puede estar en venta), con badge en las tres vistas de la colección (tarjetas, tabla, estantería) y su propio
   filtro. Se activa desde la ficha de detalle del juego o desde el propio formulario de alta/edición. Tiene además su

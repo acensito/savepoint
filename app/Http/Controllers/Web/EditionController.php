@@ -32,7 +32,7 @@ class EditionController extends Controller
 
         $edition = Edition::create([
             'name' => $validated['name'],
-            'format' => $validated['format'] ?? Edition::FORMAT_PHYSICAL,
+            'format' => $validated['format'] ?? Edition::FORMAT_PHYSICAL_DISC,
         ]);
         $edition->platforms()->sync($validated['platform_ids'] ?? []);
 
@@ -60,7 +60,7 @@ class EditionController extends Controller
 
         $edition->update([
             'name' => $validated['name'],
-            'format' => $validated['format'] ?? Edition::FORMAT_PHYSICAL,
+            'format' => $validated['format'] ?? Edition::FORMAT_PHYSICAL_DISC,
         ]);
         $edition->platforms()->sync($validated['platform_ids'] ?? []);
 
