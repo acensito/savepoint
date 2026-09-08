@@ -78,37 +78,60 @@ class PanelController extends Controller
      * filtra por dueño (es un catálogo compartido, ver Platform), así que un
      * withCount() sin más contaría los juegos de cualquier cuenta.
      */
+    /**
+     * Valor de platform_id que representa "juegos sin ninguna plataforma"
+     * (ver clearPlatformGames()) — mismo sentinela que ya usa
+     * GameCollectionQuery para ?platform_id=none, no un id real de Platform.
+     */
+    public const NO_PLATFORM_VALUE = 'none';
+
     public function dangerZone(): View
     {
         $platforms = Platform::withCount(['games' => fn ($q) => $q->where('user_id', auth()->id())])
             ->orderBy('name')
             ->get();
 
+        $noPlatformCount = Game::where('user_id', auth()->id())->whereNull('platform_id')->count();
         $totalGames = Game::where('user_id', auth()->id())->count();
 
-        return view('panel.danger-zone', compact('platforms', 'totalGames'));
+        return view('panel.danger-zone', compact('platforms', 'noPlatformCount', 'totalGames'));
     }
 
     /**
-     * Envía a la papelera de golpe todos los juegos de una plataforma. La
-     * plataforma en sí no se toca (queda vacía, para reutilizarla o
-     * borrarla aparte con PlatformController::destroy()). Requiere teclear
-     * el nombre exacto de la plataforma en 'confirm' — comprobado aquí, no
+     * Envía a la papelera de golpe todos los juegos de una plataforma (o,
+     * con platform_id=NO_PLATFORM_VALUE, los que no tienen ninguna
+     * asignada). La plataforma en sí no se toca (queda vacía, para
+     * reutilizarla o borrarla aparte con PlatformController::destroy()).
+     * Requiere teclear el nombre exacto en 'confirm' — comprobado aquí, no
      * solo en el JS que habilita el botón (ver initDangerZoneClearPlatform
      * en app.js), para que no baste con saltarse el JS o repetir la
      * petición a mano.
      */
-    public function clearPlatformGames(Request $request, Platform $platform): RedirectResponse
+    public function clearPlatformGames(Request $request): RedirectResponse
     {
         $validated = $request->validate([
+            // Sin 'string': un <select> real siempre manda texto, pero el
+            // cliente de test envía $platform->id como int de verdad, que la
+            // regla 'string' rechazaría sin aportar nada a cambio.
+            'platform_id' => ['required'],
             'confirm' => ['required', 'string'],
         ]);
 
-        if ($validated['confirm'] !== $platform->name) {
-            return back()->withErrors(['confirm' => 'El nombre no coincide con «'.$platform->name.'», no se ha borrado nada.']);
+        $isNoPlatform = (string) $validated['platform_id'] === self::NO_PLATFORM_VALUE;
+        $platform = $isNoPlatform ? null : Platform::find($validated['platform_id']);
+
+        if (! $isNoPlatform && ! $platform) {
+            return back()->withInput()->withErrors(['platform_id' => 'Esa plataforma ya no existe.']);
         }
 
-        $gamesQuery = Game::where('user_id', auth()->id())->where('platform_id', $platform->id);
+        $expectedName = $isNoPlatform ? 'Sin plataforma' : $platform->name;
+
+        if ($validated['confirm'] !== $expectedName) {
+            return back()->withInput()->withErrors(['confirm' => 'El nombre no coincide con «'.$expectedName.'», no se ha borrado nada.']);
+        }
+
+        $gamesQuery = Game::where('user_id', auth()->id())
+            ->when($isNoPlatform, fn ($q) => $q->whereNull('platform_id'), fn ($q) => $q->where('platform_id', $platform->id));
         $count = $gamesQuery->count();
 
         // Mass delete por query builder: no dispara el evento 'deleted' de
@@ -120,8 +143,8 @@ class PanelController extends Controller
         return redirect()->route('web.panel.danger-zone')->with(
             'success',
             $count > 0
-                ? $count.' '.Str::plural('juego', $count).' de «'.$platform->name.'» '.($count === 1 ? 'enviado' : 'enviados').' a la papelera.'
-                : '«'.$platform->name.'» no tenía juegos que enviar a la papelera.'
+                ? $count.' '.Str::plural('juego', $count).' de «'.$expectedName.'» '.($count === 1 ? 'enviado' : 'enviados').' a la papelera.'
+                : '«'.$expectedName.'» no tenía juegos que enviar a la papelera.'
         );
     }
 

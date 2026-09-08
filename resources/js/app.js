@@ -152,25 +152,25 @@ initSettingsToggles();
 function initDangerZoneClearPlatform() {
     const form = document.getElementById('clear-platform-form');
     const select = document.getElementById('clear-platform-select');
+    const platformIdInput = document.getElementById('clear-platform-id');
     const confirmWrap = document.getElementById('clear-platform-confirm-wrap');
     const confirmNameEl = document.getElementById('clear-platform-confirm-name');
     const confirmInput = document.getElementById('clear-platform-confirm');
     const submitBtn = document.getElementById('clear-platform-submit');
-    if (!form || !select || !confirmWrap || !confirmNameEl || !confirmInput || !submitBtn) return;
-
-    const urlTemplate = form.dataset.urlTemplate;
+    if (!form || !select || !platformIdInput || !confirmWrap || !confirmNameEl || !confirmInput || !submitBtn) return;
 
     const sync = () => {
         const option = select.selectedOptions[0];
         const name = option?.dataset.name;
 
         if (!name) {
+            platformIdInput.value = '';
             confirmWrap.classList.add('hidden');
             submitBtn.disabled = true;
             return;
         }
 
-        form.action = urlTemplate.replace('__ID__', option.value);
+        platformIdInput.value = option.value;
         confirmNameEl.textContent = name;
         confirmWrap.classList.remove('hidden');
         submitBtn.disabled = confirmInput.value !== name;
@@ -182,7 +182,12 @@ function initDangerZoneClearPlatform() {
     });
 
     confirmInput.addEventListener('input', sync);
-}
+
+    // Restaura selección/confirmación tras un error de validación (ver
+    // old('platform_id')/old('confirm') en danger-zone.blade.php): sin
+    // esto, el desplegable ya seleccionado en el HTML no habilitaría el
+    // botón hasta el próximo 'change'/'input' del usuario.
+    sync();
 
 initDangerZoneClearPlatform();
 

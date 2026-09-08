@@ -405,7 +405,8 @@ class PanelControllerTest extends TestCase
         $platform = Platform::factory()->create(['name' => 'Nintendo Switch']);
         $game = Game::factory()->for($user)->create(['platform_id' => $platform->id]);
 
-        $response = $this->actingAs($user)->delete("/panel/platforms/{$platform->id}/games", [
+        $response = $this->actingAs($user)->delete('/panel/platforms/games', [
+            'platform_id' => $platform->id,
             'confirm' => 'Nintendo Switch',
         ]);
 
@@ -414,18 +415,51 @@ class PanelControllerTest extends TestCase
         $this->assertNotNull(Platform::find($platform->id));
     }
 
+    /**
+     * #144 (seguimiento): los juegos sin ninguna plataforma asignada no
+     * tenían forma de vaciarse en bloque (el desplegable solo ofrecía
+     * plataformas reales) — platform_id='none' es el mismo sentinela que ya
+     * usa ?platform_id=none en el listado.
+     */
+    public function test_user_can_clear_all_their_games_without_any_platform(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['platform_id' => null]);
+
+        $response = $this->actingAs($user)->delete('/panel/platforms/games', [
+            'platform_id' => 'none',
+            'confirm' => 'Sin plataforma',
+        ]);
+
+        $response->assertRedirect(route('web.panel.danger-zone'));
+        $this->assertSoftDeleted($game);
+    }
+
     public function test_clearing_a_platform_rejects_a_confirmation_that_does_not_match_the_name(): void
     {
         $user = User::factory()->create();
         $platform = Platform::factory()->create(['name' => 'Nintendo Switch']);
         $game = Game::factory()->for($user)->create(['platform_id' => $platform->id]);
 
-        $response = $this->actingAs($user)->delete("/panel/platforms/{$platform->id}/games", [
+        $response = $this->actingAs($user)->delete('/panel/platforms/games', [
+            'platform_id' => $platform->id,
             'confirm' => 'nintendo switch',
         ]);
 
         $response->assertSessionHasErrors('confirm');
         $this->assertDatabaseHas('games', ['id' => $game->id, 'deleted_at' => null]);
+    }
+
+    public function test_clearing_a_platform_rejects_an_unknown_platform_id(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->delete('/panel/platforms/games', [
+            'platform_id' => '999999',
+            'confirm' => 'da igual',
+        ]);
+
+        $response->assertSessionHasErrors('platform_id');
     }
 
     public function test_clearing_a_platform_does_not_affect_another_users_games(): void
@@ -436,7 +470,8 @@ class PanelControllerTest extends TestCase
         Game::factory()->for($user)->create(['platform_id' => $platform->id]);
         $otherGame = Game::factory()->for($otherUser)->create(['platform_id' => $platform->id]);
 
-        $this->actingAs($user)->delete("/panel/platforms/{$platform->id}/games", [
+        $this->actingAs($user)->delete('/panel/platforms/games', [
+            'platform_id' => $platform->id,
             'confirm' => 'Nintendo Switch',
         ]);
 
@@ -447,7 +482,7 @@ class PanelControllerTest extends TestCase
     {
         $platform = Platform::factory()->create();
 
-        $this->delete("/panel/platforms/{$platform->id}/games", ['confirm' => $platform->name])
+        $this->delete('/panel/platforms/games', ['platform_id' => $platform->id, 'confirm' => $platform->name])
             ->assertRedirect('/login');
     }
 

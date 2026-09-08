@@ -29,29 +29,37 @@
                     borra, se queda vacía para reutilizarla o borrarla aparte.
                 </p>
 
-                <form id="clear-platform-form" method="POST"
-                      data-url-template="{{ route('web.panel.platforms.clear-games', ['platform' => '__ID__']) }}"
-                      class="space-y-4">
+                <form id="clear-platform-form" method="POST" action="{{ route('web.panel.platforms.clear-games') }}" class="space-y-4">
                     @csrf
                     @method('DELETE')
+                    <input type="hidden" id="clear-platform-id" name="platform_id" value="">
 
                     <div>
                         <label for="clear-platform-select" class="{{ $label }}">Plataforma</label>
                         <select id="clear-platform-select" class="{{ $input }}">
                             <option value="">Elige una plataforma…</option>
                             @foreach($platforms as $platform)
-                                <option value="{{ $platform->id }}" data-name="{{ $platform->name }}">
+                                <option value="{{ $platform->id }}" data-name="{{ $platform->name }}" {{ (string) old('platform_id') === (string) $platform->id ? 'selected' : '' }}>
                                     {{ $platform->name }} ({{ $platform->games_count }} {{ Str::plural('juego', $platform->games_count) }})
                                 </option>
                             @endforeach
+                            {{-- Mismo sentinela 'none' que ?platform_id=none en el listado
+                                 (GameCollectionQuery): juegos sin ninguna plataforma asignada,
+                                 que de otro modo no habría forma de vaciar en bloque. --}}
+                            <option value="{{ \App\Http\Controllers\Web\PanelController::NO_PLATFORM_VALUE }}" data-name="Sin plataforma" {{ old('platform_id') === \App\Http\Controllers\Web\PanelController::NO_PLATFORM_VALUE ? 'selected' : '' }}>
+                                Sin plataforma ({{ $noPlatformCount }} {{ Str::plural('juego', $noPlatformCount) }})
+                            </option>
                         </select>
+                        @error('platform_id')
+                            <span class="text-red-400 text-sm mt-1 block">{{ $message }}</span>
+                        @enderror
                     </div>
 
                     <div id="clear-platform-confirm-wrap" class="hidden">
                         <label for="clear-platform-confirm" class="{{ $label }}">
                             Escribe <span id="clear-platform-confirm-name" class="font-semibold text-red-400"></span> para confirmar
                         </label>
-                        <input type="text" id="clear-platform-confirm" name="confirm" autocomplete="off" autocorrect="off" spellcheck="false" class="{{ $input }}">
+                        <input type="text" id="clear-platform-confirm" name="confirm" value="{{ old('confirm') }}" autocomplete="off" autocorrect="off" spellcheck="false" class="{{ $input }}">
                         @error('confirm')
                             <span class="text-red-400 text-sm mt-1 block">{{ $message }}</span>
                         @enderror
