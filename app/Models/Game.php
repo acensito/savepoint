@@ -122,6 +122,20 @@ class Game extends Model
     public const RATING_MAX = 5;
 
     /**
+     * Etiqueta de cada valor de Conservación (games/_form.blade.php,
+     * _filters.blade.php). Antes solo vivía como objeto JS suelto en
+     * _form.blade.php (ratingLabels) — se añade aquí para el filtro del
+     * listado (#137) sin duplicar el texto de cada estrella otra vez.
+     */
+    public const RATING_LABELS = [
+        1 => 'Malo',
+        2 => 'Regular',
+        3 => 'Bueno',
+        4 => 'Muy bueno',
+        5 => 'Nuevo / precintado',
+    ];
+
+    /**
      * Sistemas de clasificación por edad reconocidos y sus valores válidos
      * (verificado contra la API real de IGDB, issue #46 — el esquema
      * age_ratings cambió en 2024). Fuente única para el desplegable del

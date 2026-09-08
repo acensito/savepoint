@@ -229,6 +229,22 @@ class GameControllerTest extends TestCase
         $this->assertSame('En venta', $games->first()->title);
     }
 
+    /**
+     * #137: filtro por Conservación, mismo patrón que platform_id/play_status/for_sale.
+     */
+    public function test_index_filters_by_rating(): void
+    {
+        $user = User::factory()->create();
+        Game::factory()->for($user)->create(['title' => 'Maltrecho', 'rating' => 1]);
+        Game::factory()->for($user)->create(['title' => 'Impecable', 'rating' => 5]);
+
+        $response = $this->actingAs($user)->get('/?rating=1');
+
+        $games = $response->viewData('games');
+        $this->assertCount(1, $games);
+        $this->assertSame('Maltrecho', $games->first()->title);
+    }
+
     public function test_index_filters_by_no_platform(): void
     {
         $user = User::factory()->create();
