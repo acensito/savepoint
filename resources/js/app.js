@@ -188,6 +188,7 @@ function initDangerZoneClearPlatform() {
     // esto, el desplegable ya seleccionado en el HTML no habilitaría el
     // botón hasta el próximo 'change'/'input' del usuario.
     sync();
+}
 
 initDangerZoneClearPlatform();
 
