@@ -71,6 +71,18 @@ class PanelControllerTest extends TestCase
         $this->assertStringNotContainsString('name="auto_igdb_background" value="1" checked', $content);
     }
 
+    public function test_settings_checks_auto_theme_for_a_user_with_auto_theme(): void
+    {
+        $user = User::factory()->create(['theme' => 'auto']);
+
+        $response = $this->actingAs($user)->get('/panel/settings');
+
+        $response->assertOk();
+        $content = preg_replace('/\s+/', ' ', $response->getContent());
+        $this->assertStringContainsString('name="theme" value="auto" class="js-theme-radio accent-indigo-500" checked',
+            $content);
+    }
+
     public function test_user_can_update_collection_and_new_game_defaults(): void
     {
         $edition = Edition::factory()->create(['name' => 'Coleccionista']);
@@ -264,6 +276,43 @@ class PanelControllerTest extends TestCase
 
         $response->assertOk()->assertJson(['ok' => true]);
         $this->assertSame('text', $user->fresh()->games_view);
+    }
+
+    public function test_user_can_update_theme_to_auto(): void
+    {
+        $user = User::factory()->create(['theme' => 'dark']);
+
+        $response = $this->actingAs($user)->patchJson('/panel/settings/display', [
+            'theme' => 'auto',
+        ]);
+
+        $response->assertOk()->assertJson(['ok' => true]);
+        $this->assertSame('auto', $user->fresh()->theme);
+    }
+
+    public function test_updating_theme_rejects_invalid_values(): void
+    {
+        $user = User::factory()->create(['theme' => 'dark']);
+
+        $response = $this->actingAs($user)->patchJson('/panel/settings/display', [
+            'theme' => 'blue',
+        ]);
+
+        $response->assertUnprocessable();
+        $response->assertJsonValidationErrors('theme');
+        $this->assertSame('dark', $user->fresh()->theme);
+    }
+
+    public function test_user_can_update_theme_via_settings_form(): void
+    {
+        $user = User::factory()->create(['theme' => 'dark']);
+
+        $response = $this->actingAs($user)->put('/panel/settings', [
+            'theme' => 'auto',
+        ]);
+
+        $response->assertRedirect(route('web.panel.settings'));
+        $this->assertSame('auto', $user->fresh()->theme);
     }
 
     public function test_updating_display_preferences_accepts_a_partial_payload(): void

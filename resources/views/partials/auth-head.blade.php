@@ -21,7 +21,8 @@
         // Bloqueante a propósito: ver el mismo script en layouts/app.blade.php.
         (function () {
             try {
-                if (localStorage.getItem('sp:theme') === 'light') {
+                var theme = localStorage.getItem('sp:theme');
+                if (theme === 'light' || (theme === 'auto' && window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches)) {
                     document.documentElement.classList.add('light');
                 }
             } catch (e) {
@@ -43,3 +44,4 @@
         <x-gicon name="joystick" class="text-[32px] text-indigo-400"/>
         <span class="text-xl font-bold tracking-tight text-slate-100">SavePoint</span>
     </div>
+</div>

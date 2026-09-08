@@ -11,6 +11,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -55,7 +56,7 @@ class TwoFactorController extends Controller
 
         $validated = $request->validate([
             'code' => ['required', 'string'],
-            'pending_theme' => ['nullable', 'in:dark,light'],
+            'pending_theme' => ['nullable', Rule::in(User::THEMES)],
         ]);
 
         if (! $user->verifyTwoFactorCode($request->string('code')->trim()->toString())) {

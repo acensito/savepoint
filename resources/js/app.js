@@ -25,7 +25,7 @@ window.escapeHtml = function escapeHtml(value) {
 const SIDEBAR_STORAGE_KEY = 'sp:sidebarCollapsed';
 const THEME_STORAGE_KEY = 'sp:theme';
 const THEME_PENDING_KEY = 'sp:themePending';
-const VALID_THEMES = ['dark', 'light'];
+const VALID_THEMES = ['dark', 'light', 'auto'];
 
 function initSidebarToggle() {
     const toggle = document.getElementById('sidebar-toggle');
@@ -73,15 +73,74 @@ function saveDisplayPreference(payload) {
 }
 
 /**
- * Alterna entre tema claro y oscuro. El cambio de color en sí lo hace
+ * Gestión del tema ('dark', 'light' o 'auto'). El cambio de color en sí lo hace
  * app.css (redefine las variables de Tailwind cuando <html> lleva la clase
  * 'light'); aquí solo se gestiona esa clase y su persistencia. El estado
  * inicial ya lo pinta el propio servidor en la clase de <html> (ver
  * layouts/app.blade.php), a partir del ajuste de cuenta, así que no hay
- * parpadeo al cargar ni falta que decidirlo aquí en JS.
+ * parpadeo al cargar ni falta que decidirlo aquí en JS. En 'auto', la clase
+ * efectiva sigue al sistema operativo vía matchMedia, en caliente y sin recargar.
  */
-function initThemeToggle() {
+/**
+ * Tema efectivo claro u oscuro a partir del ajuste canónico ('dark',
+ * 'light' o 'auto'). En 'auto' manda el sistema operativo a través de
+ * matchMedia; en explícito no hace falta consultar nada.
+ */
+function isLightEffective(theme) {
+    if (theme === 'auto') {
+        return window.matchMedia?.('(prefers-color-scheme: light)').matches ?? false;
+    }
+
+    return theme === 'light';
+}
+
+/**
+ * Marca el radio de ajustes (panel/settings.blade.php) cuyo value coincida
+ * con el tema seleccionado. No-op en páginas sin radios.
+ */
+function syncThemeRadios(theme) {
+    document.querySelectorAll('.js-theme-radio').forEach((radio) => {
+        radio.checked = radio.value === theme;
+    });
+}
+
+function syncAllThemeToggleIcons(isLight) {
     document.querySelectorAll('.js-theme-toggle').forEach((toggle) => {
+        const icon = toggle.querySelector('.material-symbols-outlined');
+        if (icon) icon.textContent = isLight ? 'dark_mode' : 'light_mode';
+        toggle.setAttribute('aria-label', isLight ? 'Cambiar a tema oscuro' : 'Cambiar a tema claro');
+    });
+}
+
+/**
+ * Aplica un tema canónico ('dark', 'light' o 'auto') al <html>, actualiza
+ * iconos y radios, y lo persiste (en la cuenta si hay CSRF, como pendiente
+ * de frontera si no).
+ */
+function applyTheme(newTheme) {
+    const isLight = isLightEffective(newTheme);
+
+    document.documentElement.classList.toggle('light', isLight);
+    syncAllThemeToggleIcons(isLight);
+    syncThemeRadios(newTheme);
+
+    try {
+        localStorage.setItem(THEME_STORAGE_KEY, newTheme);
+        if (!document.querySelector('meta[name="csrf-token"]')) {
+            sessionStorage.setItem(THEME_PENDING_KEY, newTheme);
+        }
+    } catch (e) {
+    }
+
+    if (document.querySelector('meta[name="csrf-token"]')) {
+        saveDisplayPreference({theme: newTheme});
+    }
+}
+
+function initThemeToggle() {
+    const toggles = document.querySelectorAll('.js-theme-toggle');
+
+    toggles.forEach((toggle) => {
         const syncIcon = (isLight) => {
             const icon = toggle.querySelector('.material-symbols-outlined');
             if (icon) icon.textContent = isLight ? 'dark_mode' : 'light_mode';
@@ -91,26 +150,51 @@ function initThemeToggle() {
         syncIcon(document.documentElement.classList.contains('light'));
 
         toggle.addEventListener('click', () => {
-            const isLight = !document.documentElement.classList.contains('light');
+            // Alterna solo entre explícitos: salir de 'auto' es intencionado,
+            // el toggle es un interruptor claro/oscuro.
+            const newTheme = document.documentElement.classList.contains('light') ? 'dark' : 'light';
 
-            const theme = isLight ? 'light' : 'dark';
-
-            document.documentElement.classList.toggle('light', isLight);
-            syncIcon(isLight);
-
-            try {
-                localStorage.setItem(THEME_STORAGE_KEY, theme);
-                if (!document.querySelector('meta[name="csrf-token"]')) {
-                    sessionStorage.setItem(THEME_PENDING_KEY, theme);
-                }
-            } catch (e) {
-            }
-
-            if (document.querySelector('meta[name="csrf-token"]')) {
-                saveDisplayPreference({theme});
-            }
+            applyTheme(newTheme);
         });
     });
+
+    // Radios de Ajustes (incluido 'auto'): aplican el canónico tal cual,
+    // resolviendo 'auto' contra el sistema operativo en el momento.
+    document.querySelectorAll('.js-theme-radio').forEach((radio) => {
+        radio.addEventListener('change', () => {
+            if (!radio.checked) return;
+
+            const newTheme = radio.value;
+            if (!VALID_THEMES.includes(newTheme)) return;
+
+            applyTheme(newTheme);
+        });
+    });
+
+    // Estado inicial de los radios según el tema guardado (o el que ya pintó
+    // el servidor en <html> si aún no hay nada guardado).
+    try {
+        const stored = localStorage.getItem(THEME_STORAGE_KEY);
+        const initial = VALID_THEMES.includes(stored)
+            ? stored
+            : (document.documentElement.classList.contains('light') ? 'light' : 'dark');
+        syncThemeRadios(initial);
+    } catch (e) {
+    }
+
+    // Reactividad en caliente: si el usuario está en 'auto' y el SO cambia de
+    // claro a oscuro (o al revés), se sigue al sistema sin recargar.
+    if (window.matchMedia) {
+        window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
+            try {
+                if (localStorage.getItem(THEME_STORAGE_KEY) === 'auto') {
+                    document.documentElement.classList.toggle('light', e.matches);
+                    syncAllThemeToggleIcons(e.matches);
+                }
+            } catch (err) {
+            }
+        });
+    }
 }
 
 initThemeToggle();

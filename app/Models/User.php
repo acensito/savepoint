@@ -14,6 +14,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 use Laravel\Sanctum\HasApiTokens;
+use Random\RandomException;
 
 /**
  * @property Carbon|null $two_factor_code_expires_at
@@ -34,6 +35,18 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
 
+    public const string THEME_DARK = 'dark';
+
+    public const string THEME_LIGHT = 'light';
+
+    public const string THEME_AUTO = 'auto';
+
+    public const array THEMES = [
+        self::THEME_DARK,
+        self::THEME_LIGHT,
+        self::THEME_AUTO,
+    ];
+
     /**
      * Eloquent::create() no relee los defaults que pone la propia columna en
      * la base de datos para los atributos omitidos: el modelo recién creado
@@ -46,6 +59,7 @@ class User extends Authenticatable
      * @var array<string, mixed>
      */
     protected $attributes = [
+        'theme' => self::THEME_DARK,
         'section_wishlist_enabled' => true,
         'section_commissions_enabled' => true,
         'section_for_sale_enabled' => true,
@@ -147,6 +161,8 @@ class User extends Authenticatable
      * Genera un código de 6 dígitos, lo guarda hasheado (10 min de validez)
      * y devuelve el valor en claro para mandarlo por email — nunca se
      * persiste sin hashear.
+     *
+     * @throws RandomException
      */
     public function generateTwoFactorCode(): string
     {

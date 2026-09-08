@@ -101,6 +101,16 @@ class TwoFactorTest extends TestCase
         $response->assertRedirect(route('login'));
     }
 
+    public function test_auth_two_factor_page_includes_blocking_auto_theme_script(): void
+    {
+        $user = User::factory()->twoFactorEnabled()->create();
+
+        $content = $this->withPendingChallenge($user)->get(route('two-factor.challenge'))->getContent();
+
+        $this->assertStringContainsString("theme === 'auto'", $content);
+        $this->assertStringContainsString('window.matchMedia', $content);
+    }
+
     public function test_challenge_shows_the_masked_email_of_the_pending_user(): void
     {
         $user = User::factory()->twoFactorEnabled()->create(['email' => 'jugador@example.com']);
@@ -137,6 +147,20 @@ class TwoFactorTest extends TestCase
 
         $response->assertRedirect(route('web.games.index'));
         $this->assertSame('light', $user->fresh()->theme);
+    }
+
+    public function test_pending_theme_auto_is_persisted_on_two_factor_verification(): void
+    {
+        $user = User::factory()->twoFactorEnabled()->create(['theme' => 'dark']);
+        $code = $user->generateTwoFactorCode();
+
+        $response = $this->withPendingChallenge($user)->post(route('two-factor.verify'), [
+            'code' => $code,
+            'pending_theme' => 'auto',
+        ]);
+
+        $response->assertRedirect(route('web.games.index'));
+        $this->assertSame('auto', $user->fresh()->theme);
     }
 
     public function test_missing_theme_on_two_factor_challenge_retains_pending_theme(): void

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Edition;
 use App\Models\Game;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -80,6 +81,7 @@ class PanelController extends Controller
             'default_region' => ['nullable', Rule::in(GameController::REGION_PRESETS)],
             'default_edition_id' => 'nullable|exists:editions,id',
             'navbar_color' => ['nullable', Rule::in(array_keys(self::NAVBAR_COLORS))],
+            'theme' => ['nullable', Rule::in(User::THEMES)],
             'igdb_client_id' => 'nullable|string|max:255',
             'igdb_client_secret' => 'nullable|string|max:255',
         ]);
@@ -105,6 +107,10 @@ class PanelController extends Controller
                 : $user->igdb_client_secret,
         ]);
 
+        if (isset($validated['theme'])) {
+            $user->update(['theme' => $validated['theme']]);
+        }
+
         return redirect()->route('web.panel.settings')->with('success', 'Ajustes actualizados.');
     }
 
@@ -117,7 +123,7 @@ class PanelController extends Controller
     public function updateDisplay(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'theme' => 'sometimes|in:dark,light',
+            'theme' => ['sometimes', Rule::in(User::THEMES)],
             'games_view' => 'sometimes|in:list,compact,grid,text',
         ]);
 
