@@ -102,6 +102,14 @@ class WebAuthTest extends TestCase
         $response->assertDontSee('Regístrate');
     }
 
+    public function test_auth_login_page_includes_blocking_auto_theme_script(): void
+    {
+        $content = $this->get('/login')->getContent();
+
+        $this->assertStringContainsString("theme === 'auto'", $content);
+        $this->assertStringContainsString('window.matchMedia', $content);
+    }
+
     public function test_login_form_carries_an_explicit_guest_theme_selection(): void
     {
         $this->get('/login')
@@ -123,6 +131,49 @@ class WebAuthTest extends TestCase
         $this->assertSame('light', $user->fresh()->theme);
     }
 
+    public function test_explicit_pending_theme_auto_is_persisted_on_login(): void
+    {
+        $user = User::factory()->create(['theme' => 'dark', 'password' => Hash::make('password')]);
+
+        $response = $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'password',
+            'pending_theme' => 'auto',
+        ]);
+
+        $response->assertRedirect(route('web.games.index'));
+        $this->assertSame('auto', $user->fresh()->theme);
+    }
+
+    public function test_login_with_auto_theme_renders_auto_and_matchmedia_in_layout(): void
+    {
+        $user = User::factory()->create(['theme' => 'auto', 'password' => Hash::make('password')]);
+
+        $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ])->assertRedirect(route('web.games.index'));
+
+        $this->get(route('web.games.index'))
+            ->assertSee("localStorage.setItem('sp:theme', canonicalTheme)", false)
+            ->assertSee('window.matchMedia', false);
+    }
+
+    public function test_login_with_auto_theme_applies_dom_before_touching_storage(): void
+    {
+        $user = User::factory()->create(['theme' => 'auto', 'password' => Hash::make('password')]);
+
+        $this->actingAs($user);
+        $content = $this->get(route('web.games.index'))->getContent();
+
+        $storagePosition = strpos($content, "localStorage.setItem('sp:theme', canonicalTheme)");
+        $domPosition = strpos($content, "document.documentElement.classList.add('light')");
+
+        $this->assertNotFalse($storagePosition);
+        $this->assertNotFalse($domPosition);
+        $this->assertLessThan($storagePosition, $domPosition);
+    }
+
     public function test_login_without_pending_theme_keeps_the_account_theme_and_mirrors_it(): void
     {
         $user = User::factory()->create(['theme' => 'light', 'password' => Hash::make('password')]);
@@ -133,7 +184,8 @@ class WebAuthTest extends TestCase
         ])->assertRedirect(route('web.games.index'));
 
         $this->get(route('web.games.index'))
-            ->assertSee("localStorage.setItem('sp:theme', \"light\")", false)
+            ->assertSee("localStorage.setItem('sp:theme', canonicalTheme)", false)
+            ->assertSee('var canonicalTheme = "light";', false)
             ->assertSee("sessionStorage.removeItem('sp:themePending')", false);
         $this->assertSame('light', $user->fresh()->theme);
     }

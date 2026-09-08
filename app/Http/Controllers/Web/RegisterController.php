@@ -10,6 +10,7 @@ use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class RegisterController extends Controller
@@ -49,7 +50,7 @@ class RegisterController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', User::passwordComplexityRule(), 'confirmed'],
-            'pending_theme' => ['nullable', 'in:dark,light'],
+            'pending_theme' => ['nullable', Rule::in(User::THEMES)],
         ]);
 
         $user = User::create([

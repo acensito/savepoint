@@ -5,7 +5,9 @@
     // que lleguen correctos en el primer HTML, sin depender de un script
     // bloqueante ni arriesgar un parpadeo al cargar.
     use App\Http\Controllers\Web\PanelController;
-    $canonicalTheme = auth()->user()?->theme === 'light' ? 'light' : 'dark';
+    $canonicalTheme = in_array(auth()->user()?->theme, \App\Models\User::THEMES, true)
+        ? auth()->user()->theme
+        : 'dark';
     $htmlClasses = collect([
         $canonicalTheme === 'light' ? 'light' : null,
         match (auth()->user()->games_view) {
@@ -44,8 +46,22 @@
     @include('partials.material-symbols-link')
     <script nonce="{{ $cspNonce }}">
         (function () {
+            var canonicalTheme = @json($canonicalTheme);
+
             try {
-                localStorage.setItem('sp:theme', @json($canonicalTheme));
+                if (canonicalTheme === 'auto') {
+                    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+                        document.documentElement.classList.add('light');
+                    } else {
+                        document.documentElement.classList.remove('light');
+                    }
+                }
+            } catch (e) {
+                document.documentElement.classList.remove('light');
+            }
+
+            try {
+                localStorage.setItem('sp:theme', canonicalTheme);
                 sessionStorage.removeItem('sp:themePending');
             } catch (e) {
             }

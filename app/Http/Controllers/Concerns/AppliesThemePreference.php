@@ -8,7 +8,7 @@ trait AppliesThemePreference
 {
     protected function applyPendingTheme(User $user, ?string $theme): void
     {
-        if (in_array($theme, ['dark', 'light'], true)) {
+        if (in_array($theme, User::THEMES, true)) {
             $user->forceFill(['theme' => $theme])->save();
         }
     }

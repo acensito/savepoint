@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Edition;
 use App\Models\Game;
 use App\Models\Platform;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -73,18 +74,18 @@ class PanelController extends Controller
     public const CLEAR_ALL_CONFIRM_TEXT = 'BORRAR';
 
     /**
-     * Zona de peligro (#144): elegir plataforma o vaciar la colección
-     * entera. Recuento por usuario, no por instancia: Platform::games() no
-     * filtra por dueño (es un catálogo compartido, ver Platform), así que un
-     * withCount() sin más contaría los juegos de cualquier cuenta.
-     */
-    /**
      * Valor de platform_id que representa "juegos sin ninguna plataforma"
      * (ver clearPlatformGames()) — mismo sentinela que ya usa
      * GameCollectionQuery para ?platform_id=none, no un id real de Platform.
      */
     public const NO_PLATFORM_VALUE = 'none';
 
+    /**
+     * Zona de peligro (#144): elegir plataforma o vaciar la colección
+     * entera. Recuento por usuario, no por instancia: Platform::games() no
+     * filtra por dueño (es un catálogo compartido, ver Platform), así que un
+     * withCount() sin más contaría los juegos de cualquier cuenta.
+     */
     public function dangerZone(): View
     {
         $platforms = Platform::withCount(['games' => fn ($q) => $q->where('user_id', auth()->id())])
@@ -198,6 +199,7 @@ class PanelController extends Controller
             'default_region' => ['nullable', Rule::in(GameController::REGION_PRESETS)],
             'default_edition_id' => 'nullable|exists:editions,id',
             'navbar_color' => ['nullable', Rule::in(array_keys(self::NAVBAR_COLORS))],
+            'theme' => ['nullable', Rule::in(User::THEMES)],
             'igdb_client_id' => 'nullable|string|max:255',
             'igdb_client_secret' => 'nullable|string|max:255',
         ]);
@@ -223,6 +225,10 @@ class PanelController extends Controller
                 : $user->igdb_client_secret,
         ]);
 
+        if (isset($validated['theme'])) {
+            $user->update(['theme' => $validated['theme']]);
+        }
+
         return redirect()->route('web.panel.settings')->with('success', 'Ajustes actualizados.');
     }
 
@@ -235,7 +241,7 @@ class PanelController extends Controller
     public function updateDisplay(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'theme' => 'sometimes|in:dark,light',
+            'theme' => ['sometimes', Rule::in(User::THEMES)],
             'games_view' => 'sometimes|in:list,compact,grid,text',
         ]);
 

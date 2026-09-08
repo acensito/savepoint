@@ -119,6 +119,28 @@ class RegisterTest extends TestCase
             ->assertSee('class="js-theme-boundary-form', false);
     }
 
+    public function test_registration_without_pending_theme_keeps_the_default_dark_theme(): void
+    {
+        Notification::fake();
+
+        $this->post(route('web.register.attempt'), [
+            'name' => 'Default Theme',
+            'email' => 'defaulttheme@example.com',
+            'password' => 'Secret123!',
+            'password_confirmation' => 'Secret123!',
+        ])->assertRedirect(route('two-factor.challenge'));
+
+        $this->assertSame('dark', User::where('email', 'defaulttheme@example.com')->firstOrFail()->theme);
+    }
+
+    public function test_auth_registration_page_includes_blocking_auto_theme_script(): void
+    {
+        $content = $this->get(route('register'))->getContent();
+
+        $this->assertStringContainsString("theme === 'auto'", $content);
+        $this->assertStringContainsString('window.matchMedia', $content);
+    }
+
     public function test_explicit_pending_theme_is_persisted_on_registration(): void
     {
         Notification::fake();
@@ -132,6 +154,21 @@ class RegisterTest extends TestCase
         ])->assertRedirect(route('two-factor.challenge'));
 
         $this->assertSame('light', User::where('email', 'playertheme@example.com')->firstOrFail()->theme);
+    }
+
+    public function test_explicit_pending_theme_auto_is_persisted_on_registration(): void
+    {
+        Notification::fake();
+
+        $this->post(route('web.register.attempt'), [
+            'name' => 'Player Auto',
+            'email' => 'playerauto@example.com',
+            'password' => 'Secret123!',
+            'password_confirmation' => 'Secret123!',
+            'pending_theme' => 'auto',
+        ])->assertRedirect(route('two-factor.challenge'));
+
+        $this->assertSame('auto', User::where('email', 'playerauto@example.com')->firstOrFail()->theme);
     }
 
     public function test_invalid_pending_theme_is_rejected_without_creating_an_account(): void
