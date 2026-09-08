@@ -1,6 +1,6 @@
 @include('partials.auth-head', ['title' => 'Verificación en dos pasos'])
 
-    <div class="bg-slate-900 border border-slate-800 rounded-xl p-8">
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-8 lg:flex-1 lg:max-w-sm">
         <h1 class="text-lg font-bold text-slate-100 mb-1">Verificación en dos pasos</h1>
         <p class="text-slate-400 text-sm mb-6">
             Te hemos enviado un código a <strong class="text-slate-300">{{ $email }}</strong>. Caduca en 10 minutos.

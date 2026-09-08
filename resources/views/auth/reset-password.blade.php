@@ -1,6 +1,6 @@
 @include('partials.auth-head', ['title' => 'Restablecer contraseña'])
 
-    <div class="bg-slate-900 border border-slate-800 rounded-xl p-8">
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-8 lg:flex-1 lg:max-w-sm">
         <h1 class="text-lg font-bold text-slate-100 mb-1">Restablecer contraseña</h1>
         <p class="text-slate-400 text-sm mb-6">Elige una nueva contraseña para tu cuenta.</p>
 

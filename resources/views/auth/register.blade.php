@@ -1,6 +1,6 @@
 @include('partials.auth-head', ['title' => 'Crear cuenta'])
 
-    <div class="bg-slate-900 border border-slate-800 rounded-xl p-8">
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-8 lg:flex-1 lg:max-w-sm">
         <h1 class="text-lg font-bold text-slate-100 mb-1">Crear cuenta</h1>
         <p class="text-slate-400 text-sm mb-6">Regístrate para empezar a organizar tu colección.</p>
 

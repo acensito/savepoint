@@ -1,6 +1,6 @@
 @include('partials.auth-head', ['title' => 'Acceder'])
 
-    <div class="bg-slate-900 border border-slate-800 rounded-xl p-8">
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-8 lg:flex-1 lg:max-w-sm">
         <h1 class="text-lg font-bold text-slate-100 mb-1">Acceder</h1>
         <p class="text-slate-400 text-sm mb-6">Entra con tu cuenta para ver tu colección.</p>
 
