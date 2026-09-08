@@ -61,6 +61,21 @@
             ],
         ];
     }
+
+    // #144: grupo aparte (no dentro de "Colección") para que se note a
+    // simple vista que esto no es una tarjeta de navegación más — el propio
+    // color rojo del icono/título ya avisa antes de entrar siquiera. La
+    // acción de verdad (elegir plataforma o vaciar todo, con confirmación)
+    // vive en su propia página (panel.danger-zone), no aquí.
+    $groups['Zona de peligro'] = [
+        [
+            'route' => route('web.panel.danger-zone'),
+            'icon' => 'warning',
+            'color' => 'red',
+            'title' => 'Vaciar la colección',
+            'description' => 'Enviar a la papelera de golpe una plataforma concreta, o la colección entera.',
+        ],
+    ];
 @endphp
 
 @section('content')
@@ -71,19 +86,21 @@
 
     <div class="space-y-8">
         @foreach($groups as $groupName => $cards)
+            @php $groupColor = $groupName === 'Zona de peligro' ? 'red' : 'indigo'; @endphp
             <div>
-                <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">{{ $groupName }}</h2>
+                <h2 class="text-xs font-semibold uppercase tracking-wider mb-3 {{ $groupColor === 'red' ? 'text-red-500' : 'text-slate-500' }}">{{ $groupName }}</h2>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     @foreach($cards as $card)
+                        @php $cardColor = $card['color'] ?? 'indigo'; @endphp
                         <a href="{{ $card['route'] }}" @if(isset($card['target'])) target="{{ $card['target'] }}"
                            rel="noopener" @endif
-                           class="group flex items-start gap-4 bg-slate-900 border border-slate-800 rounded-xl p-6 hover:border-indigo-500/50 transition-colors">
+                           class="group flex items-start gap-4 bg-slate-900 border rounded-xl p-6 transition-colors {{ $cardColor === 'red' ? 'border-red-900/40 hover:border-red-500/50' : 'border-slate-800 hover:border-indigo-500/50' }}">
                             <div
-                                class="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center shrink-0">
-                                <x-gicon name="{{ $card['icon'] }}" class="text-[20px] text-indigo-400"/>
+                                class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 {{ $cardColor === 'red' ? 'bg-red-500/10' : 'bg-indigo-500/10' }}">
+                                <x-gicon name="{{ $card['icon'] }}" class="text-[20px] {{ $cardColor === 'red' ? 'text-red-400' : 'text-indigo-400' }}"/>
                             </div>
                             <div class="min-w-0">
-                                <h3 class="text-sm font-semibold text-slate-100 group-hover:text-indigo-300 transition-colors">{{ $card['title'] }}</h3>
+                                <h3 class="text-sm font-semibold transition-colors {{ $cardColor === 'red' ? 'text-slate-100 group-hover:text-red-300' : 'text-slate-100 group-hover:text-indigo-300' }}">{{ $card['title'] }}</h3>
                                 <p class="text-xs text-slate-500 mt-1">{{ $card['description'] }}</p>
                             </div>
                         </a>
