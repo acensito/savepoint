@@ -28,6 +28,7 @@ class GameCollectionQuery
         $platformId = (string) $request->input('platform_id', '');
         $playStatus = (string) $request->input('play_status', '');
         $forSale = (string) $request->input('for_sale', '');
+        $rating = (string) $request->input('rating', '');
         [$sort, $dir] = $this->resolveSort($request);
         $sortColumn = GameController::SORTABLE_COLUMNS[$sort] ?? null;
 
@@ -44,6 +45,7 @@ class GameCollectionQuery
                     : $q->where('platform_id', $platformId),
             )
             ->when($playStatus !== '', fn ($q) => $q->where('play_status', $playStatus))
+            ->when(ctype_digit($rating), fn ($q) => $q->where('rating', (int) $rating))
             ->when(
                 $forSale === '1',
                 fn ($q) => $q->where('for_sale', true),

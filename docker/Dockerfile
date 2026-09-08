@@ -37,8 +37,8 @@ post_max_size=4M" > /usr/local/etc/php/conf.d/uploads.ini
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # 6. Instalar Node.js/npm (para compilar assets con Vite) desde la imagen oficial de Node
-COPY --from=node:22-alpine /usr/local/bin/node /usr/local/bin/node
-COPY --from=node:22-alpine /usr/local/lib/node_modules /usr/local/lib/node_modules
+COPY --from=node:24-alpine /usr/local/bin/node /usr/local/bin/node
+COPY --from=node:24-alpine /usr/local/lib/node_modules /usr/local/lib/node_modules
 RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
     && ln -s /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
 

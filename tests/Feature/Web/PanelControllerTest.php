@@ -4,6 +4,7 @@ namespace Tests\Feature\Web;
 
 use App\Models\Edition;
 use App\Models\Game;
+use App\Models\Platform;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -226,6 +227,19 @@ class PanelControllerTest extends TestCase
         $this->assertStringNotContainsString('name="hide_for_sale_from_collection" value="1" checked', $content);
     }
 
+    public function test_settings_shows_the_highlight_low_rating_checkbox_checked_by_default(): void
+    {
+        // #155: activado por defecto, mismo comportamiento que #152 tenía
+        // antes de poder desactivarse.
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get('/panel/settings');
+
+        $response->assertOk();
+        $content = preg_replace('/\s+/', ' ', $response->getContent());
+        $this->assertStringContainsString('name="highlight_low_rating" value="1" checked', $content);
+    }
+
     public function test_updating_settings_with_blank_selects_clears_the_defaults(): void
     {
         $edition = Edition::factory()->create();
@@ -428,12 +442,169 @@ class PanelControllerTest extends TestCase
         $this->assertNotNull($user->fresh()->two_factor_verified_at);
     }
 
+    /**
+     * #144: zona de peligro del panel, vaciar todos los juegos de una
+     * plataforma. Requiere teclear el nombre exacto (ver
+     * PanelController::clearPlatformGames) — comprobado aquí en servidor,
+     * el JS del propio botón es solo el freno del cliente.
+     */
+    public function test_user_can_clear_all_their_games_of_a_platform_with_the_exact_name(): void
+    {
+        $user = User::factory()->create();
+        $platform = Platform::factory()->create(['name' => 'Nintendo Switch']);
+        $game = Game::factory()->for($user)->create(['platform_id' => $platform->id]);
+
+        $response = $this->actingAs($user)->delete('/panel/platforms/games', [
+            'platform_id' => $platform->id,
+            'confirm' => 'Nintendo Switch',
+        ]);
+
+        $response->assertRedirect(route('web.panel.danger-zone'));
+        $this->assertSoftDeleted($game);
+        $this->assertNotNull(Platform::find($platform->id));
+    }
+
+    /**
+     * #144 (seguimiento): los juegos sin ninguna plataforma asignada no
+     * tenían forma de vaciarse en bloque (el desplegable solo ofrecía
+     * plataformas reales) — platform_id='none' es el mismo sentinela que ya
+     * usa ?platform_id=none en el listado.
+     */
+    public function test_user_can_clear_all_their_games_without_any_platform(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['platform_id' => null]);
+
+        $response = $this->actingAs($user)->delete('/panel/platforms/games', [
+            'platform_id' => 'none',
+            'confirm' => 'Sin plataforma',
+        ]);
+
+        $response->assertRedirect(route('web.panel.danger-zone'));
+        $this->assertSoftDeleted($game);
+    }
+
+    public function test_clearing_a_platform_rejects_a_confirmation_that_does_not_match_the_name(): void
+    {
+        $user = User::factory()->create();
+        $platform = Platform::factory()->create(['name' => 'Nintendo Switch']);
+        $game = Game::factory()->for($user)->create(['platform_id' => $platform->id]);
+
+        $response = $this->actingAs($user)->delete('/panel/platforms/games', [
+            'platform_id' => $platform->id,
+            'confirm' => 'nintendo switch',
+        ]);
+
+        $response->assertSessionHasErrors('confirm');
+        $this->assertDatabaseHas('games', ['id' => $game->id, 'deleted_at' => null]);
+    }
+
+    public function test_clearing_a_platform_rejects_an_unknown_platform_id(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->delete('/panel/platforms/games', [
+            'platform_id' => '999999',
+            'confirm' => 'da igual',
+        ]);
+
+        $response->assertSessionHasErrors('platform_id');
+    }
+
+    public function test_clearing_a_platform_does_not_affect_another_users_games(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $platform = Platform::factory()->create(['name' => 'Nintendo Switch']);
+        Game::factory()->for($user)->create(['platform_id' => $platform->id]);
+        $otherGame = Game::factory()->for($otherUser)->create(['platform_id' => $platform->id]);
+
+        $this->actingAs($user)->delete('/panel/platforms/games', [
+            'platform_id' => $platform->id,
+            'confirm' => 'Nintendo Switch',
+        ]);
+
+        $this->assertDatabaseHas('games', ['id' => $otherGame->id, 'deleted_at' => null]);
+    }
+
+    public function test_guest_cannot_clear_a_platform(): void
+    {
+        $platform = Platform::factory()->create();
+
+        $this->delete('/panel/platforms/games', ['platform_id' => $platform->id, 'confirm' => $platform->name])
+            ->assertRedirect('/login');
+    }
+
+    public function test_guest_cannot_access_the_danger_zone(): void
+    {
+        $this->get('/panel/danger-zone')->assertRedirect('/login');
+    }
+
+    public function test_danger_zone_lists_platforms_with_the_users_own_game_count(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $platform = Platform::factory()->create(['name' => 'Nintendo Switch']);
+        Game::factory()->for($user)->create(['platform_id' => $platform->id]);
+        Game::factory()->for($otherUser)->create(['platform_id' => $platform->id]);
+
+        $response = $this->actingAs($user)->get('/panel/danger-zone');
+
+        $response->assertOk();
+        $response->assertSee('Nintendo Switch (1 juego)');
+    }
+
+    /**
+     * #144: vaciar toda la colección, mismo criterio de confirmación que
+     * clearPlatformGames() pero con un texto fijo (no hay un nombre propio
+     * que teclear para "todo") — ver PanelController::CLEAR_ALL_CONFIRM_TEXT.
+     */
+    public function test_user_can_clear_their_entire_collection_with_the_exact_confirmation_text(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create();
+
+        $response = $this->actingAs($user)->delete('/panel/games', ['confirm' => 'BORRAR']);
+
+        $response->assertRedirect(route('web.panel.danger-zone'));
+        $this->assertSoftDeleted($game);
+    }
+
+    public function test_clearing_the_entire_collection_rejects_a_confirmation_that_does_not_match(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create();
+
+        $response = $this->actingAs($user)->delete('/panel/games', ['confirm' => 'borrar']);
+
+        $response->assertSessionHasErrors('confirm_all');
+        $this->assertDatabaseHas('games', ['id' => $game->id, 'deleted_at' => null]);
+    }
+
+    public function test_clearing_the_entire_collection_does_not_affect_another_users_games(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+        Game::factory()->for($user)->create();
+        $otherGame = Game::factory()->for($otherUser)->create();
+
+        $this->actingAs($user)->delete('/panel/games', ['confirm' => 'BORRAR']);
+
+        $this->assertDatabaseHas('games', ['id' => $otherGame->id, 'deleted_at' => null]);
+    }
+
+    public function test_guest_cannot_clear_the_entire_collection(): void
+    {
+        $this->delete('/panel/games', ['confirm' => 'BORRAR'])->assertRedirect('/login');
+    }
+
     public static function toggleFieldProvider(): array
     {
         return [
             'auto_igdb_background' => ['auto_igdb_background'],
             'quick_search_exclude_wishlist' => ['quick_search_exclude_wishlist'],
             'hide_for_sale_from_collection' => ['hide_for_sale_from_collection'],
+            'highlight_low_rating' => ['highlight_low_rating'],
             'igdb_enabled' => ['igdb_enabled'],
             'two_factor_enabled' => ['two_factor_enabled'],
             'section_wishlist_enabled' => ['section_wishlist_enabled'],

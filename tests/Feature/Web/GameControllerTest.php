@@ -229,6 +229,22 @@ class GameControllerTest extends TestCase
         $this->assertSame('En venta', $games->first()->title);
     }
 
+    /**
+     * #137: filtro por Conservación, mismo patrón que platform_id/play_status/for_sale.
+     */
+    public function test_index_filters_by_rating(): void
+    {
+        $user = User::factory()->create();
+        Game::factory()->for($user)->create(['title' => 'Maltrecho', 'rating' => 1]);
+        Game::factory()->for($user)->create(['title' => 'Impecable', 'rating' => 5]);
+
+        $response = $this->actingAs($user)->get('/?rating=1');
+
+        $games = $response->viewData('games');
+        $this->assertCount(1, $games);
+        $this->assertSame('Maltrecho', $games->first()->title);
+    }
+
     public function test_index_filters_by_no_platform(): void
     {
         $user = User::factory()->create();
@@ -492,6 +508,20 @@ class GameControllerTest extends TestCase
     {
         $user = User::factory()->create();
         Game::factory()->for($user)->create(['title' => 'Juego impecable', 'rating' => 5]);
+
+        $response = $this->actingAs($user)->get('/');
+
+        $response->assertOk();
+        $response->assertDontSee('bg-amber-500/15', false);
+    }
+
+    /**
+     * #155: el aviso de #152 se puede desactivar desde Ajustes → Colección.
+     */
+    public function test_index_does_not_highlight_a_low_rated_game_when_the_setting_is_disabled(): void
+    {
+        $user = User::factory()->create(['highlight_low_rating' => false]);
+        Game::factory()->for($user)->create(['title' => 'Juego maltrecho', 'rating' => 1]);
 
         $response = $this->actingAs($user)->get('/');
 

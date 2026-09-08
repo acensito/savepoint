@@ -94,6 +94,18 @@ Route::middleware('auth')->group(function () {
     // de Ajustes (ver x-toggle e initSettingsToggles en app.js), efecto y
     // persistencia inmediatos sin pasar por "Guardar ajustes".
     Route::patch('/panel/settings/toggles', [PanelController::class, 'updateToggle'])->name('web.panel.settings.toggles');
+    // Zona de peligro (#144): página propia (no en /panel directamente) para
+    // que no compita en la misma pantalla con el resto de tarjetas, que solo
+    // navegan sin actuar. Dos acciones, mismo patrón de confirmación
+    // (teclear un texto exacto): vaciar una plataforma concreta, o la
+    // colección entera.
+    Route::get('/panel/danger-zone', [PanelController::class, 'dangerZone'])->name('web.panel.danger-zone');
+    // platform_id va en el cuerpo, no en la URL (sin binding de modelo):
+    // también acepta el valor 'none' (juegos sin ninguna plataforma, mismo
+    // sentinela que ?platform_id=none en GameCollectionQuery), que no
+    // resolvería contra ningún Platform real.
+    Route::delete('/panel/platforms/games', [PanelController::class, 'clearPlatformGames'])->name('web.panel.platforms.clear-games');
+    Route::delete('/panel/games', [PanelController::class, 'clearAllGames'])->name('web.panel.games.clear');
 
     // Gestión de usuarios de la plataforma (solo admin, ver UserPolicy):
     // crear/editar/borrar cuentas a mano, sin tirar de tinker, y decidir si
