@@ -91,5 +91,56 @@
                 </div>
             </div>
         @endforeach
+
+        {{-- #144: zona de peligro, separada del resto de tarjetas (que solo
+             navegan) porque esta sí actúa de inmediato. Escribir el nombre
+             exacto de la plataforma habilita el botón — mismo patrón que
+             confirmar el borrado de un repo en GitHub, comprobado también en
+             servidor (ver PanelController::clearPlatformGames). --}}
+        <div>
+            <h2 class="text-xs font-semibold text-red-500 uppercase tracking-wider mb-3">Zona de peligro</h2>
+            <div class="bg-red-950/20 border border-red-900/40 rounded-xl p-6">
+                <h3 class="text-sm font-semibold text-slate-100 mb-1">Vaciar una plataforma</h3>
+                <p class="text-xs text-slate-500 mb-5">
+                    Envía a la papelera todos tus juegos de la plataforma elegida. La plataforma en sí no se borra, se
+                    queda vacía. Es recuperable desde la papelera mientras no la vacíes también.
+                </p>
+
+                <form id="clear-platform-form" method="POST"
+                      data-url-template="{{ route('web.panel.platforms.clear-games', ['platform' => '__ID__']) }}"
+                      class="space-y-4 max-w-sm">
+                    @csrf
+                    @method('DELETE')
+
+                    <div>
+                        <label for="clear-platform-select" class="block font-medium text-sm text-slate-300 mb-1">Plataforma</label>
+                        <select id="clear-platform-select" class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 focus:border-red-500 focus:ring-red-500 outline-hidden">
+                            <option value="">Elige una plataforma…</option>
+                            @foreach($platforms as $platform)
+                                <option value="{{ $platform->id }}" data-name="{{ $platform->name }}">
+                                    {{ $platform->name }} ({{ $platform->games_count }} {{ Str::plural('juego', $platform->games_count) }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div id="clear-platform-confirm-wrap" class="hidden">
+                        <label for="clear-platform-confirm" class="block font-medium text-sm text-slate-300 mb-1">
+                            Escribe <span id="clear-platform-confirm-name" class="font-semibold text-red-400"></span> para confirmar
+                        </label>
+                        <input type="text" id="clear-platform-confirm" name="confirm" autocomplete="off" autocorrect="off" spellcheck="false"
+                               class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 focus:border-red-500 focus:ring-red-500 outline-hidden">
+                        @error('confirm')
+                            <span class="text-red-400 text-sm mt-1 block">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    <button type="submit" id="clear-platform-submit" disabled
+                            class="bg-red-600 hover:bg-red-500 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-red-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors">
+                        Vaciar plataforma
+                    </button>
+                </form>
+            </div>
+        </div>
     </div>
 @endsection

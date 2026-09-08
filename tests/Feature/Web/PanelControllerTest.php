@@ -4,6 +4,7 @@ namespace Tests\Feature\Web;
 
 use App\Models\Edition;
 use App\Models\Game;
+use App\Models\Platform;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -390,6 +391,64 @@ class PanelControllerTest extends TestCase
         ]);
 
         $this->assertNotNull($user->fresh()->two_factor_verified_at);
+    }
+
+    /**
+     * #144: zona de peligro del panel, vaciar todos los juegos de una
+     * plataforma. Requiere teclear el nombre exacto (ver
+     * PanelController::clearPlatformGames) — comprobado aquí en servidor,
+     * el JS del propio botón es solo el freno del cliente.
+     */
+    public function test_user_can_clear_all_their_games_of_a_platform_with_the_exact_name(): void
+    {
+        $user = User::factory()->create();
+        $platform = Platform::factory()->create(['name' => 'Nintendo Switch']);
+        $game = Game::factory()->for($user)->create(['platform_id' => $platform->id]);
+
+        $response = $this->actingAs($user)->delete("/panel/platforms/{$platform->id}/games", [
+            'confirm' => 'Nintendo Switch',
+        ]);
+
+        $response->assertRedirect(route('web.panel.index'));
+        $this->assertSoftDeleted($game);
+        $this->assertNotNull(Platform::find($platform->id));
+    }
+
+    public function test_clearing_a_platform_rejects_a_confirmation_that_does_not_match_the_name(): void
+    {
+        $user = User::factory()->create();
+        $platform = Platform::factory()->create(['name' => 'Nintendo Switch']);
+        $game = Game::factory()->for($user)->create(['platform_id' => $platform->id]);
+
+        $response = $this->actingAs($user)->delete("/panel/platforms/{$platform->id}/games", [
+            'confirm' => 'nintendo switch',
+        ]);
+
+        $response->assertSessionHasErrors('confirm');
+        $this->assertDatabaseHas('games', ['id' => $game->id, 'deleted_at' => null]);
+    }
+
+    public function test_clearing_a_platform_does_not_affect_another_users_games(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $platform = Platform::factory()->create(['name' => 'Nintendo Switch']);
+        Game::factory()->for($user)->create(['platform_id' => $platform->id]);
+        $otherGame = Game::factory()->for($otherUser)->create(['platform_id' => $platform->id]);
+
+        $this->actingAs($user)->delete("/panel/platforms/{$platform->id}/games", [
+            'confirm' => 'Nintendo Switch',
+        ]);
+
+        $this->assertDatabaseHas('games', ['id' => $otherGame->id, 'deleted_at' => null]);
+    }
+
+    public function test_guest_cannot_clear_a_platform(): void
+    {
+        $platform = Platform::factory()->create();
+
+        $this->delete("/panel/platforms/{$platform->id}/games", ['confirm' => $platform->name])
+            ->assertRedirect('/login');
     }
 
     public static function toggleFieldProvider(): array

@@ -94,6 +94,10 @@ Route::middleware('auth')->group(function () {
     // de Ajustes (ver x-toggle e initSettingsToggles en app.js), efecto y
     // persistencia inmediatos sin pasar por "Guardar ajustes".
     Route::patch('/panel/settings/toggles', [PanelController::class, 'updateToggle'])->name('web.panel.settings.toggles');
+    // Zona de peligro del panel (#144): vaciar de golpe todos los juegos de
+    // una plataforma. Vive en PanelController, no en PlatformController, por
+    // estar en esta página en vez de en /platforms.
+    Route::delete('/panel/platforms/{platform}/games', [PanelController::class, 'clearPlatformGames'])->name('web.panel.platforms.clear-games');
 
     // Gestión de usuarios de la plataforma (solo admin, ver UserPolicy):
     // crear/editar/borrar cuentas a mano, sin tirar de tinker, y decidir si

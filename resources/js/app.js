@@ -141,6 +141,51 @@ function initSettingsToggles() {
 
 initSettingsToggles();
 
+/**
+ * Zona de peligro del Panel de control (#144): habilita el botón "Vaciar
+ * plataforma" solo cuando el texto tecleado coincide exactamente con el
+ * nombre de la plataforma elegida (mismo patrón que confirmar el borrado de
+ * un repo en GitHub) — este es solo el freno del cliente, PanelController::
+ * clearPlatformGames() vuelve a comprobarlo en servidor, así que saltarse
+ * este JS no basta para colarse.
+ */
+function initDangerZoneClearPlatform() {
+    const form = document.getElementById('clear-platform-form');
+    const select = document.getElementById('clear-platform-select');
+    const confirmWrap = document.getElementById('clear-platform-confirm-wrap');
+    const confirmNameEl = document.getElementById('clear-platform-confirm-name');
+    const confirmInput = document.getElementById('clear-platform-confirm');
+    const submitBtn = document.getElementById('clear-platform-submit');
+    if (!form || !select || !confirmWrap || !confirmNameEl || !confirmInput || !submitBtn) return;
+
+    const urlTemplate = form.dataset.urlTemplate;
+
+    const sync = () => {
+        const option = select.selectedOptions[0];
+        const name = option?.dataset.name;
+
+        if (!name) {
+            confirmWrap.classList.add('hidden');
+            submitBtn.disabled = true;
+            return;
+        }
+
+        form.action = urlTemplate.replace('__ID__', option.value);
+        confirmNameEl.textContent = name;
+        confirmWrap.classList.remove('hidden');
+        submitBtn.disabled = confirmInput.value !== name;
+    };
+
+    select.addEventListener('change', () => {
+        confirmInput.value = '';
+        sync();
+    });
+
+    confirmInput.addEventListener('input', sync);
+}
+
+initDangerZoneClearPlatform();
+
 function initThemeBoundaryForms() {
     document.querySelectorAll('.js-theme-boundary-form').forEach((form) => {
         form.addEventListener('submit', () => {

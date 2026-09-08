@@ -5,9 +5,12 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Edition;
 use App\Models\Game;
+use App\Models\Platform;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -57,7 +60,50 @@ class PanelController extends Controller
     {
         $trashedCount = Game::onlyTrashed()->where('user_id', auth()->id())->count();
 
-        return view('panel.index', compact('trashedCount'));
+        // Recuento por usuario, no por instancia: Platform::games() no filtra
+        // por dueño (es un catálogo compartido, ver Platform), así que un
+        // withCount() sin más contaría los juegos de cualquier cuenta.
+        $platforms = Platform::withCount(['games' => fn ($q) => $q->where('user_id', auth()->id())])
+            ->orderBy('name')
+            ->get();
+
+        return view('panel.index', compact('trashedCount', 'platforms'));
+    }
+
+    /**
+     * Zona de peligro del panel (#144): envía a la papelera de golpe todos
+     * los juegos de una plataforma. La plataforma en sí no se toca (queda
+     * vacía, para reutilizarla o borrarla aparte con
+     * PlatformController::destroy()). Requiere teclear el nombre exacto de
+     * la plataforma en 'confirm' — comprobado aquí, no solo en el JS que
+     * habilita el botón (ver initDangerZoneConfirm en app.js), para que no
+     * baste con saltarse el JS o repetir la petición a mano.
+     */
+    public function clearPlatformGames(Request $request, Platform $platform): RedirectResponse
+    {
+        $validated = $request->validate([
+            'confirm' => ['required', 'string'],
+        ]);
+
+        if ($validated['confirm'] !== $platform->name) {
+            return back()->withErrors(['confirm' => 'El nombre no coincide con «'.$platform->name.'», no se ha borrado nada.']);
+        }
+
+        $gamesQuery = Game::where('user_id', auth()->id())->where('platform_id', $platform->id);
+        $count = $gamesQuery->count();
+
+        // Mass delete por query builder: no dispara el evento 'deleted' de
+        // Eloquent (mismo motivo que GameBulkActionController::destroy()),
+        // así que hay que invalidar las estadísticas cacheadas a mano.
+        $gamesQuery->delete();
+        Cache::forget(StatsController::cacheKey(auth()->id()));
+
+        return redirect()->route('web.panel.index')->with(
+            'success',
+            $count > 0
+                ? $count.' '.Str::plural('juego', $count).' de «'.$platform->name.'» '.($count === 1 ? 'enviado' : 'enviados').' a la papelera.'
+                : '«'.$platform->name.'» no tenía juegos que enviar a la papelera.'
+        );
     }
 
     /**
