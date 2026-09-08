@@ -641,7 +641,7 @@ plazo. Agrupadas por la sección de la app a la que afectarían.
 
 ### Colección
 
-- **Préstamos**: marcar un juego como "prestado a X" con fecha, aparte de "en venta" (que es vender lo tuyo) y de
+- **Préstamos**: marcar un juego como "prestado a XXXX" con fecha, aparte de "en venta" (que es vender lo tuyo) y de
   Encargos (que es logística de compra/envío a través de otra persona) — hoy no hay forma de recordar a quién le dejaste
   algo.
 - **Copias múltiples como cantidad**, no como filas duplicadas: hoy dos copias físicas del mismo juego son dos `Game`
