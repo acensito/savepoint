@@ -39,9 +39,20 @@
     <x-gicon name="light_mode" class="text-[20px]"/>
 </button>
 
-<div class="w-full max-w-sm">
-    <div class="flex items-center justify-center gap-2 mb-8">
-        <x-gicon name="joystick" class="text-[32px] text-indigo-400"/>
-        <span class="text-xl font-bold tracking-tight text-slate-100">SavePoint</span>
+<!-- Apilado por defecto (logo encima del formulario, como en tablet/móvil);
+     a partir de lg (1024px, hueco de sobra para las dos columnas sin
+     apretarse) pasa a fila, logo a la izquierda y formulario a la derecha.
+     Un único contenedor con flex en el propio <div>, no dos anidados: cada
+     vista solo tiene que cerrar UNA </div> de más al final (ver el bug de
+     hoy con la que auth-head.blade.php cerraba de más) — su tarjeta
+     (bg-slate-900...) se convierte sola en el segundo hijo del flex. -->
+<div class="w-full max-w-sm lg:max-w-3xl lg:flex lg:items-center lg:gap-16">
+    <div class="flex items-center justify-center gap-2 mb-8 lg:mb-0 lg:flex-1 lg:justify-center">
+        <x-gicon name="joystick" class="text-[32px] lg:text-[56px] text-indigo-400"/>
+        <span class="text-xl lg:text-3xl font-bold tracking-tight text-slate-100">SavePoint</span>
     </div>
-</div>
+    {{-- Sin cerrar a propósito: cada vista (login/register/...) sigue
+         dentro de este contenedor con su propio contenido y lo cierra ella
+         misma al final (ver el </div> extra antes de </body> en cada una).
+         Su tarjeta lleva lg:flex-1 lg:max-w-sm para repartirse el ancho con
+         el bloque del logo en la fila de escritorio. --}}
