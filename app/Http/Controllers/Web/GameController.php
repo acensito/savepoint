@@ -71,6 +71,7 @@ class GameController extends Controller
         $platformId = (string) $request->input('platform_id', '');
         $playStatus = (string) $request->input('play_status', '');
         $forSale = (string) $request->input('for_sale', '');
+        $rating = (string) $request->input('rating', '');
         [$sort, $dir] = $this->collectionQuery->resolveSort($request);
         $perPage = in_array((int) $request->input('per_page'), self::PER_PAGE_OPTIONS, true)
             ? (int) $request->input('per_page')
@@ -78,9 +79,9 @@ class GameController extends Controller
 
         // Calculados aquí (no en la vista) porque los necesitan tanto la página
         // completa como el fragmento que se devuelve por AJAX al buscar en vivo.
-        $hasActiveFilters = $query !== '' || $platformId !== '' || $playStatus !== '' || $forSale !== '';
-        $hasAdvancedFilters = $platformId !== '' || $playStatus !== '' || $forSale !== '';
-        $activeFilterCount = collect([$query !== '', $platformId !== '', $playStatus !== '', $forSale !== ''])->filter()->count();
+        $hasActiveFilters = $query !== '' || $platformId !== '' || $playStatus !== '' || $forSale !== '' || $rating !== '';
+        $hasAdvancedFilters = $platformId !== '' || $playStatus !== '' || $forSale !== '' || $rating !== '';
+        $activeFilterCount = collect([$query !== '', $platformId !== '', $playStatus !== '', $forSale !== '', $rating !== ''])->filter()->count();
 
         $games = $this->collectionQuery->query($request)
             // Solo las columnas que pinta el listado: notes/data/genres/etc. serían
@@ -118,7 +119,7 @@ class GameController extends Controller
         ];
 
         return view('games.index', compact(
-            'games', 'query', 'platforms', 'platformId', 'playStatus', 'forSale', 'sort', 'dir', 'perPage',
+            'games', 'query', 'platforms', 'platformId', 'playStatus', 'forSale', 'rating', 'sort', 'dir', 'perPage',
             'collectionTotals', 'hasActiveFilters', 'hasAdvancedFilters', 'activeFilterCount',
         ));
     }

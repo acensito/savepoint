@@ -56,6 +56,13 @@
             <option value="1" {{ ($forSale ?? '') === '1' ? 'selected' : '' }}>Solo en venta</option>
         </select>
 
+        <select name="rating" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden text-sm">
+            <option value="">Cualquier conservación</option>
+            @foreach(\App\Models\Game::RATING_LABELS as $value => $label)
+                <option value="{{ $value }}" {{ (string) ($rating ?? '') === (string) $value ? 'selected' : '' }}>{{ $value }} — {{ $label }}</option>
+            @endforeach
+        </select>
+
         <select name="sort" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden text-sm">
             <option value="">Más recientes primero</option>
             <option value="title" {{ $sort === 'title' ? 'selected' : '' }}>Título</option>
