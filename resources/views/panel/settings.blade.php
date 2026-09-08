@@ -133,7 +133,8 @@
                         <h3 class="text-lg font-semibold text-slate-100 mb-1">Apariencia</h3>
                         <p class="text-sm text-slate-500 mb-6">
                             Tema de la aplicación y color de la barra de navegación superior. En modo automático se
-                            sigue el tema del sistema operativo.
+                            sigue el tema de tu navegador (normalmente heredado del sistema operativo, pero puede
+                            diferir si el navegador tiene su propio ajuste independiente).
                         </p>
 
                         <div class="flex flex-wrap gap-3 mb-6">
