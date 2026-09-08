@@ -59,6 +59,12 @@
                 'title' => 'Usuarios',
                 'description' => 'Listar, dar de alta, editar y borrar las cuentas de la plataforma.',
             ],
+            [
+                'route' => route('web.panel.about'),
+                'icon' => 'info',
+                'title' => 'Acerca de',
+                'description' => 'Versión, novedades del changelog y estado de los servicios.',
+            ],
         ];
     }
 

@@ -107,6 +107,12 @@ Route::middleware('auth')->group(function () {
     Route::delete('/panel/platforms/games', [PanelController::class, 'clearPlatformGames'])->name('web.panel.platforms.clear-games');
     Route::delete('/panel/games', [PanelController::class, 'clearAllGames'])->name('web.panel.games.clear');
 
+    // "Acerca de" (issue #75): versión desplegada, últimas novedades del
+    // CHANGELOG y salud de los servicios (app/BD/Redis). Solo admin,
+    // comprobado dentro del controlador (mismo patrón que UserController,
+    // no hay middleware de admin a nivel de ruta en esta app).
+    Route::get('/panel/about', [PanelController::class, 'about'])->name('web.panel.about');
+
     // Gestión de usuarios de la plataforma (solo admin, ver UserPolicy):
     // crear/editar/borrar cuentas a mano, sin tirar de tinker, y decidir si
     // el registro público (/register) está abierto o no (registration,

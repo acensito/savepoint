@@ -598,6 +598,39 @@ class PanelControllerTest extends TestCase
         $this->delete('/panel/games', ['confirm' => 'BORRAR'])->assertRedirect('/login');
     }
 
+    public function test_guest_cannot_access_the_about_page(): void
+    {
+        $this->get('/panel/about')->assertRedirect('/login');
+    }
+
+    public function test_non_admin_cannot_access_the_about_page(): void
+    {
+        $user = User::factory()->create(['is_admin' => false]);
+
+        $this->actingAs($user)->get('/panel/about')->assertForbidden();
+    }
+
+    public function test_admin_can_see_the_about_page_with_the_latest_changelog_entry(): void
+    {
+        $user = User::factory()->create(['is_admin' => true]);
+
+        $response = $this->actingAs($user)->get('/panel/about');
+
+        $response->assertOk();
+        $response->assertSee('Acerca de Savepoint');
+        $response->assertSee('Estado de los servicios');
+        $response->assertSee('Operativo');
+    }
+
+    public function test_admin_only_sees_the_about_card_on_the_panel_index(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $regular = User::factory()->create(['is_admin' => false]);
+
+        $this->actingAs($admin)->get('/panel')->assertSee(route('web.panel.about'), false);
+        $this->actingAs($regular)->get('/panel')->assertDontSee(route('web.panel.about'), false);
+    }
+
     public static function toggleFieldProvider(): array
     {
         return [
