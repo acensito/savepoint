@@ -499,6 +499,20 @@ class GameControllerTest extends TestCase
         $response->assertDontSee('bg-amber-500/15', false);
     }
 
+    /**
+     * #155: el aviso de #152 se puede desactivar desde Ajustes → Colección.
+     */
+    public function test_index_does_not_highlight_a_low_rated_game_when_the_setting_is_disabled(): void
+    {
+        $user = User::factory()->create(['highlight_low_rating' => false]);
+        Game::factory()->for($user)->create(['title' => 'Juego maltrecho', 'rating' => 1]);
+
+        $response = $this->actingAs($user)->get('/');
+
+        $response->assertOk();
+        $response->assertDontSee('bg-amber-500/15', false);
+    }
+
     public function test_index_ignores_an_unknown_sort_column(): void
     {
         $user = User::factory()->create();

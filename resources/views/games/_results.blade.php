@@ -12,6 +12,14 @@
      (el contador de la cabecera vive fuera de este parcial). -->
 <div id="games-results-meta" class="hidden" data-total="{{ $games->total() }}"></div>
 
+@php
+    // #155: ajuste de cuenta para poder desactivar el aviso de #152 desde
+    // Ajustes → Colección. Game::needsAttention() sigue calculando lo mismo
+    // (rating <= 2); es la vista la que decide si lo pinta, así que este
+    // toggle no afecta a nada más que a las tres condiciones de abajo.
+    $highlightLowRating = auth()->user()->highlight_low_rating;
+@endphp
+
 <div id="view-list">
         <!-- Tarjetas: listado en pantallas estrechas, sin scroll horizontal.
              Breakpoint en xl (1280px) en vez de md (768px, issue #127): la
@@ -28,7 +36,7 @@
                      clase, resultado distinto. Se mantiene bg-slate-900 fijo y el amarillo
                      se pinta encima con un ::after, para que el resultado sea idéntico
                      independientemente de qué haya detrás. --}}
-                <div class="js-game-card relative bg-slate-900 {{ $game->needsAttention() ? 'after:absolute after:inset-0 after:rounded-2xl after:bg-amber-500/15 after:pointer-events-none hover:after:bg-amber-500/20' : 'hover:bg-slate-800/40' }} border border-slate-800 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs shadow-black/10 active:border-slate-700 transition-colors cursor-pointer"
+                <div class="js-game-card relative bg-slate-900 {{ $highlightLowRating && $game->needsAttention() ? 'after:absolute after:inset-0 after:rounded-2xl after:bg-amber-500/15 after:pointer-events-none hover:after:bg-amber-500/20' : 'hover:bg-slate-800/40' }} border border-slate-800 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs shadow-black/10 active:border-slate-700 transition-colors cursor-pointer"
                     data-href="{{ route('web.games.show', $game->id) }}">
                     <input type="checkbox" form="bulk-form" name="game_ids[]" value="{{ $game->id }}"
                         class="js-bulk-checkbox self-start mt-1 w-4 h-4 shrink-0 rounded border-slate-600 bg-slate-800 text-indigo-600 focus:ring-indigo-500"
@@ -136,7 +144,7 @@
                     @forelse($games as $game)
                         {{-- #152: aviso de "necesita atención" para juegos en mal estado
                              (2 estrellas o menos) — en prueba en las tres vistas. --}}
-                        <tr class="{{ $game->needsAttention() ? 'bg-amber-500/15 hover:bg-amber-500/20' : 'hover:bg-slate-800/40' }} transition-colors">
+                        <tr class="{{ $highlightLowRating && $game->needsAttention() ? 'bg-amber-500/15 hover:bg-amber-500/20' : 'hover:bg-slate-800/40' }} transition-colors">
                             <!-- Selección para acciones en bloque -->
                             <td class="js-bulk-select-col pl-6 pr-2 py-4">
                                 <input type="checkbox" form="bulk-form" name="game_ids[]" value="{{ $game->id }}"
@@ -238,7 +246,7 @@
                  qué haya detrás. Padding + margen negativo para que la base se
                  vea alrededor de la carátula/texto sin desplazar la rejilla del
                  resto de tarjetas. --}}
-            <div class="group relative {{ $game->needsAttention() ? 'bg-slate-900 rounded-xl p-2 -m-2 after:absolute after:inset-0 after:rounded-xl after:bg-amber-500/15 after:pointer-events-none' : '' }}">
+            <div class="group relative {{ $highlightLowRating && $game->needsAttention() ? 'bg-slate-900 rounded-xl p-2 -m-2 after:absolute after:inset-0 after:rounded-xl after:bg-amber-500/15 after:pointer-events-none' : '' }}">
                 <input type="checkbox" form="bulk-form" name="game_ids[]" value="{{ $game->id }}"
                     class="js-bulk-checkbox absolute top-2 left-2 z-10 w-4 h-4 rounded border-slate-500 bg-slate-900/80 text-indigo-600 focus:ring-indigo-500"
                     aria-label="Seleccionar {{ $game->title }}">
