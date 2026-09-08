@@ -186,6 +186,27 @@ function initDangerZoneClearPlatform() {
 
 initDangerZoneClearPlatform();
 
+/**
+ * Igual que initDangerZoneClearPlatform() pero para "Vaciar toda la
+ * colección": no hay plataforma que elegir, así que el texto a comparar es
+ * fijo (data-confirm-text, ver PanelController::CLEAR_ALL_CONFIRM_TEXT) en
+ * vez de depender de una opción seleccionada.
+ */
+function initDangerZoneClearAll() {
+    const form = document.getElementById('clear-all-form');
+    const confirmInput = document.getElementById('clear-all-confirm');
+    const submitBtn = document.getElementById('clear-all-submit');
+    if (!form || !confirmInput || !submitBtn) return;
+
+    const expected = form.dataset.confirmText;
+
+    confirmInput.addEventListener('input', () => {
+        submitBtn.disabled = confirmInput.value !== expected;
+    });
+}
+
+initDangerZoneClearAll();
+
 function initThemeBoundaryForms() {
     document.querySelectorAll('.js-theme-boundary-form').forEach((form) => {
         form.addEventListener('submit', () => {

@@ -60,24 +60,43 @@ class PanelController extends Controller
     {
         $trashedCount = Game::onlyTrashed()->where('user_id', auth()->id())->count();
 
-        // Recuento por usuario, no por instancia: Platform::games() no filtra
-        // por dueño (es un catálogo compartido, ver Platform), así que un
-        // withCount() sin más contaría los juegos de cualquier cuenta.
+        return view('panel.index', compact('trashedCount'));
+    }
+
+    /**
+     * Palabra fija que hay que teclear para confirmar "Vaciar toda la
+     * colección" (ver clearAllGames()) — a diferencia de vaciar una
+     * plataforma concreta, aquí no hay un nombre propio que teclear, así que
+     * se usa un texto fijo en su lugar (mismo criterio ya barajado para el
+     * modo Reemplazar de #143).
+     */
+    public const CLEAR_ALL_CONFIRM_TEXT = 'BORRAR';
+
+    /**
+     * Zona de peligro (#144): elegir plataforma o vaciar la colección
+     * entera. Recuento por usuario, no por instancia: Platform::games() no
+     * filtra por dueño (es un catálogo compartido, ver Platform), así que un
+     * withCount() sin más contaría los juegos de cualquier cuenta.
+     */
+    public function dangerZone(): View
+    {
         $platforms = Platform::withCount(['games' => fn ($q) => $q->where('user_id', auth()->id())])
             ->orderBy('name')
             ->get();
 
-        return view('panel.index', compact('trashedCount', 'platforms'));
+        $totalGames = Game::where('user_id', auth()->id())->count();
+
+        return view('panel.danger-zone', compact('platforms', 'totalGames'));
     }
 
     /**
-     * Zona de peligro del panel (#144): envía a la papelera de golpe todos
-     * los juegos de una plataforma. La plataforma en sí no se toca (queda
-     * vacía, para reutilizarla o borrarla aparte con
-     * PlatformController::destroy()). Requiere teclear el nombre exacto de
-     * la plataforma en 'confirm' — comprobado aquí, no solo en el JS que
-     * habilita el botón (ver initDangerZoneConfirm en app.js), para que no
-     * baste con saltarse el JS o repetir la petición a mano.
+     * Envía a la papelera de golpe todos los juegos de una plataforma. La
+     * plataforma en sí no se toca (queda vacía, para reutilizarla o
+     * borrarla aparte con PlatformController::destroy()). Requiere teclear
+     * el nombre exacto de la plataforma en 'confirm' — comprobado aquí, no
+     * solo en el JS que habilita el botón (ver initDangerZoneClearPlatform
+     * en app.js), para que no baste con saltarse el JS o repetir la
+     * petición a mano.
      */
     public function clearPlatformGames(Request $request, Platform $platform): RedirectResponse
     {
@@ -98,11 +117,40 @@ class PanelController extends Controller
         $gamesQuery->delete();
         Cache::forget(StatsController::cacheKey(auth()->id()));
 
-        return redirect()->route('web.panel.index')->with(
+        return redirect()->route('web.panel.danger-zone')->with(
             'success',
             $count > 0
                 ? $count.' '.Str::plural('juego', $count).' de «'.$platform->name.'» '.($count === 1 ? 'enviado' : 'enviados').' a la papelera.'
                 : '«'.$platform->name.'» no tenía juegos que enviar a la papelera.'
+        );
+    }
+
+    /**
+     * Envía a la papelera de golpe toda la colección del usuario (cualquier
+     * plataforma). Requiere teclear CLEAR_ALL_CONFIRM_TEXT en 'confirm' —
+     * comprobado aquí igual que clearPlatformGames(), no solo en el JS.
+     */
+    public function clearAllGames(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'confirm' => ['required', 'string'],
+        ]);
+
+        if ($validated['confirm'] !== self::CLEAR_ALL_CONFIRM_TEXT) {
+            return back()->withErrors(['confirm_all' => 'El texto no coincide con "'.self::CLEAR_ALL_CONFIRM_TEXT.'", no se ha borrado nada.']);
+        }
+
+        $gamesQuery = Game::where('user_id', auth()->id());
+        $count = $gamesQuery->count();
+
+        $gamesQuery->delete();
+        Cache::forget(StatsController::cacheKey(auth()->id()));
+
+        return redirect()->route('web.panel.danger-zone')->with(
+            'success',
+            $count > 0
+                ? 'Toda tu colección ('.$count.' '.Str::plural('juego', $count).') se ha enviado a la papelera.'
+                : 'Tu colección ya estaba vacía, no había nada que enviar a la papelera.'
         );
     }
 

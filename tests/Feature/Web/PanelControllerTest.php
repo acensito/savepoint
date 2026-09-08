@@ -409,7 +409,7 @@ class PanelControllerTest extends TestCase
             'confirm' => 'Nintendo Switch',
         ]);
 
-        $response->assertRedirect(route('web.panel.index'));
+        $response->assertRedirect(route('web.panel.danger-zone'));
         $this->assertSoftDeleted($game);
         $this->assertNotNull(Platform::find($platform->id));
     }
@@ -449,6 +449,69 @@ class PanelControllerTest extends TestCase
 
         $this->delete("/panel/platforms/{$platform->id}/games", ['confirm' => $platform->name])
             ->assertRedirect('/login');
+    }
+
+    public function test_guest_cannot_access_the_danger_zone(): void
+    {
+        $this->get('/panel/danger-zone')->assertRedirect('/login');
+    }
+
+    public function test_danger_zone_lists_platforms_with_the_users_own_game_count(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $platform = Platform::factory()->create(['name' => 'Nintendo Switch']);
+        Game::factory()->for($user)->create(['platform_id' => $platform->id]);
+        Game::factory()->for($otherUser)->create(['platform_id' => $platform->id]);
+
+        $response = $this->actingAs($user)->get('/panel/danger-zone');
+
+        $response->assertOk();
+        $response->assertSee('Nintendo Switch (1 juego)');
+    }
+
+    /**
+     * #144: vaciar toda la colección, mismo criterio de confirmación que
+     * clearPlatformGames() pero con un texto fijo (no hay un nombre propio
+     * que teclear para "todo") — ver PanelController::CLEAR_ALL_CONFIRM_TEXT.
+     */
+    public function test_user_can_clear_their_entire_collection_with_the_exact_confirmation_text(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create();
+
+        $response = $this->actingAs($user)->delete('/panel/games', ['confirm' => 'BORRAR']);
+
+        $response->assertRedirect(route('web.panel.danger-zone'));
+        $this->assertSoftDeleted($game);
+    }
+
+    public function test_clearing_the_entire_collection_rejects_a_confirmation_that_does_not_match(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create();
+
+        $response = $this->actingAs($user)->delete('/panel/games', ['confirm' => 'borrar']);
+
+        $response->assertSessionHasErrors('confirm_all');
+        $this->assertDatabaseHas('games', ['id' => $game->id, 'deleted_at' => null]);
+    }
+
+    public function test_clearing_the_entire_collection_does_not_affect_another_users_games(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+        Game::factory()->for($user)->create();
+        $otherGame = Game::factory()->for($otherUser)->create();
+
+        $this->actingAs($user)->delete('/panel/games', ['confirm' => 'BORRAR']);
+
+        $this->assertDatabaseHas('games', ['id' => $otherGame->id, 'deleted_at' => null]);
+    }
+
+    public function test_guest_cannot_clear_the_entire_collection(): void
+    {
+        $this->delete('/panel/games', ['confirm' => 'BORRAR'])->assertRedirect('/login');
     }
 
     public static function toggleFieldProvider(): array
