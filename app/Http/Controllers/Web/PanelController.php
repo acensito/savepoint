@@ -7,10 +7,13 @@ use App\Models\Edition;
 use App\Models\Game;
 use App\Models\Platform;
 use App\Models\User;
+use App\Services\Project\ChangelogReader;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -280,5 +283,52 @@ class PanelController extends Controller
         }
 
         return response()->json(['ok' => true]);
+    }
+
+    /**
+     * "Acerca de" (issue #75): solo admin, mismo criterio de acceso que
+     * Usuarios (comprobado aquí, no con un middleware de ruta — esta app no
+     * tiene ninguno de admin, ver routes/web.php). No usa UserPolicy: no es
+     * una acción sobre el modelo User, es una página informativa aparte.
+     */
+    public function about(): View
+    {
+        abort_unless(auth()->user()->is_admin, 403);
+
+        $changelog = app(ChangelogReader::class)->latestEntry();
+
+        return view('panel.about', [
+            'changelog' => $changelog,
+            'discordUrl' => config('services.discord.url'),
+            'health' => [
+                'database' => $this->checkDatabaseHealth(),
+                'redis' => $this->checkRedisHealth(),
+            ],
+        ]);
+    }
+
+    /**
+     * Comprobación real (no solo "¿existe la conexión?"): una consulta
+     * mínima de verdad, igual de barata que un ping pero que además detecta
+     * credenciales caducadas o el servicio caído a medias.
+     */
+    private function checkDatabaseHealth(): bool
+    {
+        try {
+            DB::select('select 1');
+
+            return true;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    private function checkRedisHealth(): bool
+    {
+        try {
+            return Redis::connection()->ping() !== false;
+        } catch (\Throwable) {
+            return false;
+        }
     }
 }

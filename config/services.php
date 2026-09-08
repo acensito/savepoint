@@ -55,6 +55,16 @@ return [
         'image_hosts' => array_values(array_filter(explode(',', env('CEX_IMAGE_HOSTS', 'es.static.webuy.com')))),
     ],
 
+    /*
+    | Enlace al Discord de la comunidad, para la página "Acerca de"
+    | (/panel/about, issue #75). Crear el servidor está fuera de alcance:
+    | mientras no haya un DISCORD_URL real, la página simplemente no
+    | muestra el enlace en vez de apuntar a una URL inventada.
+    */
+    'discord' => [
+        'url' => env('DISCORD_URL'),
+    ],
+
     // IGDB (App\Services\GameLookup\IgdbLookupService) ya no vive aquí: las
     // credenciales son por cuenta (users.igdb_client_id/igdb_client_secret,
     // ver Ajustes), no de instancia, para que quien se despliegue esta app
