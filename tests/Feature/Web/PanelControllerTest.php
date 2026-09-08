@@ -214,6 +214,19 @@ class PanelControllerTest extends TestCase
         $this->assertStringNotContainsString('name="hide_for_sale_from_collection" value="1" checked', $content);
     }
 
+    public function test_settings_shows_the_highlight_low_rating_checkbox_checked_by_default(): void
+    {
+        // #155: activado por defecto, mismo comportamiento que #152 tenía
+        // antes de poder desactivarse.
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get('/panel/settings');
+
+        $response->assertOk();
+        $content = preg_replace('/\s+/', ' ', $response->getContent());
+        $this->assertStringContainsString('name="highlight_low_rating" value="1" checked', $content);
+    }
+
     public function test_updating_settings_with_blank_selects_clears_the_defaults(): void
     {
         $edition = Edition::factory()->create();
@@ -385,6 +398,7 @@ class PanelControllerTest extends TestCase
             'auto_igdb_background' => ['auto_igdb_background'],
             'quick_search_exclude_wishlist' => ['quick_search_exclude_wishlist'],
             'hide_for_sale_from_collection' => ['hide_for_sale_from_collection'],
+            'highlight_low_rating' => ['highlight_low_rating'],
             'igdb_enabled' => ['igdb_enabled'],
             'two_factor_enabled' => ['two_factor_enabled'],
             'section_wishlist_enabled' => ['section_wishlist_enabled'],

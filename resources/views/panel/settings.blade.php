@@ -180,6 +180,17 @@
                     </div>
 
                     <div class="bg-slate-900 border border-slate-800 rounded-xl p-8">
+                        <h3 class="text-lg font-semibold text-slate-100 mb-1">Aviso de mal estado</h3>
+                        <p class="text-sm text-slate-500 mb-6">
+                            Resalta en amarillo, en fila de tabla, tarjeta y estantería, los juegos con Conservación de 2 estrellas o menos (Malo/Regular), para detectarlos de un vistazo sin filtrar ni ordenar.
+                        </p>
+
+                        <x-toggle name="highlight_low_rating" :checked="$user->highlight_low_rating" :url="$toggleUrl">
+                            Resaltar los juegos en mal estado
+                        </x-toggle>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl p-8">
                         <h3 class="text-lg font-semibold text-slate-100 mb-1">Valores por defecto al dar de alta</h3>
                         <p class="text-sm text-slate-500 mb-6">
                             Qué región y edición se preseleccionan al añadir un juego nuevo. Se pueden cambiar a mano

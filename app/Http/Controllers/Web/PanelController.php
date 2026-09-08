@@ -38,6 +38,7 @@ class PanelController extends Controller
         'auto_igdb_background',
         'quick_search_exclude_wishlist',
         'hide_for_sale_from_collection',
+        'highlight_low_rating',
         'igdb_enabled',
         'two_factor_enabled',
         'section_wishlist_enabled',
