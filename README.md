@@ -6,9 +6,9 @@
 **Tu colección de videojuegos, catalogada de verdad — y solo tuya.**
 
 [![Licencia](https://img.shields.io/badge/licencia-PolyForm%20Noncommercial-blue)](LICENSE)
-![PHP](https://img.shields.io/badge/PHP-8.3-777BB4?logo=php&logoColor=white)
+![PHP](https://img.shields.io/badge/PHP-8.4-777BB4?logo=php&logoColor=white)
 ![Laravel](https://img.shields.io/badge/Laravel-13-FF2D20?logo=laravel&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-4169E1?logo=postgresql&logoColor=white)
 ![Docker Compose](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 
 </div>
@@ -44,7 +44,7 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 <tr>
 <td width="50%">
 <img src="docs/screenshots/01_home.png" alt="Mi Colección">
-<br><sub><b>Mi Colección</b>: listado con miniatura, plataforma, edición, región, manual, conservación, precio y fecha de compra.</sub>
+<br><sub><b>Mi Colección</b>: listado con miniatura, plataforma, edición, región, manual, conservación, precio y fecha de compra — con el aviso amarillo de "mal estado" en los juegos de 1-2 estrellas.</sub>
 </td>
 <td width="50%">
 <img src="docs/screenshots/02_detail.png" alt="Ficha de detalle de un juego">
@@ -57,18 +57,24 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 <br><sub><b>Lista de deseos</b>: los juegos que todavía no tienes, aparte de la colección y de sus totales.</sub>
 </td>
 <td width="50%">
-<img src="docs/screenshots/04_editions_view.png" alt="Gestión de ediciones">
-<br><sub><b>Ediciones</b>: Normal, Black Label, CIAB... y en qué plataformas existe cada una.</sub>
+<img src="docs/screenshots/04_new_editions_formats.png" alt="Nueva edición, con los subtipos de formato">
+<br><sub><b>Ediciones</b>: cartucho, disco, diskette, cassette, otros, digital o CIAB — el soporte real de cada edición, no solo "físico o digital".</sub>
 </td>
 </tr>
 <tr>
 <td width="50%">
 <img src="docs/screenshots/05_control_panel.png" alt="Panel de control">
-<br><sub><b>Panel de control</b>: importar/exportar, papelera, perfil, ajustes y gestión de usuarios.</sub>
+<br><sub><b>Panel de control</b>: importar/exportar, papelera, perfil, ajustes, gestión de usuarios y la Zona de peligro para vaciar una plataforma o toda la colección.</sub>
 </td>
 <td width="50%">
 <img src="docs/screenshots/06_light_theme.png" alt="Tema claro">
 <br><sub><b>Tema claro</b>, junto al oscuro — ajuste de cuenta, te sigue a cualquier dispositivo.</sub>
+</td>
+</tr>
+<tr>
+<td colspan="2">
+<img src="docs/screenshots/08_text_view.png" alt="Vista solo texto de la colección">
+<br><sub><b>Vista solo texto</b>: sin carátulas ni espacio reservado para ellas, para hojear más filas de un vistazo — solo en escritorio.</sub>
 </td>
 </tr>
 </table>
@@ -107,7 +113,8 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
   ya no hay un buscador de texto aparte en la propia página, solo un botón con su misma pinta que lo abre, precargado
   con la búsqueda activa si la hay. Un icono "Avanzado" en la página sigue desplegando los filtros de **plataforma**
   (incluida la opción **"Sin plataforma"**, para aislar los juegos sin ninguna asignada), **estado de juego**,
-  **propiedad**, orden y tamaño de página, que gobiernan el listado paginado (el buscador rápido no pagina).
+  **propiedad**, **conservación** (una puntuación concreta, de 1 a 5 estrellas), orden y tamaño de página, que
+  gobiernan el listado paginado (el buscador rápido no pagina).
 - **Ficha de detalle de solo lectura** con toda la información del juego, para "solo mirar" sin abrir el formulario de
   edición.
 - **Enriquecimiento automático con IGDB**: la primera vez que se abre la ficha de un juego, se busca en IGDB por título
@@ -123,6 +130,9 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
   defecto), sigue siendo siempre una elección explícita.
 - La conservación se muestra como estrellas de solo lectura en cualquier vista del listado (tarjetas, tabla,
   estantería): se cambia siempre desde la ficha de edición del juego, nunca tocando directamente sobre el listado.
+- **Aviso de mal estado**: los juegos con conservación de 2 estrellas o menos (Malo/Regular) se resaltan en amarillo
+  en fila/tarjeta, en las tres vistas de la colección, para detectarlos de un vistazo sin filtrar ni ordenar —
+  desactivable desde Ajustes si prefieres no verlo.
 - Edición de un juego existente, incluida la opción de reemplazar o quitar la carátula.
 - Al dar de alta o editar un juego con un EAN que ya tienes registrado, se avisa antes de guardar en vez de duplicarlo
   sin más (con opción de "guardar de todos modos" para el caso legítimo de tener dos copias físicas).
@@ -289,8 +299,15 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
     - **Ocultar los juegos en venta** del listado de la colección sin filtrar: siguen viéndose con el filtro "En venta"
       y en su propia página (`/for-sale`), pero desaparecen del listado por defecto. Incluidos por defecto, como hasta
       ahora.
-    - Tema claro/oscuro y la vista de la colección elegida (ver Interfaz) también se guardan aquí, aunque se cambian
-      desde sus propios controles (icono del header, botones de vista), no desde este formulario.
+    - **Aviso de mal estado**: activa/desactiva el resaltado en amarillo de los juegos en mal estado (ver Gestión de la
+      colección). Activado por defecto.
+    - Tema claro/oscuro/automático y la vista de la colección elegida (ver Interfaz) también se guardan aquí, aunque se
+      cambian desde sus propios controles (icono del header, botones de vista), no desde este formulario.
+- **Zona de peligro** (`/panel/danger-zone`): enviar a la papelera de golpe todos los juegos de una plataforma concreta
+  (incluida la opción "Sin plataforma"), o la colección entera. Ninguna de las dos acciones se ejecuta con un solo
+  clic: hay que teclear el nombre exacto de la plataforma (o un texto fijo de confirmación para "toda la colección"),
+  mismo patrón que confirmar el borrado de un repositorio en GitHub — comprobado también en el servidor, no solo en el
+  formulario. La plataforma en sí nunca se borra, solo se queda vacía.
 
 ### Seguridad de datos
 
@@ -315,9 +332,10 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
   detalle del juego, nunca con iconos sueltos en cada fila.
 - Feedback de acciones consistente en toda la app: toasts flotantes para confirmaciones (con "Deshacer" cuando aplica) y
   un diálogo propio para confirmar acciones destructivas, en vez del `confirm()` nativo del navegador.
-- Tema claro/oscuro y vista de la colección (línea de abajo) son ajustes de **cuenta**, no solo del navegador (antes
-  vivían solo en `localStorage`): se pintan server-side desde el primer HTML, sin parpadeo al cargar o navegar, y te
-  siguen a cualquier dispositivo donde inicies sesión.
+- Tema claro/oscuro/**automático** (sigue el tema de tu navegador, normalmente heredado del sistema operativo, con
+  actualización en caliente si cambia sin recargar) y vista de la colección (línea de abajo) son ajustes de
+  **cuenta**, no solo del navegador (antes vivían solo en `localStorage`): se pintan server-side desde el primer
+  HTML, sin parpadeo al cargar o navegar, y te siguen a cualquier dispositivo donde inicies sesión.
 - **Color de la barra de navegación y de los botones primarios**, a elegir entre varios presets (indigo, emerald, rose,
   amber, sky, violet) desde Ajustes — mismo ajuste de cuenta que el tema.
 - **Menú de usuario de la cabecera**: el avatar/email de la barra superior abre un desplegable con acceso al perfil, al
@@ -326,8 +344,9 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
   Ajustes); atajo de teclado `/` abre el buscador rápido, igual que `Ctrl+K`.
 - Acciones en bloque: seleccionar varios juegos a la vez para enviarlos a la papelera o cambiarles el estado de golpe.
 - Botón flotante de "Añadir juego" en móvil, para no tener que volver arriba al hacer scroll por una colección larga.
-- Tres formas de ver la colección: la habitual, una tabla compacta y una estantería de carátulas grandes, con un fundido
-  suave al cambiar entre ellas en vez del salto instantáneo de antes.
+- Cuatro formas de ver la colección: la habitual, una tabla compacta, solo texto (sin carátulas ni espacio reservado
+  para ellas, para hojear más filas por pantalla — solo en escritorio, en móvil siempre se ve la tarjeta) y una
+  estantería de carátulas grandes, con un fundido suave al cambiar entre ellas en vez del salto instantáneo de antes.
 - Barra de estado discreta con el total de juegos y el gasto invertido en toda la colección, siempre visible.
 - **Insignia de "completado"** (icono de trofeo): los juegos con estado de juego = terminado la llevan en la esquina de
   la carátula, tanto en la vista de estantería como en la miniatura de la tarjeta (móvil).
@@ -335,9 +354,11 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
   resultados en vivo por título o EAN mientras se escribe (con un esqueleto de carga mientras llegan, en vez de dejar
   los resultados anteriores congelados), con filtros opcionales de plataforma/estado de juego/propiedad y un enlace para
   ver todos los resultados en la colección paginada cuando hace falta más que eso. Los resultados que ya están en tu
-  lista de deseos llevan un badge "En lista deseos" para no perderlo de vista. Si el juego no está en tu colección, se
-  ofrecen además **sugerencias de CEX** (webuy.com) con EAN y carátula reales para rellenar el alta con un clic; la
-  lista de deseos se puede excluir de estos resultados desde Ajustes.
+  lista de deseos llevan un badge "En lista deseos" para no perderlo de vista. Se ofrecen además **sugerencias de
+  CEX** (webuy.com) con EAN y carátula reales para rellenar el alta con un clic: sin ninguna coincidencia local se
+  muestran todas, y si ya tienes algún resultado en tu colección se recortan a un par (sin repetir títulos que ya
+  tengas) como complemento por si se trata de una entrega nueva. La lista de deseos se puede excluir de estos
+  resultados desde Ajustes.
 - **Escaneo de código de barras** con la cámara desde la propia búsqueda rápida: detecta el EAN y lo vuelca en el
   buscador, enlazando con las sugerencias de CEX si el juego todavía no está en tu colección. Necesita HTTPS para
   acceder a la cámara fuera de `localhost` (ver [Desplegar para uso propio](#desplegar-para-uso-propio)).
@@ -351,7 +372,7 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 - **Base de datos:** PostgreSQL 18 (usa `JSON` para campos estructurados como `genres`)
 - **Autenticación web:** sesiones con guard `web` (login por email/contraseña)
 - **Autenticación API:** Laravel Sanctum (tokens Bearer)
-- **Frontend web:** Blade + Tailwind CSS + Vite.
+- **Frontend web:** Blade + Tailwind CSS + Vite (Node 24 para compilar assets).
 - **Localización:** interfaz y mensajes de validación en español (`APP_LOCALE=es`, `lang/es/`). Laravel 11+ no publica
   estos archivos por defecto; se generaron y tradujeron a mano para que los errores de formulario no muestren la clave
   sin traducir (p. ej. `validation.required`).
@@ -518,8 +539,9 @@ Cobertura actual:
 
 - `Tests\Feature\Auth\WebAuthTest`: login/logout, credenciales inválidas, redirect a la página originalmente solicitada,
   protección de rutas para invitados, bloqueo por fuerza bruta (por email+IP y, rotando de IP en cada intento, por el
-  límite adicional solo por email), y que el enlace "Regístrate" aparece o no según el registro público esté abierto o
-  cerrado.
+  límite adicional solo por email), que el enlace "Regístrate" aparece o no según el registro público esté abierto o
+  cerrado, y que el tema (incluido "automático") se mantiene entre las pantallas de login/registro/2FA y la app ya
+  autenticada.
 - `Tests\Feature\Auth\RegisterTest`: alta con datos válidos (evento `Registered`, contraseña hasheada, cuenta creada con
   2FA activo y sin autenticar todavía), que completar el desafío de 2FA es lo que autentica de verdad y respeta la
   página originalmente solicitada, validación (nombre obligatorio, email válido y único, contraseña con mínimo 8
@@ -557,7 +579,10 @@ Cobertura actual:
   aviso de EAN duplicado (con y sin confirmar), `GamePolicy` aplicada en las rutas web, la ficha de detalle, la edición
   rápida (estado/en venta) por AJAX y por formulario normal, el filtro "en venta", el fragmento que devuelve `index()`
   para peticiones AJAX, el orden/paginación/región/edición por defecto de Ajustes (aplicados solo cuando la URL o el
-  formulario no traen un valor explícito), y el autoasignado de fondo desde IGDB al dar de alta con ese ajuste activo.
+  formulario no traen un valor explícito), y el autoasignado de fondo desde IGDB al dar de alta con ese ajuste activo;
+  el filtro por conservación, el botón "Guardar igualmente" del propio aviso de EAN duplicado, el resaltado en amarillo
+  de juegos en mal estado (y que se puede desactivar desde Ajustes), y la vista "solo texto" (botón visible, clase en
+  `<html>` según la preferencia guardada).
 - `Tests\Feature\Web\GameExportControllerTest`: exportación imprimible/PDF y a CSV, mismos filtros que el listado,
   scoping por usuario, y de regresión, que la vista imprimible es un documento autocontenido sin el layout de la app.
 - `Tests\Feature\Web\GameTrashControllerTest`: papelera (listar/restaurar/eliminar definitivamente, buscador/filtro
@@ -575,14 +600,19 @@ Cobertura actual:
   panel de catálogo, validaciones propias (colores en formato hex, nombre único de fabricante, colores obligatorios solo
   si se sobrescriben en una plataforma), que borrar un registro deja en `null` la relación en juegos/plataformas en vez
   de arrastrar el borrado, que la edición "Normal" existe por defecto sin ninguna plataforma asociada (disponible para
-  cualquiera), y el formato de edición (físico por defecto si no se indica, alta/edición con un formato concreto,
-  formato inválido rechazado).
+  cualquiera), y el formato de edición (disco por defecto si no se indica, alta/edición con cualquiera de los subtipos
+  físicos, formato inválido — incluido el antiguo "físico" genérico, ya no válido — rechazado). `Tests\Unit\Models\
+  EditionTest` cubre la etiqueta/icono de cada formato y el fallback de uno desconocido.
 - `Tests\Feature\Web\SearchControllerTest`: búsqueda rápida por título/EAN acotada al usuario autenticado, filtros de
-  plataforma/estado de juego/propiedad, sugerencias externas de CEX solo cuando no hay coincidencia local (y no antes de
-  3 caracteres), y que la lista de deseos aparece o no según el ajuste correspondiente.
+  plataforma/estado de juego/propiedad, sugerencias externas de CEX (no antes de 3 caracteres) tanto sin coincidencia
+  local como junto a coincidencias ya existentes (recortadas a un par, sin repetir títulos ya poseídos), el aviso de
+  "afina la búsqueda" cuando no hay nada en ningún sitio, y que la lista de deseos aparece o no según el ajuste
+  correspondiente.
 - `Tests\Feature\Web\PanelControllerTest`: enlaces del panel y contador de la papelera por usuario, y la página de
   Ajustes — guardar cada grupo de preferencias (incluido dejar un valor en blanco para volver al comportamiento por
-  defecto), que no afectan a otros usuarios, y el endpoint AJAX de tema/vista de la colección.
+  defecto), que no afectan a otros usuarios, y el endpoint AJAX de tema/vista de la colección; la Zona de peligro
+  (vaciar una plataforma concreta o toda la colección, con y sin confirmación correcta, aislamiento entre usuarios,
+  invitados sin acceso).
 - `Tests\Feature\Web\ProfileControllerTest`: actualización de nombre/email (con email único), subida/reemplazo/
   eliminación de avatar (con limpieza del fichero anterior en disco), validación del avatar (tipo/tamaño), y cambio de
   contraseña exigiendo la actual y confirmación.
@@ -599,7 +629,8 @@ Cobertura actual:
 - `Tests\Feature\Web\PasswordResetTest`: envío del enlace de reset (mismo mensaje exista o no el email), reset con token
   válido/inválido.
 - `Tests\Unit\Models\GameTest` / `PlatformTest`: iniciales y URL de carátula, resolución de colores/etiqueta de chip con
-  fallback a fabricante.
+  fallback a fabricante; el color del placeholder de carátula (heredado de la plataforma, o determinista por título sin
+  ella) y qué juegos cuentan como "mal estado" para el aviso amarillo.
 
 ## Ideas a futuro
 
