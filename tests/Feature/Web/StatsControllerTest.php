@@ -51,6 +51,27 @@ class StatsControllerTest extends TestCase
         $this->assertSame($platform->id, $byPlatform[0]['platform']->id);
     }
 
+    public function test_stats_breaks_down_spending_by_platform(): void
+    {
+        $user = User::factory()->create();
+        $switch = Platform::factory()->create(['name' => 'Switch']);
+        $ps4 = Platform::factory()->create(['name' => 'PS4']);
+
+        Game::factory()->for($user)->create(['platform_id' => $switch->id, 'price_paid' => 10]);
+        Game::factory()->for($user)->create(['platform_id' => $switch->id, 'price_paid' => 15]);
+        Game::factory()->for($user)->create(['platform_id' => $ps4->id, 'price_paid' => 5]);
+
+        $response = $this->actingAs($user)->get('/stats');
+
+        $byPlatformSpending = collect($response->viewData('byPlatformSpending'))
+            ->keyBy(fn ($row) => $row['platform']->id);
+
+        $this->assertSame(25.0, $byPlatformSpending[$switch->id]['total']);
+        $this->assertSame(100.0, $byPlatformSpending[$switch->id]['percent']);
+        $this->assertSame(5.0, $byPlatformSpending[$ps4->id]['total']);
+        $this->assertSame(20.0, $byPlatformSpending[$ps4->id]['percent']);
+    }
+
     public function test_stats_breaks_down_games_by_play_status_and_ownership(): void
     {
         $user = User::factory()->create();

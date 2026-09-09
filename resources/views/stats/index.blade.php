@@ -51,6 +51,31 @@
             @endif
         </div>
 
+        <!-- Gasto por plataforma -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 lg:col-span-2">
+            <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-5">Gasto por plataforma</h2>
+
+            @if(empty($byPlatformSpending))
+                <p class="text-sm text-slate-500">Todavía no hay juegos con precio pagado registrado.</p>
+            @else
+                <div class="space-y-3">
+                    @foreach($byPlatformSpending as $row)
+                        <div class="flex items-center gap-4">
+                            <div class="w-40 shrink-0">
+                                <x-platform-chip :platform="$row['platform']" class="max-w-full" />
+                            </div>
+                            <div class="flex-1 h-3 rounded-full bg-slate-800 overflow-hidden">
+                                <div class="h-full bg-indigo-500 rounded-r-[4px]"
+                                    style="width: {{ max($row['percent'], 3) }}%"
+                                    title="{{ $row['platform']?->name ?? 'Sin plataforma' }}: {{ number_format($row['total'], 2, ',', '.') }} €"></div>
+                            </div>
+                            <div class="w-20 shrink-0 text-right text-sm font-medium text-slate-300 tabular-nums">{{ number_format($row['total'], 2, ',', '.') }} €</div>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+        </div>
+
         <!-- Estado de juego -->
         <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
             <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-5">Estado de juego</h2>

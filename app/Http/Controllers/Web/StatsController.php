@@ -36,6 +36,7 @@ class StatsController extends Controller
             'totalSpent' => $stats['totalSpent'],
             'averageRating' => $stats['averageRating'],
             'byPlatform' => $this->hydrateByPlatform($stats['byPlatform']),
+            'byPlatformSpending' => $this->hydrateByPlatform($stats['byPlatformSpending']),
             'byPlayStatus' => $stats['byPlayStatus'],
             'byStatus' => $stats['byStatus'],
             'byRating' => $stats['byRating'],
@@ -87,6 +88,7 @@ class StatsController extends Controller
         $averageRating = (clone $base)->whereNotNull('rating')->avg('rating');
 
         $byPlatform = $this->byPlatform(clone $base);
+        $byPlatformSpending = $this->byPlatformSpending(clone $base);
         $byPlayStatus = $this->byPlayStatus(clone $base, $totalGames);
         $byStatus = $this->byOwnershipStatus(clone $base, $totalGames);
         $byRating = $this->byRating(clone $base, $totalGames);
@@ -99,18 +101,20 @@ class StatsController extends Controller
         $salesByYear = $this->salesByYear($userId);
 
         return compact(
-            'totalGames', 'totalSpent', 'averageRating', 'byPlatform', 'byPlayStatus', 'byStatus',
-            'byRating', 'byPlatformRating', 'spendingByMonth', 'topGenres', 'byDecade',
+            'totalGames', 'totalSpent', 'averageRating', 'byPlatform', 'byPlatformSpending', 'byPlayStatus',
+            'byStatus', 'byRating', 'byPlatformRating', 'spendingByMonth', 'topGenres', 'byDecade',
             'mostExpensiveId', 'topRatedId', 'salesByYear',
         );
     }
 
     /**
-     * Convierte los platform_id planos de byPlatform() en modelos Platform
-     * reales (fuera de la caché, ver buildStats()), con una sola query.
+     * Convierte los platform_id planos de byPlatform()/byPlatformSpending()
+     * en modelos Platform reales (fuera de la caché, ver buildStats()), con
+     * una sola query — mismo shape en las dos (platform_id/total/percent),
+     * 'total' es int en una (nº de juegos) y float en la otra (gasto).
      *
-     * @param  array<int, array{platform_id: int|null, total: int, percent: float}>  $rows
-     * @return array<int, array{platform: Platform|null, total: int, percent: float}>
+     * @param  array<int, array{platform_id: int|null, total: int|float, percent: float}>  $rows
+     * @return array<int, array{platform: Platform|null, total: int|float, percent: float}>
      */
     private function hydrateByPlatform(array $rows): array
     {
@@ -164,6 +168,31 @@ class StatsController extends Controller
             'platform_id' => $platformId !== '' ? (int) $platformId : null,
             'total' => (int) $total,
             'percent' => round($total / $max * 100),
+        ])->sortByDesc('total')->values()->all();
+    }
+
+    /**
+     * Gasto por plataforma, ordenado de mayor a menor — mismo shape que
+     * byPlatform() (platform_id/total/percent), así que se hidrata con el
+     * mismo hydrateByPlatform() sin duplicarlo.
+     *
+     * @param  Builder<Game>  $base
+     * @return array<int, array{platform_id: int|null, total: float, percent: float}>
+     */
+    private function byPlatformSpending(Builder $base): array
+    {
+        $sums = $base->selectRaw('platform_id, sum(price_paid) as total')
+            ->groupBy('platform_id')
+            ->toBase()
+            ->get()
+            ->mapWithKeys(fn ($row) => [(string) ($row->platform_id ?? '') => (float) $row->total]);
+
+        $max = $sums->max() ?: 1;
+
+        return $sums->map(fn ($total, $platformKey) => [
+            'platform_id' => $platformKey !== '' ? (int) $platformKey : null,
+            'total' => $total,
+            'percent' => $max > 0 ? round($total / $max * 100) : 0,
         ])->sortByDesc('total')->values()->all();
     }
 
