@@ -2,10 +2,13 @@
 
 namespace Tests\Feature\Web;
 
+use App\Jobs\FetchCexWishlistPrice;
 use App\Models\Game;
 use App\Models\Platform;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class WishlistControllerTest extends TestCase
@@ -52,6 +55,87 @@ class WishlistControllerTest extends TestCase
 
         $response->assertSee('Hollow Knight');
         $response->assertDontSee('Celeste');
+    }
+
+    public function test_index_dispatches_the_cex_price_job_only_for_games_with_a_target_price(): void
+    {
+        Bus::fake();
+
+        $user = User::factory()->create();
+        $withTarget = Game::factory()->for($user)->create(['status' => 'wishlist', 'wishlist_estimated_price' => 20]);
+        $withoutTarget = Game::factory()->for($user)->create(['status' => 'wishlist', 'wishlist_estimated_price' => null]);
+
+        $this->actingAs($user)->get(route('web.wishlist.index'))->assertOk();
+
+        Bus::assertDispatched(FetchCexWishlistPrice::class, fn (FetchCexWishlistPrice $job) => $job->gameId === $withTarget->id);
+        Bus::assertNotDispatched(FetchCexWishlistPrice::class, fn (FetchCexWishlistPrice $job) => $job->gameId === $withoutTarget->id);
+    }
+
+    public function test_index_does_not_dispatch_the_cex_price_job_when_recently_checked(): void
+    {
+        Bus::fake();
+
+        $user = User::factory()->create();
+        Game::factory()->for($user)->create([
+            'status' => 'wishlist', 'wishlist_estimated_price' => 20, 'cex_checked_at' => now(),
+        ]);
+
+        $this->actingAs($user)->get(route('web.wishlist.index'))->assertOk();
+
+        Bus::assertNotDispatched(FetchCexWishlistPrice::class);
+    }
+
+    public function test_index_dispatches_the_cex_price_job_again_once_stale(): void
+    {
+        Bus::fake();
+
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create([
+            'status' => 'wishlist', 'wishlist_estimated_price' => 20,
+            'cex_checked_at' => now()->subDays(FetchCexWishlistPrice::STALE_AFTER_DAYS + 1),
+        ]);
+
+        $this->actingAs($user)->get(route('web.wishlist.index'))->assertOk();
+
+        Bus::assertDispatched(FetchCexWishlistPrice::class, fn (FetchCexWishlistPrice $job) => $job->gameId === $game->id);
+    }
+
+    /**
+     * QUEUE_CONNECTION=sync en tests (ver phpunit.xml): el job se procesa en
+     * línea antes de que termine la petición, así que sirve para probar el
+     * flujo completo (aviso por fila + banner de arriba) sin mockear nada.
+     */
+    public function test_index_shows_a_badge_and_a_banner_when_a_game_has_reached_its_target_price(): void
+    {
+        $user = User::factory()->create();
+        Game::factory()->for($user)->create([
+            'status' => 'wishlist', 'title' => 'Hollow Knight', 'wishlist_estimated_price' => 20,
+        ]);
+
+        Http::fake(['search.webuy.io/*' => Http::response([
+            'hits' => [['boxName' => 'Hollow Knight', 'sellPrice' => 15]],
+        ], 200)]);
+
+        $response = $this->actingAs($user)->get(route('web.wishlist.index'));
+
+        $response->assertSee('1 juego de tu lista de deseos ha bajado a tu precio en CEX', false);
+        $response->assertSee('15,00 € en CEX', false);
+    }
+
+    public function test_index_does_not_show_a_badge_when_the_price_has_not_dropped_enough(): void
+    {
+        $user = User::factory()->create();
+        Game::factory()->for($user)->create([
+            'status' => 'wishlist', 'title' => 'Hollow Knight', 'wishlist_estimated_price' => 20,
+        ]);
+
+        Http::fake(['search.webuy.io/*' => Http::response([
+            'hits' => [['boxName' => 'Hollow Knight', 'sellPrice' => 25]],
+        ], 200)]);
+
+        $response = $this->actingAs($user)->get(route('web.wishlist.index'));
+
+        $response->assertDontSee('en CEX', false);
     }
 
     public function test_create_form_can_be_rendered(): void

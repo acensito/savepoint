@@ -23,6 +23,13 @@
         </a>
     </div>
 
+    @if($reachedTargetCount > 0)
+        <div class="mb-6 flex items-center gap-2.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 rounded-xl px-4 py-3 text-sm">
+            <x-gicon name="price_check" class="text-[20px] shrink-0"/>
+            {{ $reachedTargetCount }} {{ \Illuminate\Support\Str::plural('juego', $reachedTargetCount) }} de tu lista de deseos {{ $reachedTargetCount === 1 ? 'ha bajado' : 'han bajado' }} a tu precio en CEX.
+        </div>
+    @endif
+
     <form action="{{ route('web.wishlist.index') }}" method="GET" class="flex flex-wrap gap-3 mb-6">
         <input type="text" name="q" value="{{ $query ?? '' }}" placeholder="Buscar por título o EAN..."
             class="flex-1 min-w-[200px] rounded-lg border border-slate-700 bg-slate-800 text-slate-100 placeholder:text-slate-500 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden text-sm">
@@ -74,6 +81,13 @@
                             <span class="truncate">{{ $game->wishlist_store }}</span>
                         @endif
                     </div>
+
+                    @if($game->hasReachedWishlistPrice())
+                        <div class="mt-1.5 flex items-center gap-1 text-[11px] font-semibold text-emerald-400">
+                            <x-gicon name="price_check" class="text-[14px]"/>
+                            ¡Ya está a {{ number_format($game->cex_current_price, 2, ',', '.') }} € en CEX!
+                        </div>
+                    @endif
                 </div>
 
                 <div class="flex flex-col items-center gap-1 shrink-0 border-l border-slate-800 pl-2 -my-1 py-1">
@@ -150,6 +164,12 @@
 
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-slate-300">
                             {{ $game->wishlist_estimated_price !== null ? number_format($game->wishlist_estimated_price, 2, ',', '.') . ' €' : '—' }}
+                            @if($game->hasReachedWishlistPrice())
+                                <div class="mt-1 flex items-center justify-end gap-1 text-[11px] font-semibold text-emerald-400">
+                                    <x-gicon name="price_check" class="text-[14px]"/>
+                                    {{ number_format($game->cex_current_price, 2, ',', '.') }} € en CEX
+                                </div>
+                            @endif
                         </td>
 
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-300">

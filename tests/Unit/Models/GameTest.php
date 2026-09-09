@@ -76,4 +76,29 @@ class GameTest extends TestCase
             'sin valorar' => [null, false],
         ];
     }
+
+    public function test_has_reached_wishlist_price_when_cex_is_at_or_below_target(): void
+    {
+        $atTarget = new Game(['wishlist_estimated_price' => '50.00', 'cex_current_price' => '50.00']);
+        $belowTarget = new Game(['wishlist_estimated_price' => '50.00', 'cex_current_price' => '45.00']);
+        $aboveTarget = new Game(['wishlist_estimated_price' => '50.00', 'cex_current_price' => '55.00']);
+
+        $this->assertTrue($atTarget->hasReachedWishlistPrice());
+        $this->assertTrue($belowTarget->hasReachedWishlistPrice());
+        $this->assertFalse($aboveTarget->hasReachedWishlistPrice());
+    }
+
+    public function test_has_reached_wishlist_price_is_false_without_a_target_price(): void
+    {
+        $game = new Game(['wishlist_estimated_price' => null, 'cex_current_price' => '10.00']);
+
+        $this->assertFalse($game->hasReachedWishlistPrice());
+    }
+
+    public function test_has_reached_wishlist_price_is_false_without_a_cex_price_yet(): void
+    {
+        $game = new Game(['wishlist_estimated_price' => '50.00', 'cex_current_price' => null]);
+
+        $this->assertFalse($game->hasReachedWishlistPrice());
+    }
 }

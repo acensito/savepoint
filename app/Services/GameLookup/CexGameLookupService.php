@@ -4,6 +4,7 @@ namespace App\Services\GameLookup;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Throwable;
 
 /**
@@ -14,6 +15,11 @@ use Throwable;
  * cliente (no es un secreto real). Puede dejar de funcionar si CEX cambia
  * de proveedor de búsqueda o de nombre de índice sin aviso; si eso pasa, ver
  * config('services.cex') antes de tocar esta clase.
+ *
+ * search() rellena el alta de un juego (EAN, carátula...); currentPrice()
+ * usa el mismo índice para el precio actual de venta (campo "sellPrice" de
+ * cada hit, no expuesto por search()) que avisa cuando un juego de la lista
+ * de deseos ha bajado al precio que se apuntó.
  */
 class CexGameLookupService implements GameLookupInterface
 {
@@ -29,6 +35,51 @@ class CexGameLookupService implements GameLookupInterface
     ) {}
 
     public function search(string $query): array
+    {
+        return collect($this->rawHits($query))
+            ->map(fn (array $hit) => new GameLookupResult(
+                title: trim((string) ($hit['boxName'] ?? '')),
+                ean: isset($hit['boxId']) && $hit['boxId'] !== '' ? (string) $hit['boxId'] : null,
+                coverUrl: $hit['imageUrls']['large'] ?? $hit['imageUrls']['medium'] ?? $hit['imageUrls']['small'] ?? null,
+                platform: $this->platformFromCategory($hit['categoryFriendlyName'] ?? null),
+            ))
+            ->filter(fn (GameLookupResult $result) => $result->title !== '')
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Precio actual de venta en CEX de un juego de la lista de deseos, para
+     * avisar cuando ha bajado al precio que el usuario apuntó
+     * (wishlist_estimated_price, ver Game::hasReachedWishlistPrice() y
+     * Jobs\FetchCexWishlistPrice). La lista de deseos no guarda EAN (alta
+     * rápida, solo título), así que a diferencia de la búsqueda por código de
+     * barras del alta normal, aquí solo se puede buscar por título — se
+     * elige el mejor resultado con el mismo criterio que
+     * IgdbLookupService::matchScore(): título exacto y, si se conoce, misma
+     * plataforma.
+     */
+    public function currentPrice(string $title, ?string $platformName = null): ?CexPriceMatch
+    {
+        $best = collect($this->rawHits($title))
+            ->filter(fn (array $hit) => is_numeric($hit['sellPrice'] ?? null) && trim($hit['boxName'] ?? '') !== '')
+            ->sortByDesc(fn (array $hit) => $this->priceMatchScore($hit, $title, $platformName))
+            ->first();
+
+        if ($best === null) {
+            return null;
+        }
+
+        return new CexPriceMatch(
+            title: trim((string) $best['boxName']),
+            price: (float) $best['sellPrice'],
+        );
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function rawHits(string $query): array
     {
         $query = trim($query);
         if ($query === '' || $this->appId === '' || $this->apiKey === '') {
@@ -68,19 +119,32 @@ class CexGameLookupService implements GameLookupInterface
             return [];
         }
 
-        /** @var array<int, array<string, mixed>> $hits */
-        $hits = $response->json('hits', []);
+        /** @var array<int, array<string, mixed>> */
+        return $response->json('hits', []);
+    }
 
-        return collect($hits)
-            ->map(fn (array $hit) => new GameLookupResult(
-                title: trim((string) ($hit['boxName'] ?? '')),
-                ean: isset($hit['boxId']) && $hit['boxId'] !== '' ? (string) $hit['boxId'] : null,
-                coverUrl: $hit['imageUrls']['large'] ?? $hit['imageUrls']['medium'] ?? $hit['imageUrls']['small'] ?? null,
-                platform: $this->platformFromCategory($hit['categoryFriendlyName'] ?? null),
-            ))
-            ->filter(fn (GameLookupResult $result) => $result->title !== '')
-            ->values()
-            ->all();
+    /**
+     * Mismo espíritu que IgdbLookupService::matchScore(): prioriza título
+     * exacto y, si se conoce la plataforma del juego de la wishlist, que la
+     * categoría de CEX coincida — sin esto, el primer resultado de Algolia
+     * podría ser un bundle o una plataforma distinta a la que se quiere.
+     *
+     * @param  array<string, mixed>  $hit
+     */
+    private function priceMatchScore(array $hit, string $title, ?string $platformName): int
+    {
+        $score = 0;
+
+        if (Str::lower(trim((string) ($hit['boxName'] ?? ''))) === Str::lower(trim($title))) {
+            $score += 2;
+        }
+
+        if ($platformName !== null && $platformName !== ''
+            && Str::contains(Str::lower((string) ($hit['categoryFriendlyName'] ?? '')), Str::lower($platformName))) {
+            $score += 1;
+        }
+
+        return $score;
     }
 
     /**

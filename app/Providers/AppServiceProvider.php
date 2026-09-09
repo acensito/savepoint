@@ -25,7 +25,7 @@ class AppServiceProvider extends ServiceProvider
         // Único sitio que sabe que el proveedor de búsqueda externa es CEX
         // hoy: cambiar de proveedor (u ofrecer varios) es cambiar este bind,
         // no App\Http\Controllers\Web\SearchController.
-        $this->app->bind(GameLookupInterface::class, function () {
+        $cexLookup = function () {
             $config = config('services.cex');
 
             return new CexGameLookupService(
@@ -34,7 +34,13 @@ class AppServiceProvider extends ServiceProvider
                 apiKey: $config['api_key'],
                 index: $config['index'],
             );
-        });
+        };
+        $this->app->bind(GameLookupInterface::class, $cexLookup);
+        // También la clase concreta (no solo la interfaz): Jobs\
+        // FetchCexWishlistPrice necesita currentPrice(), que no forma parte
+        // de GameLookupInterface (pensada para el autorrelleno del alta, sin
+        // precio — solo IGDB/CEX comparten esa forma, no el precio).
+        $this->app->bind(CexGameLookupService::class, $cexLookup);
 
         // Complemento a CEX, no un sustituto (ver IgdbLookupService): solo
         // autocompleta desarrollador/fecha de lanzamiento cuando la cuenta
