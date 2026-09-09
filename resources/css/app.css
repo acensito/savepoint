@@ -96,6 +96,14 @@
     --color-emerald-400: var(--color-emerald-600);
     --color-emerald-300: var(--color-emerald-700);
     --color-amber-400: var(--color-amber-600);
+    /* Sin esto, el botón "Marcar en venta" (games/show.blade.php y el de
+       acciones en bloque de games/index.blade.php), el único sitio que usa
+       amber-300 como color de texto, se quedaba con el amber-300 de fábrica
+       (un tono pálido pensado para fondos oscuros) sobre un fondo claro:
+       apenas se distinguía. Mismo desplazamiento de un tono que emerald-300
+       arriba (más oscuro que su propio 400 remapeado, no solo que el 300 de
+       fábrica). */
+    --color-amber-300: var(--color-amber-700);
 }
 
 /* Color de la barra de navegación superior Y de los botones primarios de
@@ -369,6 +377,21 @@ html.selection-mode .js-bulk-checkbox {
 }
 
 html.selection-mode .js-bulk-select-col {
+    display: table-cell;
+}
+
+/* Página "En venta" (for-sale/index.blade.php, #123 seguimiento): reutiliza
+   las mismas casillas/JS de acciones en bloque que la colección
+   (initBulkActions() en app.js delega sobre #games-results por id, le da
+   igual qué vista lo pinte), pero sin el botón de "modo selección" — al ser
+   una página dedicada solo a mantenimiento de lo que está en venta (normalmente
+   pocos juegos), no hace falta ocultar las casillas por defecto como en la
+   colección principal. */
+#games-results.always-selectable .js-bulk-checkbox {
+    display: inline-block;
+}
+
+#games-results.always-selectable .js-bulk-select-col {
     display: table-cell;
 }
 
