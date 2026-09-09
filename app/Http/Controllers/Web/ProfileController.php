@@ -81,6 +81,12 @@ class ProfileController extends Controller
         // te desloguea a ti mismo.
         $request->user()->tokens()->delete();
 
+        // Mismo motivo: una cookie de "dispositivo de confianza" de 2FA
+        // robada tampoco debe sobrevivir a un cambio de contraseña — si no,
+        // seguiría saltándose el segundo factor hasta sus 30 días de vida
+        // aunque la contraseña ya no sirva.
+        $request->user()->twoFactorTrustedDevices()->delete();
+
         return redirect()->route('web.profile.edit')->with('success', 'Contraseña actualizada correctamente.');
     }
 

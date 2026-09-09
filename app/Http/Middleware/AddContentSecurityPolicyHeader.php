@@ -39,6 +39,13 @@ class AddContentSecurityPolicyHeader
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
             "font-src 'self' https://fonts.gstatic.com",
             "img-src 'self' data: blob: https:",
+            // Sin plugins/Flash/Java embebidos en ningún punto de la app:
+            // bloquearlo del todo en vez de heredar el 'self' de default-src.
+            "object-src 'none'",
+            // Evita que una inyección HTML (aunque script-src ya bloquee JS
+            // inline sin nonce) pueda colar un <base href> que redirija
+            // rutas relativas de la página a otro origen.
+            "base-uri 'self'",
         ]));
 
         return $response;

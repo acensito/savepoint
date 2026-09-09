@@ -15,6 +15,13 @@ class WishlistControllerTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_guest_is_redirected_to_login_from_every_wishlist_route(): void
+    {
+        $this->get('/wishlist')->assertRedirect('/login');
+        $this->get('/wishlist/create')->assertRedirect('/login');
+        $this->post('/wishlist')->assertRedirect('/login');
+    }
+
     public function test_index_only_lists_the_authenticated_users_wishlist_games(): void
     {
         $user = User::factory()->create();

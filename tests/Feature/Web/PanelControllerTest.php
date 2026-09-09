@@ -5,6 +5,7 @@ namespace Tests\Feature\Web;
 use App\Models\Edition;
 use App\Models\Game;
 use App\Models\Platform;
+use App\Models\TwoFactorTrustedDevice;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -440,6 +441,37 @@ class PanelControllerTest extends TestCase
         ]);
 
         $this->assertNotNull($user->fresh()->two_factor_verified_at);
+    }
+
+    public function test_disabling_two_factor_from_settings_revokes_trusted_devices(): void
+    {
+        // Si se reactiva más tarde, no debería seguir saltándose el desafío
+        // con dispositivos de confianza de una etapa anterior de la cuenta.
+        $user = User::factory()->create(['two_factor_enabled' => true]);
+        TwoFactorTrustedDevice::issueFor($user, '127.0.0.1', 'PHPUnit');
+
+        $this->actingAs($user)->patchJson('/panel/settings/toggles', [
+            'field' => 'two_factor_enabled',
+            'value' => false,
+        ]);
+
+        $this->assertDatabaseCount('two_factor_trusted_devices', 0);
+    }
+
+    public function test_enabling_two_factor_from_settings_does_not_touch_trusted_devices(): void
+    {
+        // El toggle solo revoca al DESACTIVAR (ver el test de arriba) -- no
+        // hay ningún dispositivo de confianza que pudiera colgar de "antes"
+        // al activarlo, así que no hace falta tocar nada aquí.
+        $user = User::factory()->create(['two_factor_enabled' => false]);
+        TwoFactorTrustedDevice::issueFor($user, '127.0.0.1', 'PHPUnit');
+
+        $this->actingAs($user)->patchJson('/panel/settings/toggles', [
+            'field' => 'two_factor_enabled',
+            'value' => true,
+        ]);
+
+        $this->assertDatabaseCount('two_factor_trusted_devices', 1);
     }
 
     /**

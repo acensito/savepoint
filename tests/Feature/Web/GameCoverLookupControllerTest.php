@@ -12,6 +12,18 @@ class GameCoverLookupControllerTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * A diferencia de test_cover_lookup_for_new_requires_authentication()
+     * (más abajo, sin juego), esta ruta CON juego no tenía ningún test de
+     * invitado — solo "prohibido para el juego de otro usuario" (con sesión).
+     */
+    public function test_cover_lookup_requires_authentication(): void
+    {
+        $game = Game::factory()->create();
+
+        $this->getJson("/games/{$game->id}/cover-lookup")->assertUnauthorized();
+    }
+
     public function test_cover_lookup_searches_cex_by_the_games_ean_and_returns_its_platform(): void
     {
         Http::fake([

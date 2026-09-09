@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Web;
 
+use App\Models\TwoFactorTrustedDevice;
 use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -30,6 +31,26 @@ class PasswordResetTest extends TestCase
         $response->assertRedirect();
         $response->assertSessionHas('success');
         Notification::assertSentTo($user, ResetPassword::class);
+    }
+
+    /**
+     * Seguridad: Password::sendResetLink() ya limita por EMAIL (60s entre
+     * envíos al mismo), pero eso no frena a una sola IP pidiendo el reset de
+     * muchos emails distintos seguidos — bombardeo de bandejas ajenas / abuso
+     * del envío de correo. Por eso se piden emails distintos en cada
+     * intento: si el límite fuera solo por email, este test no lo pillaría.
+     */
+    public function test_reset_link_requests_are_rate_limited_by_ip_across_different_emails(): void
+    {
+        Notification::fake();
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->post('/forgot-password', ['email' => "nobody{$i}@example.com"]);
+        }
+
+        $response = $this->post('/forgot-password', ['email' => 'nobody-final@example.com']);
+
+        $response->assertStatus(429);
     }
 
     public function test_requesting_a_reset_link_for_an_unknown_email_gives_the_same_generic_response(): void
@@ -79,6 +100,24 @@ class PasswordResetTest extends TestCase
         ]);
 
         $this->assertDatabaseCount('personal_access_tokens', 0);
+    }
+
+    public function test_resetting_the_password_revokes_trusted_two_factor_devices(): void
+    {
+        // Mismo motivo que el test de arriba: una cookie de "dispositivo de
+        // confianza" robada tampoco debe sobrevivir a un reset por email.
+        $user = User::factory()->create(['password' => Hash::make('old-password')]);
+        TwoFactorTrustedDevice::issueFor($user, '127.0.0.1', 'PHPUnit');
+        $token = Password::createToken($user);
+
+        $this->post('/reset-password', [
+            'token' => $token,
+            'email' => $user->email,
+            'password' => 'Brand-New-Password1',
+            'password_confirmation' => 'Brand-New-Password1',
+        ]);
+
+        $this->assertDatabaseCount('two_factor_trusted_devices', 0);
     }
 
     /**

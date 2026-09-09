@@ -282,6 +282,15 @@ class PanelController extends Controller
             $user->forceFill(['two_factor_verified_at' => now()])->save();
         }
 
+        // Al desactivar 2FA, las cookies de "dispositivo de confianza" que
+        // ya existieran pierden su sentido: si se reactiva más tarde, no
+        // deberían seguir saltándose el desafío como si nada — cada
+        // reactivación empieza limpia, sin dispositivos de confianza previos
+        // colgando de una etapa distinta de la cuenta.
+        if ($validated['field'] === 'two_factor_enabled' && ! $validated['value']) {
+            $user->twoFactorTrustedDevices()->delete();
+        }
+
         return response()->json(['ok' => true]);
     }
 

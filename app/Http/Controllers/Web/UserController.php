@@ -97,12 +97,15 @@ class UserController extends Controller
             'is_admin' => 'boolean',
         ]);
 
-        User::create([
+        $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
-            'is_admin' => $request->boolean('is_admin'),
         ]);
+
+        // forceFill(), no fillable: 'is_admin' es un privilegio, no un dato
+        // de perfil normal (ver User::class, junto a la lista Fillable).
+        $user->forceFill(['is_admin' => $request->boolean('is_admin')])->save();
 
         return redirect()->route('web.panel.users.index')->with('success', 'Usuario creado correctamente.');
     }
@@ -145,8 +148,11 @@ class UserController extends Controller
         if ($passwordChanged) {
             // Ver ProfileController::updatePassword(): un admin cambiándole
             // la contraseña a otro usuario debe cortar también sus tokens de
-            // la app móvil ya emitidos, no solo bloquear logins nuevos.
+            // la app móvil ya emitidos, no solo bloquear logins nuevos, y sus
+            // cookies de "dispositivo de confianza" de 2FA — si no, seguirían
+            // saltándose el segundo factor con la contraseña ya cambiada.
             $user->tokens()->delete();
+            $user->twoFactorTrustedDevices()->delete();
         }
 
         return redirect()->route('web.panel.users.index')->with('success', 'Usuario actualizado correctamente.');

@@ -56,6 +56,13 @@ class GameImportControllerTest extends TestCase
         $this->get('/games/import')->assertRedirect('/login');
     }
 
+    public function test_guest_is_redirected_to_login_from_every_other_import_route(): void
+    {
+        $this->post('/games/import')->assertRedirect('/login');
+        $this->postJson('/games/import/preview')->assertUnauthorized();
+        $this->get('/games/import/template')->assertRedirect('/login');
+    }
+
     public function test_import_form_can_be_rendered(): void
     {
         $user = User::factory()->create();

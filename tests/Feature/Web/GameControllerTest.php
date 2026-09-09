@@ -20,6 +20,20 @@ class GameControllerTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_guest_is_redirected_to_login_from_every_games_route(): void
+    {
+        $game = Game::factory()->create();
+
+        $this->get('/')->assertRedirect('/login');
+        $this->get('/games/create')->assertRedirect('/login');
+        $this->post('/games')->assertRedirect('/login');
+        $this->get("/games/{$game->id}")->assertRedirect('/login');
+        $this->get("/games/{$game->id}/edit")->assertRedirect('/login');
+        $this->patch("/games/{$game->id}/quick-update")->assertRedirect('/login');
+        $this->put("/games/{$game->id}")->assertRedirect('/login');
+        $this->delete("/games/{$game->id}")->assertRedirect('/login');
+    }
+
     public function test_create_form_does_not_show_the_wishlist_fields(): void
     {
         $user = User::factory()->create();
@@ -925,6 +939,46 @@ class GameControllerTest extends TestCase
         $this->assertSame(1, $game->wishlist_priority);
         $this->assertEquals(39.99, $game->wishlist_estimated_price);
         $this->assertSame('Tienda X', $game->wishlist_store);
+    }
+
+    /**
+     * Seguridad: mismo caso que ya cubre Api\GameControllerTest en el lado
+     * API, pero nunca probado en el formulario web — GameController::store()
+     * fuerza 'user_id' => auth()->id() por código (nunca desde $validated),
+     * así que un campo user_id colado en el POST no debe tener ningún efecto.
+     */
+    public function test_creating_a_game_ignores_a_spoofed_user_id_and_always_assigns_the_authenticated_user(): void
+    {
+        $user = User::factory()->create();
+        $victim = User::factory()->create();
+
+        $this->actingAs($user)->post('/games', [
+            'title' => 'Juego con user_id colado',
+            'play_status' => 'pending',
+            'user_id' => $victim->id,
+        ]);
+
+        $game = Game::where('title', 'Juego con user_id colado')->firstOrFail();
+        $this->assertSame($user->id, $game->user_id);
+    }
+
+    /**
+     * Mismo caso al actualizar: un user_id colado en el PUT no debe poder
+     * reasignar el juego a otra cuenta.
+     */
+    public function test_updating_a_game_ignores_a_spoofed_user_id(): void
+    {
+        $user = User::factory()->create();
+        $victim = User::factory()->create();
+        $game = Game::factory()->for($user)->create();
+
+        $this->actingAs($user)->put("/games/{$game->id}", [
+            'title' => $game->title,
+            'play_status' => 'pending',
+            'user_id' => $victim->id,
+        ]);
+
+        $this->assertSame($user->id, $game->fresh()->user_id);
     }
 
     public function test_creating_a_game_requires_title_and_play_status(): void

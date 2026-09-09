@@ -12,6 +12,14 @@ class SearchControllerTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_guest_cannot_use_the_quick_search(): void
+    {
+        Http::fake();
+
+        $this->getJson('/search/quick?q=Celeste')->assertUnauthorized();
+        Http::assertNothingSent();
+    }
+
     public function test_quick_shows_local_matches_and_still_offers_external_suggestions(): void
     {
         // #108: antes, tener ya "Resident Evil" en la colección dejaba sin
