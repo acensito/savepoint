@@ -62,6 +62,47 @@ class GameBulkActionController extends Controller
     }
 
     /**
+     * Marca de golpe como "en venta" todos los juegos seleccionados en el
+     * listado de la colección (#123).
+     */
+    public function markForSale(Request $request): RedirectResponse
+    {
+        $ids = $this->ownedSelectedIds($request);
+
+        Game::whereIn('id', $ids)->update(['for_sale' => true]);
+
+        // Mismo motivo que en destroy()/updatePlayStatus(): mass update por
+        // query builder, sin evento 'saved' que GameObserver pueda escuchar.
+        Cache::forget(StatsController::cacheKey(auth()->id()));
+
+        return redirect()->route('web.games.index')->with(
+            'success',
+            count($ids).' '.Str::plural('juego', count($ids)).' '.(count($ids) === 1 ? 'marcado' : 'marcados').' como en venta.'
+        );
+    }
+
+    /**
+     * Inversa de markForSale(), pero desde la propia página "En venta" (#123
+     * seguimiento): antes solo se podía quitar un juego cada vez, desde su
+     * ficha (ver GameController::quickUpdate()) — al vivir esta página
+     * pensada justo para hacerles mantenimiento en bloque, tenía sentido
+     * poder vaciarla de golpe.
+     */
+    public function unmarkForSale(Request $request): RedirectResponse
+    {
+        $ids = $this->ownedSelectedIds($request);
+
+        Game::whereIn('id', $ids)->update(['for_sale' => false]);
+
+        Cache::forget(StatsController::cacheKey(auth()->id()));
+
+        return redirect()->route('web.for-sale.index')->with(
+            'success',
+            count($ids).' '.Str::plural('juego', count($ids)).' '.(count($ids) === 1 ? 'quitado' : 'quitados').' de en venta.'
+        );
+    }
+
+    /**
      * IDs seleccionados en el formulario, acotados a los que de verdad
      * pertenecen al usuario autenticado (evita que alguien manipule el HTML
      * y mande el ID de un juego ajeno).

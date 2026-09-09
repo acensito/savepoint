@@ -87,4 +87,74 @@ class GameBulkActionControllerTest extends TestCase
             'play_status' => 'not-a-real-status',
         ])->assertSessionHasErrors('play_status');
     }
+
+    public function test_user_can_bulk_mark_their_own_games_as_for_sale(): void
+    {
+        $user = User::factory()->create();
+        $game1 = Game::factory()->for($user)->create(['for_sale' => false]);
+        $game2 = Game::factory()->for($user)->create(['for_sale' => false]);
+
+        $response = $this->actingAs($user)->post('/games/bulk-for-sale', [
+            'game_ids' => [$game1->id, $game2->id],
+        ]);
+
+        $response->assertRedirect(route('web.games.index'));
+        $this->assertDatabaseHas('games', ['id' => $game1->id, 'for_sale' => true]);
+        $this->assertDatabaseHas('games', ['id' => $game2->id, 'for_sale' => true]);
+    }
+
+    public function test_bulk_mark_for_sale_ignores_games_belonging_to_other_users(): void
+    {
+        $user = User::factory()->create();
+        $otherUsersGame = Game::factory()->for(User::factory())->create(['for_sale' => false]);
+
+        $this->actingAs($user)->post('/games/bulk-for-sale', [
+            'game_ids' => [$otherUsersGame->id],
+        ])->assertRedirect(route('web.games.index'));
+
+        $this->assertDatabaseHas('games', ['id' => $otherUsersGame->id, 'for_sale' => false]);
+    }
+
+    public function test_bulk_mark_for_sale_requires_at_least_one_selected_game(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post('/games/bulk-for-sale', [])
+            ->assertSessionHasErrors('game_ids');
+    }
+
+    public function test_user_can_bulk_unmark_their_own_games_as_for_sale(): void
+    {
+        $user = User::factory()->create();
+        $game1 = Game::factory()->for($user)->create(['for_sale' => true]);
+        $game2 = Game::factory()->for($user)->create(['for_sale' => true]);
+
+        $response = $this->actingAs($user)->post('/games/bulk-unmark-for-sale', [
+            'game_ids' => [$game1->id, $game2->id],
+        ]);
+
+        $response->assertRedirect(route('web.for-sale.index'));
+        $this->assertDatabaseHas('games', ['id' => $game1->id, 'for_sale' => false]);
+        $this->assertDatabaseHas('games', ['id' => $game2->id, 'for_sale' => false]);
+    }
+
+    public function test_bulk_unmark_for_sale_ignores_games_belonging_to_other_users(): void
+    {
+        $user = User::factory()->create();
+        $otherUsersGame = Game::factory()->for(User::factory())->create(['for_sale' => true]);
+
+        $this->actingAs($user)->post('/games/bulk-unmark-for-sale', [
+            'game_ids' => [$otherUsersGame->id],
+        ])->assertRedirect(route('web.for-sale.index'));
+
+        $this->assertDatabaseHas('games', ['id' => $otherUsersGame->id, 'for_sale' => true]);
+    }
+
+    public function test_bulk_unmark_for_sale_requires_at_least_one_selected_game(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post('/games/bulk-unmark-for-sale', [])
+            ->assertSessionHasErrors('game_ids');
+    }
 }

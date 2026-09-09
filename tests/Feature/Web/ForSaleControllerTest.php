@@ -53,4 +53,19 @@ class ForSaleControllerTest extends TestCase
         $response->assertOk();
         $response->assertSee('En venta');
     }
+
+    /**
+     * #123 (seguimiento): antes solo se podía quitar un juego de venta cada
+     * vez, desde su propia ficha.
+     */
+    public function test_index_offers_bulk_selection_to_unmark_games_from_sale(): void
+    {
+        $user = User::factory()->create();
+        Game::factory()->for($user)->create(['for_sale' => true]);
+
+        $response = $this->actingAs($user)->get('/for-sale');
+
+        $response->assertSee(route('web.games.bulk-unmark-for-sale'), false);
+        $response->assertSee('name="game_ids[]"', false);
+    }
 }
