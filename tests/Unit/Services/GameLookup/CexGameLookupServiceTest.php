@@ -114,4 +114,52 @@ class CexGameLookupServiceTest extends TestCase
 
         $this->assertSame([], $this->makeService()->search('algo'));
     }
+
+    public function test_current_price_prefers_the_exact_title_and_platform_match(): void
+    {
+        Http::fake([
+            'search.webuy.io/*' => Http::response([
+                'hits' => [
+                    ['boxName' => 'Hollow Knight Bundle', 'sellPrice' => 60, 'categoryFriendlyName' => 'Switch Juegos'],
+                    ['boxName' => 'Hollow Knight', 'sellPrice' => 20, 'categoryFriendlyName' => 'PS4 Juegos'],
+                    // Título exacto Y plataforma exacta: debe ganar a los dos de arriba.
+                    ['boxName' => 'Hollow Knight', 'sellPrice' => 25, 'categoryFriendlyName' => 'Switch Juegos'],
+                ],
+            ], 200),
+        ]);
+
+        $match = $this->makeService()->currentPrice('Hollow Knight', 'Switch');
+
+        $this->assertSame('Hollow Knight', $match->title);
+        $this->assertSame(25.0, $match->price);
+    }
+
+    public function test_current_price_ignores_hits_without_a_sell_price(): void
+    {
+        Http::fake([
+            'search.webuy.io/*' => Http::response([
+                'hits' => [
+                    ['boxName' => 'Hollow Knight', 'categoryFriendlyName' => 'Switch Juegos'],
+                    ['boxName' => 'Hollow Knight Silksong', 'sellPrice' => 40, 'categoryFriendlyName' => 'Switch Juegos'],
+                ],
+            ], 200),
+        ]);
+
+        $match = $this->makeService()->currentPrice('Hollow Knight', 'Switch');
+
+        $this->assertSame('Hollow Knight Silksong', $match->title);
+        $this->assertSame(40.0, $match->price);
+    }
+
+    public function test_current_price_returns_null_without_any_match(): void
+    {
+        Http::fake(['search.webuy.io/*' => Http::response(['hits' => []], 200)]);
+
+        $this->assertNull($this->makeService()->currentPrice('Un juego que no existe'));
+    }
+
+    public function test_current_price_returns_null_for_a_blank_title_without_making_a_request(): void
+    {
+        $this->assertNull($this->makeService()->currentPrice('   '));
+    }
 }

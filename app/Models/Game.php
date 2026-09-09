@@ -21,6 +21,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $release_date
  * @property Carbon|null $purchase_date
  * @property Carbon|null $sold_at
+ * @property Carbon|null $cex_checked_at
  */
 class Game extends Model
 {
@@ -46,6 +47,8 @@ class Game extends Model
         'wishlist_priority',
         'wishlist_estimated_price',
         'wishlist_store',
+        'cex_current_price',
+        'cex_checked_at',
         'play_status',
         'condition',
         'edition_id',
@@ -87,6 +90,8 @@ class Game extends Model
             'playtime_hours' => 'decimal:1',
             'wishlist_priority' => 'integer',
             'wishlist_estimated_price' => 'decimal:2',
+            'cex_current_price' => 'decimal:2',
+            'cex_checked_at' => 'datetime',
             'igdb_genres' => 'array',
             'igdb_rating' => 'decimal:2',
             'igdb_time_to_beat' => 'array',
@@ -163,6 +168,25 @@ class Game extends Model
         'ESRB RP' => null, 'ESRB EC' => 0, 'ESRB E' => 6, 'ESRB E10+' => 10,
         'ESRB T' => 13, 'ESRB M' => 17, 'ESRB AO' => 18,
     ];
+
+    // ==========================================
+    // LISTA DE DESEOS
+    // ==========================================
+
+    /**
+     * Ha bajado al precio (o menos) que se apuntó al añadirlo a la lista de
+     * deseos — ver CexGameLookupService::currentPrice() y
+     * Jobs\FetchCexWishlistPrice, que rellena cex_current_price/
+     * cex_checked_at en segundo plano al abrir la wishlist. false sin precio
+     * objetivo puesto o sin haberse consultado CEX todavía, no solo cuando
+     * el precio actual es mayor.
+     */
+    public function hasReachedWishlistPrice(): bool
+    {
+        return $this->wishlist_estimated_price !== null
+            && $this->cex_current_price !== null
+            && (float) $this->cex_current_price <= (float) $this->wishlist_estimated_price;
+    }
 
     // ==========================================
     // BÚSQUEDA

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\FetchCexWishlistPrice;
 use App\Models\Edition;
 use App\Models\Game;
 use App\Models\Platform;
@@ -56,7 +57,37 @@ class WishlistController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return view('wishlist.index', compact('games', 'query', 'sort', 'dir'));
+        // Solo la página actual (máx. 20), y solo con precio objetivo puesto
+        // — sin uno, no hay nada con lo que comparar el precio de CEX. Mismo
+        // motivo que el match de IGDB en GameController::show(): no bloquear
+        // la carga con una llamada HTTP externa (ver Jobs\FetchCexWishlistPrice).
+        foreach ($games as $game) {
+            if (
+                $game->wishlist_estimated_price !== null
+                && ($game->cex_checked_at === null
+                    || $game->cex_checked_at->lt(now()->subDays(FetchCexWishlistPrice::STALE_AFTER_DAYS)))
+            ) {
+                FetchCexWishlistPrice::dispatch($game->id);
+                // refresh() recoge el precio ya en esta misma carga cuando la
+                // cola es síncrona (entorno de test, ver phpunit.xml); con
+                // Redis en producción es un no-op inofensivo (el job todavía
+                // no se ha procesado), el precio se verá en la próxima visita.
+                $game->refresh();
+            }
+        }
+
+        // Cuenta global (no solo la página actual): un aviso arriba de la
+        // lista para que se note aunque el juego en cuestión esté en otra
+        // página u orden. whereColumn compara directamente en SQL, sin
+        // cargar cada juego para mirar hasReachedWishlistPrice() a mano.
+        $reachedTargetCount = Game::where('user_id', auth()->id())
+            ->where('status', 'wishlist')
+            ->whereNotNull('wishlist_estimated_price')
+            ->whereNotNull('cex_current_price')
+            ->whereColumn('cex_current_price', '<=', 'wishlist_estimated_price')
+            ->count();
+
+        return view('wishlist.index', compact('games', 'query', 'sort', 'dir', 'reachedTargetCount'));
     }
 
     /**
