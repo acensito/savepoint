@@ -757,6 +757,91 @@ function initImportStatusPolling() {
 
 initImportStatusPolling();
 
+/**
+ * Sondea el resultado de un lote de "identificar en bloque" en curso
+ * (games/auto-identify.blade.php, ver
+ * GameAutoIdentifyController::store()/status(), Jobs\IdentifyMissingGameCovers)
+ * y, al terminar, pinta la cola de revisión: cada candidato encontrado con
+ * una casilla marcada por defecto, para que el usuario desmarque los que no
+ * le valgan antes de confirmar en bloque (issue #128) — nada se aplica hasta
+ * que se envía ese formulario.
+ */
+function initAutoIdentifyStatusPolling() {
+    const statusEl = document.getElementById('auto-identify-status');
+    if (!statusEl) return;
+
+    const statusUrl = statusEl.dataset.statusUrl;
+    const confirmUrl = statusEl.dataset.confirmUrl;
+    const csrfToken = statusEl.dataset.csrfToken;
+    const pendingEl = document.getElementById('auto-identify-status-pending');
+    const resultEl = document.getElementById('auto-identify-status-result');
+
+    function renderCandidates(data) {
+        pendingEl.classList.add('hidden');
+        resultEl.classList.remove('hidden');
+
+        if (!data.candidates.length) {
+            resultEl.innerHTML = `<p class="text-sm text-slate-400">No se ha encontrado ningún candidato fiable entre los ${data.total} ${data.total === 1 ? 'juego revisado' : 'juegos revisados'}.</p>`;
+            return;
+        }
+
+        const rows = data.candidates.map((c) => `
+            <li class="flex items-center gap-3 p-3 rounded-lg border border-slate-800">
+                <input type="checkbox" name="game_ids[]" value="${c.game_id}" checked
+                    class="rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500 shrink-0">
+                ${c.proposed_cover_url
+                    ? `<img src="${escapeHtml(c.proposed_cover_url)}" alt="" class="w-10 h-10 object-cover rounded border border-slate-700 shrink-0">`
+                    : '<div class="w-10 h-10 rounded bg-slate-800 border border-slate-700 shrink-0"></div>'}
+                <span class="flex-1 min-w-0">
+                    <span class="block text-sm text-slate-200 truncate">${escapeHtml(c.title)}</span>
+                    <span class="block text-xs text-slate-500 truncate">
+                        Encontrado como "${escapeHtml(c.matched_title)}"${c.matched_platform ? ` (${escapeHtml(c.matched_platform)})` : ''}${!c.current_ean && c.proposed_ean ? ` · EAN ${escapeHtml(c.proposed_ean)}` : ''}
+                    </span>
+                </span>
+            </li>
+        `).join('');
+
+        resultEl.innerHTML = `
+            <p class="text-sm text-slate-400 mb-3">${data.candidates.length} ${data.candidates.length === 1 ? 'candidato encontrado' : 'candidatos encontrados'} de ${data.total} ${data.total === 1 ? 'juego revisado' : 'juegos revisados'}. Desmarca los que no quieras aplicar.</p>
+            <form method="POST" action="${confirmUrl}">
+                <input type="hidden" name="_token" value="${csrfToken}">
+                <ul class="space-y-2 max-h-96 overflow-y-auto">${rows}</ul>
+                <div class="flex justify-end mt-4 pt-4 border-t border-slate-800">
+                    <button type="submit" class="bg-(--color-navbar) text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-(--color-navbar-hover) transition-colors">
+                        Aplicar seleccionados
+                    </button>
+                </div>
+            </form>
+        `;
+    }
+
+    async function poll() {
+        try {
+            const response = await fetch(statusUrl, {headers: {'Accept': 'application/json'}});
+
+            if (!response.ok) {
+                pendingEl.textContent = 'No se ha podido consultar el estado de la búsqueda.';
+                return;
+            }
+
+            const data = await response.json();
+
+            if (!data.done) {
+                setTimeout(poll, 1500);
+                return;
+            }
+
+            renderCandidates(data);
+        } catch (e) {
+            pendingEl.textContent = 'No se ha podido consultar el estado de la búsqueda.';
+        }
+    }
+
+    poll().then(r => r);
+}
+
+initAutoIdentifyStatusPolling();
+
 const MOBILE_DRAWER_CLASS = 'mobile-drawer-open';
 
 function initMobileDrawer() {

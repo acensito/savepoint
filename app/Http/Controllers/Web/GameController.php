@@ -7,6 +7,7 @@ use App\Jobs\MatchGameWithIgdb;
 use App\Models\Edition;
 use App\Models\Game;
 use App\Models\Platform;
+use App\Services\GameLookup\ExternalCoverDownloader;
 use App\Services\GameLookup\IgdbGameMatcher;
 use App\Services\GameLookup\IgdbLookupService;
 use App\Services\Games\GameCollectionQuery;
@@ -14,12 +15,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
-use Throwable;
 
 class GameController extends Controller
 {
@@ -27,6 +25,7 @@ class GameController extends Controller
         private readonly GameCollectionQuery $collectionQuery,
         private readonly IgdbLookupService $igdbLookup,
         private readonly IgdbGameMatcher $igdbMatcher,
+        private readonly ExternalCoverDownloader $coverDownloader,
     ) {}
 
     /**
@@ -186,7 +185,7 @@ class GameController extends Controller
             // Carátula sugerida desde la ficha de comprobación de una
             // búsqueda externa (CEX): se descarga aquí, no antes, para no
             // dejar ficheros huérfanos si el usuario nunca llega a guardar.
-            $validated['cover'] = $this->downloadExternalCover((string) $request->input('cover_url'));
+            $validated['cover'] = $this->coverDownloader->download((string) $request->input('cover_url'));
         } else {
             $validated['cover'] = null;
         }
@@ -344,7 +343,7 @@ class GameController extends Controller
             // Carátula elegida desde "Buscar carátula en CEX" (ver
             // GameCoverLookupController::coverLookup()): mismo tratamiento
             // que en el alta, se descarga aquí y se borra la anterior si había.
-            $downloaded = $this->downloadExternalCover((string) $request->input('cover_url'));
+            $downloaded = $this->coverDownloader->download((string) $request->input('cover_url'));
             if ($downloaded !== null) {
                 if ($game->cover) {
                     Storage::disk('public')->delete($game->cover);
@@ -437,54 +436,6 @@ class GameController extends Controller
         unset($validated['region_select'], $validated['region_other'], $validated['age_rating_select'], $validated['age_rating_other']);
 
         return $validated;
-    }
-
-    /**
-     * Descarga la carátula sugerida por una búsqueda externa (CEX) cuando el
-     * usuario confirma el alta desde su ficha de comprobación, en vez de
-     * subir un fichero a mano. El campo llega como texto en el propio
-     * formulario (input oculto), así que se valida contra una lista de hosts
-     * permitidos (config('services.cex.image_hosts')) antes de pedirlo: sin
-     * eso, cualquiera podría manipular ese campo para convertir el alta de
-     * un juego en un proxy hacia una URL interna (SSRF). Si algo falla (host
-     * no permitido, timeout, no es una imagen...) se devuelve null en vez de
-     * lanzar: el juego se crea igualmente, solo sin carátula.
-     */
-    private function downloadExternalCover(string $url): ?string
-    {
-        $host = parse_url($url, PHP_URL_HOST);
-        $scheme = parse_url($url, PHP_URL_SCHEME);
-        $allowedHosts = config('services.cex.image_hosts', []);
-
-        if ($scheme !== 'https' || $host === null || ! in_array($host, $allowedHosts, true)) {
-            return null;
-        }
-
-        try {
-            $response = Http::timeout(5)->withOptions(['allow_redirects' => false])->get($url);
-        } catch (Throwable $e) {
-            return null;
-        }
-
-        if (! $response->ok() || strlen($response->body()) > 3 * 1024 * 1024) {
-            return null;
-        }
-
-        $extension = match (true) {
-            str_starts_with((string) $response->header('Content-Type'), 'image/jpeg') => 'jpg',
-            str_starts_with((string) $response->header('Content-Type'), 'image/png') => 'png',
-            str_starts_with((string) $response->header('Content-Type'), 'image/webp') => 'webp',
-            default => null,
-        };
-
-        if ($extension === null) {
-            return null;
-        }
-
-        $path = 'covers/'.Str::random(40).'.'.$extension;
-        Storage::disk('public')->put($path, $response->body());
-
-        return $path;
     }
 
     /**
