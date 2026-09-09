@@ -1,3 +1,4 @@
+@php use Illuminate\Support\Str; @endphp
 @extends('layouts.app')
 
 @section('content')
@@ -44,6 +45,31 @@
                                     title="{{ $row['platform']?->name ?? 'Sin plataforma' }}: {{ $row['total'] }} juego(s)"></div>
                             </div>
                             <div class="w-8 shrink-0 text-right text-sm font-medium text-slate-300 tabular-nums">{{ $row['total'] }}</div>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+        </div>
+
+        <!-- Gasto por plataforma -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 lg:col-span-2">
+            <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-5">Gasto por plataforma</h2>
+
+            @if(empty($byPlatformSpending))
+                <p class="text-sm text-slate-500">Todavía no hay juegos con precio pagado registrado.</p>
+            @else
+                <div class="space-y-3">
+                    @foreach($byPlatformSpending as $row)
+                        <div class="flex items-center gap-4">
+                            <div class="w-40 shrink-0">
+                                <x-platform-chip :platform="$row['platform']" class="max-w-full" />
+                            </div>
+                            <div class="flex-1 h-3 rounded-full bg-slate-800 overflow-hidden">
+                                <div class="h-full bg-indigo-500 rounded-r-[4px]"
+                                    style="width: {{ max($row['percent'], 3) }}%"
+                                    title="{{ $row['platform']?->name ?? 'Sin plataforma' }}: {{ number_format($row['total'], 2, ',', '.') }} €"></div>
+                            </div>
+                            <div class="w-20 shrink-0 text-right text-sm font-medium text-slate-300 tabular-nums">{{ number_format($row['total'], 2, ',', '.') }} €</div>
                         </div>
                     @endforeach
                 </div>
@@ -202,6 +228,44 @@
                     @endif
                 </div>
             @endif
+        </div>
+
+        <!-- Conservación -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 lg:col-span-2">
+            <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-5">Conservación</h2>
+            <x-stacked-bar :segments="$byRating" />
+        </div>
+
+        <!-- Conservación por plataforma: colapsable (issue del 2026-09-09), no
+             abierta por defecto -- con 13 plataformas ahora mismo, mostrar
+             las 13 barras de golpe sería más ruido que información. -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 lg:col-span-2">
+            <details class="group">
+                <summary class="text-sm font-semibold text-slate-300 uppercase tracking-wider cursor-pointer select-none list-none flex items-center gap-2 [&::-webkit-details-marker]:hidden">
+                    <x-gicon name="chevron_right" class="text-[18px] transition-transform group-open:rotate-90" />
+                    Conservación por plataforma
+                </summary>
+
+                @if(empty($byPlatformRating))
+                    <p class="text-sm text-slate-500 mt-4">Todavía no hay juegos registrados.</p>
+                @else
+                    <div class="mt-5 space-y-6">
+                        @foreach($byPlatformRating as $row)
+                            <div class="pt-4 first:pt-0 first:border-t-0 border-t border-slate-800">
+                                <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                                    <x-platform-chip :platform="$row['platform']" />
+                                    <p class="text-xs text-slate-500 tabular-nums">
+                                        {{ $row['total'] }} {{ Str::plural('juego', $row['total']) }}
+                                        · {{ number_format($row['spent'], 2, ',', '.') }} €
+                                        · media {{ $row['averageRating'] ? number_format($row['averageRating'], 1, ',', '.') : '—' }}
+                                    </p>
+                                </div>
+                                <x-stacked-bar :segments="$row['byRating']" />
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </details>
         </div>
     </div>
 @endsection

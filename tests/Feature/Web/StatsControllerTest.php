@@ -51,6 +51,27 @@ class StatsControllerTest extends TestCase
         $this->assertSame($platform->id, $byPlatform[0]['platform']->id);
     }
 
+    public function test_stats_breaks_down_spending_by_platform(): void
+    {
+        $user = User::factory()->create();
+        $switch = Platform::factory()->create(['name' => 'Switch']);
+        $ps4 = Platform::factory()->create(['name' => 'PS4']);
+
+        Game::factory()->for($user)->create(['platform_id' => $switch->id, 'price_paid' => 10]);
+        Game::factory()->for($user)->create(['platform_id' => $switch->id, 'price_paid' => 15]);
+        Game::factory()->for($user)->create(['platform_id' => $ps4->id, 'price_paid' => 5]);
+
+        $response = $this->actingAs($user)->get('/stats');
+
+        $byPlatformSpending = collect($response->viewData('byPlatformSpending'))
+            ->keyBy(fn ($row) => $row['platform']->id);
+
+        $this->assertSame(25.0, $byPlatformSpending[$switch->id]['total']);
+        $this->assertSame(100.0, $byPlatformSpending[$switch->id]['percent']);
+        $this->assertSame(5.0, $byPlatformSpending[$ps4->id]['total']);
+        $this->assertSame(20.0, $byPlatformSpending[$ps4->id]['percent']);
+    }
+
     public function test_stats_breaks_down_games_by_play_status_and_ownership(): void
     {
         $user = User::factory()->create();
@@ -67,6 +88,59 @@ class StatsControllerTest extends TestCase
         $this->assertSame(1, $byPlayStatus['Pendiente']['total']);
         $this->assertSame(1, $byStatus['En colección']['total']);
         $this->assertSame(1, $byStatus['Lista de deseos']['total']);
+    }
+
+    public function test_stats_breaks_down_games_by_rating(): void
+    {
+        $user = User::factory()->create();
+
+        Game::factory()->for($user)->create(['rating' => 5]);
+        Game::factory()->for($user)->create(['rating' => 5]);
+        Game::factory()->for($user)->create(['rating' => 1]);
+        Game::factory()->for($user)->create(['rating' => null]);
+
+        $response = $this->actingAs($user)->get('/stats');
+
+        $byRating = collect($response->viewData('byRating'))->keyBy('label');
+
+        $this->assertSame(2, $byRating['Nuevo / precintado']['total']);
+        $this->assertSame(50.0, $byRating['Nuevo / precintado']['percent']);
+        $this->assertSame(1, $byRating['Malo']['total']);
+        $this->assertSame(0, $byRating['Regular']['total']);
+        $this->assertSame(1, $byRating['Sin valorar']['total']);
+        $this->assertSame(25.0, $byRating['Sin valorar']['percent']);
+    }
+
+    /**
+     * (2026-09-09): además del reparto de Conservación del total, uno
+     * acotado a cada plataforma con su propio mini-resumen (total/gasto/
+     * media) — para no tener que cruzar "Juegos por plataforma" a mano.
+     */
+    public function test_stats_breaks_down_rating_and_summary_per_platform(): void
+    {
+        $user = User::factory()->create();
+        $switch = Platform::factory()->create(['name' => 'Switch']);
+        $ps4 = Platform::factory()->create(['name' => 'PS4']);
+
+        Game::factory()->for($user)->create(['platform_id' => $switch->id, 'rating' => 5, 'price_paid' => 10]);
+        Game::factory()->for($user)->create(['platform_id' => $switch->id, 'rating' => 3, 'price_paid' => 20]);
+        Game::factory()->for($user)->create(['platform_id' => $ps4->id, 'rating' => 1, 'price_paid' => 5]);
+
+        $response = $this->actingAs($user)->get('/stats');
+
+        $byPlatformRating = collect($response->viewData('byPlatformRating'))->keyBy(fn ($row) => $row['platform']->id);
+
+        $switchRow = $byPlatformRating[$switch->id];
+        $this->assertSame(2, $switchRow['total']);
+        $this->assertSame(30.0, $switchRow['spent']);
+        $this->assertSame(4.0, $switchRow['averageRating']);
+        $this->assertSame(1, collect($switchRow['byRating'])->firstWhere('label', 'Nuevo / precintado')['total']);
+        $this->assertSame(1, collect($switchRow['byRating'])->firstWhere('label', 'Bueno')['total']);
+
+        $ps4Row = $byPlatformRating[$ps4->id];
+        $this->assertSame(1, $ps4Row['total']);
+        $this->assertSame(5.0, $ps4Row['spent']);
+        $this->assertSame(1.0, $ps4Row['averageRating']);
     }
 
     public function test_stats_breaks_down_sales_by_year(): void
