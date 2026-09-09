@@ -208,13 +208,23 @@ class GameCsvImporter
     }
 
     /**
-     * Igual que resolvePlatform() pero para ediciones (sin fabricante ni colores que asignar).
+     * Igual que resolvePlatform() pero para ediciones (sin fabricante ni
+     * colores que asignar). El CSV no trae ninguna columna de soporte
+     * (issue #142: Físico se desglosó en disco/cartucho/diskette/...), así
+     * que un nombre de edición que ya exista en varios soportes a la vez
+     * (p. ej. "Normal" en cartucho, disco y diskette) es ambiguo por nombre
+     * solo — se prefiere el soporte 'physical_disc' porque es, con
+     * diferencia, el más habitual entre las plataformas que se importan por
+     * CSV, en vez de dejar la elección al orden sin definir que devolvería
+     * la consulta sin este desempate.
      *
      * @return array{0: int, 1: bool}
      */
     private function resolveEdition(string $name): array
     {
-        $edition = Edition::whereRaw('LOWER(name) = ?', [Str::lower($name)])->first();
+        $edition = Edition::whereRaw('LOWER(name) = ?', [Str::lower($name)])
+            ->orderByRaw("CASE WHEN format = 'physical_disc' THEN 0 ELSE 1 END")
+            ->first();
 
         if ($edition) {
             return [$edition->id, false];
