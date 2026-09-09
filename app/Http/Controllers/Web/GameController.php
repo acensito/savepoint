@@ -134,6 +134,7 @@ class GameController extends Controller
     {
         $platforms = Platform::orderBy('name')->get();
         $editions = Edition::with('platforms')->orderBy('name')->get();
+        $availableGenres = $this->availableGenres();
 
         $prefill = [
             'ean' => $request->query('ean'),
@@ -145,7 +146,27 @@ class GameController extends Controller
             'cover_url' => $request->query('cover_url'),
         ];
 
-        return view('games.create', compact('platforms', 'editions', 'prefill'));
+        return view('games.create', compact('platforms', 'editions', 'prefill', 'availableGenres'));
+    }
+
+    /**
+     * Géneros ya escritos por el usuario en el resto de su colección, para
+     * sugerirlos como autocompletado en el campo de texto libre 'genres' del
+     * formulario (ver games/_form.blade.php) sin necesidad de un catálogo
+     * propio ni de tocar el modelo de datos (issue #24).
+     *
+     * @return array<int, string>
+     */
+    private function availableGenres(): array
+    {
+        return Game::where('user_id', auth()->id())
+            ->whereNotNull('genres')
+            ->pluck('genres')
+            ->flatten()
+            ->unique()
+            ->sort(SORT_NATURAL | SORT_FLAG_CASE)
+            ->values()
+            ->all();
     }
 
     // Guarda el juego en la base de datos
@@ -283,6 +304,7 @@ class GameController extends Controller
 
         $platforms = Platform::orderBy('name')->get();
         $editions = Edition::with('platforms')->orderBy('name')->get();
+        $availableGenres = $this->availableGenres();
 
         // Llega en ?convert_to_owned=1 desde la acción "Pasar a la colección"
         // de la wishlist: mismo formulario de edición de siempre, con todos
@@ -290,7 +312,7 @@ class GameController extends Controller
         // preseleccionadas para no tener que cambiarlas a mano.
         $convertToOwned = $request->boolean('convert_to_owned');
 
-        return view('games.edit', compact('game', 'platforms', 'editions', 'convertToOwned'));
+        return view('games.edit', compact('game', 'platforms', 'editions', 'convertToOwned', 'availableGenres'));
     }
 
     /**

@@ -5,6 +5,10 @@ sección al final de `README.md`; se separó a este fichero para que el README
 pueda ser un documento de presentación del proyecto en vez de una lista que
 crece sin parar.
 
+## 2026-09-09
+
+- **Autocompletado de géneros ya usados en la colección** (#24): el campo de texto libre `genres` (formulario de alta/edición) sugiere ahora, mientras se escribe, los géneros que el usuario ya ha tecleado en otros juegos de su colección — sin catálogo precargado ni cambio de modelo de datos, sigue siendo la misma cadena "Acción, Aventura, RPG" separada por comas de siempre. El filtrado se hace sobre el fragmento tras la última coma, no sobre el valor completo, para que funcione bien escribiendo varios géneros seguidos. Alcance recortado a propósito: se descarta de momento la idea original del issue de una tabla `tags` aparte (etiquetas propias tipo "Backlog urgente"), y el filtro por género en el listado se deja pendiente para otra tanda.
+
 ## 2026-09-08
 
 - **README puesto al día** (#164, con Andrés Podadera como coautor): badges desfasados corregidos (PHP 8.4, PostgreSQL 18), documentadas las features de toda esta tanda (filtro por conservación, aviso de mal estado, sugerencias de CEX junto a coincidencias locales, cuarta vista de la colección, tema automático, Zona de peligro del panel) y ampliada la sección de Tests con su cobertura nueva. Capturas actualizadas: `01_home`/`05_control_panel` sustituidas, `04_new_editions_formats`/`08_text_view` añadidas, la vieja `04_editions_view.png` borrada por quedarse sin ninguna referencia.
