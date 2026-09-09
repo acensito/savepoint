@@ -4,6 +4,7 @@ use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\CommissionController;
 use App\Http\Controllers\Web\EditionController;
 use App\Http\Controllers\Web\ForSaleController;
+use App\Http\Controllers\Web\GameAutoIdentifyController;
 use App\Http\Controllers\Web\GameBulkActionController;
 use App\Http\Controllers\Web\GameController;
 use App\Http\Controllers\Web\GameCoverLookupController;
@@ -193,6 +194,14 @@ Route::middleware('auth')->group(function () {
     Route::post('/games/import/preview', [GameImportController::class, 'preview'])->name('web.games.import.preview');
     Route::get('/games/import/template', [GameImportController::class, 'template'])->name('web.games.import.template');
     Route::get('/games/import/status/{importId}', [GameImportController::class, 'importStatus'])->name('web.games.import.status');
+
+    // Identificar en bloque carátula/EAN de los juegos sin carátula de una
+    // plataforma (issue #128): mismo patrón job en cola + caché de progreso
+    // + sondeo que la importación de arriba.
+    Route::get('/games/auto-identify', [GameAutoIdentifyController::class, 'create'])->name('web.games.auto-identify');
+    Route::post('/games/auto-identify', [GameAutoIdentifyController::class, 'store'])->name('web.games.auto-identify.store');
+    Route::get('/games/auto-identify/status/{batchId}', [GameAutoIdentifyController::class, 'status'])->name('web.games.auto-identify.status');
+    Route::post('/games/auto-identify/confirm/{batchId}', [GameAutoIdentifyController::class, 'confirm'])->name('web.games.auto-identify.confirm');
 
     // Papelera, exportación imprimible/PDF y CSV, acciones en bloque y
     // búsqueda de carátula en CEX: controladores propios, separados de

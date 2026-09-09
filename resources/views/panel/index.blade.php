@@ -27,6 +27,12 @@
                 'description' => 'Listado completo en una vista imprimible, lista para guardar como PDF desde el navegador.',
             ],
             [
+                'route' => route('web.games.auto-identify'),
+                'icon' => 'travel_explore',
+                'title' => 'Identificar carátulas',
+                'description' => 'Busca carátula/EAN en bloque, por plataforma, para los juegos que no tienen ninguna.',
+            ],
+            [
                 'route' => route('web.games.trash'),
                 'icon' => 'delete',
                 'title' => 'Papelera de reciclaje',
