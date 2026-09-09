@@ -120,6 +120,33 @@ class GameImportControllerTest extends TestCase
         $this->assertSame(1, Platform::where('name', 'Nintendo Switch')->count());
     }
 
+    /**
+     * Regresión (#142 + import real de #128): "Normal" existe a la vez en
+     * varios soportes (cartucho/disco/diskette), así que buscarla solo por
+     * nombre es ambigua sin una columna de formato en el CSV — se prefiere
+     * la de disco, con diferencia el soporte más habitual entre las
+     * plataformas que se importan por CSV.
+     */
+    public function test_import_prefers_the_physical_disc_edition_when_the_name_is_ambiguous_across_formats(): void
+    {
+        $user = User::factory()->create();
+        // Nombre propio del test, no "Normal": la migración
+        // seed_normal_edition ya deja de fábrica una "Normal" en disco, y
+        // reusar ese nombre aquí dejaría dos ediciones válidas en disco
+        // entre las que elegir, sin que la aserción sepa cuál de las dos
+        // esperar.
+        $cartridge = Edition::factory()->create(['name' => 'Edición Ambigua', 'format' => Edition::FORMAT_PHYSICAL_CARTRIDGE]);
+        $disc = Edition::factory()->create(['name' => 'Edición Ambigua', 'format' => Edition::FORMAT_PHYSICAL_DISC]);
+
+        $csv = "Título,Plataforma,Edición\r\nHalo 3,Xbox 360,Edición Ambigua\r\n";
+
+        $response = $this->actingAs($user)->post('/games/import', ['file' => $this->csvFile($csv)]);
+        $this->importStatus($response)->assertJsonPath('createdEditions', 0);
+
+        $this->assertDatabaseHas('games', ['title' => 'Halo 3', 'edition_id' => $disc->id]);
+        $this->assertDatabaseMissing('games', ['title' => 'Halo 3', 'edition_id' => $cartridge->id]);
+    }
+
     public function test_import_skips_rows_without_a_title_and_reports_them_as_errors(): void
     {
         $user = User::factory()->create();
