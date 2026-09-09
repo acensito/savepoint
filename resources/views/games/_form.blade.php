@@ -240,10 +240,11 @@
         @error('release_date') <span class="{{ $error }}">{{ $message }}</span> @enderror
     </div>
 
-    <div>
+    <div class="relative">
         <label for="genres" class="{{ $label }}">Géneros</label>
         <input type="text" name="genres" id="genres" placeholder="Acción, Aventura, RPG"
             value="{{ old('genres', $game?->genres ? implode(', ', $game->genres) : '') }}" autocomplete="off" autocorrect="off" spellcheck="false" class="{{ $input }}">
+        <ul id="genres-suggestions" class="hidden absolute z-10 mt-1 w-full max-h-48 overflow-y-auto rounded-lg border border-slate-700 bg-slate-800 shadow-lg"></ul>
         <p class="text-xs text-slate-500 mt-1">Sepáralos con comas.</p>
         @error('genres') <span class="{{ $error }}">{{ $message }}</span> @enderror
     </div>
@@ -702,6 +703,98 @@
     })();
 
     filterEditions();
+
+    /**
+     * Autocompletado del campo de texto libre 'genres' (issue #24): sugiere
+     * géneros ya escritos en el resto de la colección del usuario mientras
+     * se teclea, sin cambiar el campo a otro tipo de control ni tocar el
+     * modelo de datos (sigue siendo una cadena "Acción, Aventura, RPG").
+     * El filtrado se hace sobre el fragmento tras la ÚLTIMA coma, no sobre
+     * el valor completo, para que sugiera bien con varios géneros a la vez.
+     */
+    (function () {
+        const input = document.getElementById('genres');
+        const list = document.getElementById('genres-suggestions');
+        if (!input || !list) return;
+
+        const availableGenres = @json($availableGenres ?? []);
+        let activeIndex = -1;
+
+        function currentFragment() {
+            return input.value.split(',').pop().trim();
+        }
+
+        function usedGenres() {
+            return input.value.split(',').map((g) => g.trim().toLowerCase()).filter(Boolean);
+        }
+
+        function paintActive(items) {
+            items.forEach((li, i) => li.classList.toggle('bg-slate-700', i === activeIndex));
+        }
+
+        function select(genre) {
+            const parts = input.value.split(',');
+            parts[parts.length - 1] = ` ${genre}`;
+            input.value = `${parts.join(',').trim()}, `;
+            list.classList.add('hidden');
+            input.focus();
+        }
+
+        function render(matches) {
+            list.innerHTML = '';
+            activeIndex = -1;
+            matches.forEach((genre) => {
+                const li = document.createElement('li');
+                li.textContent = genre;
+                li.className = 'px-3 py-1.5 text-sm text-slate-200 cursor-pointer hover:bg-slate-700';
+                // mousedown, no click: dispara antes del blur del input, que si
+                // no cerraría la lista antes de que el click llegara a registrarse.
+                li.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    select(genre);
+                });
+                list.appendChild(li);
+            });
+            list.classList.toggle('hidden', matches.length === 0);
+        }
+
+        function updateSuggestions() {
+            const fragment = currentFragment().toLowerCase();
+            if (!fragment) {
+                list.classList.add('hidden');
+                return;
+            }
+
+            const used = usedGenres();
+            const matches = availableGenres
+                .filter((genre) => genre.toLowerCase().includes(fragment) && !used.includes(genre.toLowerCase()))
+                .slice(0, 8);
+            render(matches);
+        }
+
+        input.addEventListener('input', updateSuggestions);
+        input.addEventListener('blur', () => list.classList.add('hidden'));
+
+        input.addEventListener('keydown', (e) => {
+            const items = [...list.children];
+            if (list.classList.contains('hidden') || items.length === 0) return;
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                activeIndex = (activeIndex + 1) % items.length;
+                paintActive(items);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                activeIndex = (activeIndex - 1 + items.length) % items.length;
+                paintActive(items);
+            } else if (e.key === 'Enter' && activeIndex >= 0) {
+                e.preventDefault();
+                select(items[activeIndex].textContent);
+            } else if (e.key === 'Escape') {
+                list.classList.add('hidden');
+            }
+        });
+    })();
 
     /**
      * Evita el reenvío duplicado del formulario en móvil: al volver atrás con
