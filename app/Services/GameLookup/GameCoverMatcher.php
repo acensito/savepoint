@@ -59,9 +59,28 @@ class GameCoverMatcher
             return null;
         }
 
-        $ambiguous = $scored->get(1) !== null && $scored->get(1)['score'] === $best['score'];
+        // CEX suele listar el mismo juego más de una vez (distinta condición/
+        // SKU, mismo título y plataforma) — verificado en real con "Kameo" y
+        // "Aliens: Colonial Marines", ambos listados dos veces en Xbox 360.
+        // Un empate entre entradas con el mismo título normalizado no es una
+        // ambigüedad real (es el mismo juego duplicado), a diferencia de un
+        // empate entre títulos distintos (ahí sí, ver arriba del método).
+        $topTied = $scored->filter(fn (array $entry) => $entry['score'] === $best['score']);
 
-        return $ambiguous ? null : $best['result'];
+        $ambiguous = $topTied->pluck('result')
+            ->map(fn (GameLookupResult $result) => $this->normalizeTitle($result->title))
+            ->unique()
+            ->count() > 1;
+
+        if ($ambiguous) {
+            return null;
+        }
+
+        // Entre duplicados del mismo juego, no todos traen carátula (visto
+        // en real: alguna de las entradas de CEX se queda sin foto) — se
+        // prefiere la que sí la tenga en vez de la primera que aparezca, que
+        // de otro modo dejaría el candidato entero sin sentido.
+        return ($topTied->first(fn (array $entry) => $entry['result']->coverUrl !== null) ?? $best)['result'];
     }
 
     private function titleMatchScore(GameLookupResult $result, Game $game): int
@@ -81,8 +100,19 @@ class GameCoverMatcher
         return $score;
     }
 
+    /**
+     * Mismo criterio que IgdbLookupService::normalizeTitleForComparison():
+     * dos puntos y guiones se tratan como separadores de subtítulo, no como
+     * parte del título — sin esto, "Aliens Colonial Marines" (como lo
+     * escribe el usuario) nunca igualaría a "Aliens: Colonial Marines" (como
+     * lo lista CEX) aunque sean el mismo juego.
+     */
     private function normalizeTitle(string $title): string
     {
-        return trim(preg_replace('/\s+/', ' ', Str::lower(trim($title))) ?? '');
+        $normalized = Str::lower(trim($title));
+        $normalized = str_replace(['’', '‘', '´', '`', "'"], '', $normalized);
+        $normalized = str_replace(['–', '—', '-', ':'], ' ', $normalized);
+
+        return trim(preg_replace('/\s+/', ' ', $normalized) ?? $normalized);
     }
 }

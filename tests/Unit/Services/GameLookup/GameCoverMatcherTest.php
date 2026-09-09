@@ -92,6 +92,73 @@ class GameCoverMatcherTest extends TestCase
         $this->assertNull($this->matcher($lookup)->matchByTitle($game));
     }
 
+    /**
+     * Encontrado en real (#128): CEX suele listar el mismo juego más de una
+     * vez (distinta condición/SKU, mismo título y plataforma) — "Kameo" y
+     * "Aliens: Colonial Marines" en Xbox 360, por ejemplo. Un empate entre
+     * dos entradas con el mismo título normalizado no es una ambigüedad real
+     * (es el mismo juego duplicado), a diferencia del empate entre dos
+     * títulos distintos de test_match_by_title_returns_null_on_a_real_tie().
+     */
+    public function test_match_by_title_does_not_treat_a_duplicate_listing_of_the_same_game_as_ambiguous(): void
+    {
+        $platform = Platform::factory()->create(['name' => 'Xbox 360']);
+        $game = Game::factory()->create(['title' => 'Kameo', 'platform_id' => $platform->id]);
+
+        $lookup = Mockery::mock(GameLookupInterface::class);
+        $lookup->shouldReceive('search')->once()->andReturn([
+            $first = new GameLookupResult(title: 'Kameo Elements Of Power', ean: '882224053594', coverUrl: 'https://x/kameo1.jpg', platform: 'Xbox 360'),
+            new GameLookupResult(title: 'Kameo Elements Of Power', ean: '882224053595', coverUrl: 'https://x/kameo2.jpg', platform: 'Xbox 360'),
+        ]);
+
+        $result = $this->matcher($lookup)->matchByTitle($game);
+
+        $this->assertSame($first, $result);
+    }
+
+    /**
+     * Encontrado en real (#128): el usuario guarda "Aliens Colonial Marines"
+     * sin dos puntos, CEX lo lista como "Aliens: Colonial Marines" — mismo
+     * juego, distinta puntuación si no se normalizan igual (ver
+     * normalizeTitle(), mismo criterio que IgdbLookupService).
+     */
+    /**
+     * Encontrado en real (#128): entre duplicados del mismo juego en CEX, no
+     * todos traen carátula — el matcher no puede quedarse con el primero sin
+     * más, porque podría ser justo el que no tiene foto.
+     */
+    public function test_match_by_title_prefers_the_duplicate_that_has_a_cover(): void
+    {
+        $platform = Platform::factory()->create(['name' => 'Xbox 360']);
+        $game = Game::factory()->create(['title' => 'Kameo', 'platform_id' => $platform->id]);
+
+        $lookup = Mockery::mock(GameLookupInterface::class);
+        $lookup->shouldReceive('search')->once()->andReturn([
+            new GameLookupResult(title: 'Kameo Elements Of Power', ean: '882224053594', coverUrl: null, platform: 'Xbox 360'),
+            $withCover = new GameLookupResult(title: 'Kameo Elements Of Power', ean: '882224053595', coverUrl: 'https://x/kameo.jpg', platform: 'Xbox 360'),
+        ]);
+
+        $result = $this->matcher($lookup)->matchByTitle($game);
+
+        $this->assertSame($withCover, $result);
+    }
+
+    public function test_match_by_title_ignores_colons_when_comparing_titles(): void
+    {
+        $platform = Platform::factory()->create(['name' => 'Xbox 360']);
+        $game = Game::factory()->create(['title' => 'Aliens Colonial Marines', 'platform_id' => $platform->id]);
+
+        $lookup = Mockery::mock(GameLookupInterface::class);
+        $lookup->shouldReceive('search')->once()->andReturn([
+            $expected = new GameLookupResult(title: 'Aliens: Colonial Marines', ean: '5055277018246', coverUrl: 'https://x/aliens.jpg', platform: 'Xbox 360'),
+            new GameLookupResult(title: 'Aliens: Colonial Marines Coll Ed (P)', ean: '2', coverUrl: 'https://x/collector.jpg', platform: 'PS3'),
+        ]);
+
+        $result = $this->matcher($lookup)->matchByTitle($game);
+
+        $this->assertSame($expected, $result);
+    }
+
     public function test_match_by_title_returns_null_without_any_reasonable_candidate(): void
     {
         $game = Game::factory()->create(['title' => 'Un juego cualquiera', 'platform_id' => null]);

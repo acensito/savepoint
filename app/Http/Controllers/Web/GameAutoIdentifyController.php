@@ -35,6 +35,7 @@ class GameAutoIdentifyController extends Controller
     public function create(): View
     {
         $pendingCounts = Game::where('user_id', auth()->id())
+            ->where('status', '!=', 'wishlist')
             ->whereNull('cover')
             ->selectRaw('platform_id, count(*) as count')
             ->groupBy('platform_id')

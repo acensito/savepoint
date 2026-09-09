@@ -36,6 +36,7 @@ class IdentifyMissingGameCovers implements ShouldQueue
     {
         $games = Game::where('user_id', $this->userId)
             ->where('platform_id', $this->platformId)
+            ->where('status', '!=', 'wishlist')
             ->whereNull('cover')
             ->get();
 

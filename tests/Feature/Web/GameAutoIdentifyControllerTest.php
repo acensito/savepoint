@@ -59,6 +59,33 @@ class GameAutoIdentifyControllerTest extends TestCase
         });
     }
 
+    public function test_form_does_not_count_wishlist_games_as_pending(): void
+    {
+        $user = User::factory()->create();
+        $platform = Platform::factory()->create();
+
+        Game::factory()->for($user)->create(['platform_id' => $platform->id, 'status' => 'wishlist', 'cover' => null]);
+
+        $response = $this->actingAs($user)->get('/games/auto-identify');
+
+        $response->assertViewHas('platforms', fn ($platforms) => $platforms->isEmpty());
+    }
+
+    public function test_store_ignores_wishlist_games(): void
+    {
+        Http::fake(['search.webuy.io/*' => Http::response(['hits' => []], 200)]);
+
+        $user = User::factory()->create();
+        $platform = Platform::factory()->create();
+
+        Game::factory()->for($user)->create(['platform_id' => $platform->id, 'status' => 'wishlist', 'cover' => null]);
+        Game::factory()->for($user)->create(['platform_id' => $platform->id, 'status' => 'owned', 'cover' => null]);
+
+        $response = $this->actingAs($user)->post('/games/auto-identify', ['platform_id' => $platform->id]);
+
+        $this->batchStatus($response)->assertJsonPath('total', 1);
+    }
+
     public function test_store_finds_a_candidate_by_ean_when_the_game_already_has_one(): void
     {
         Http::fake([
