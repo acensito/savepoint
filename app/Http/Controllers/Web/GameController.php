@@ -140,6 +140,18 @@ class GameController extends Controller
             // que se guarda el formulario (ver store()), aquí solo se
             // previsualiza.
             'cover_url' => $request->query('cover_url'),
+            // El resto llega desde "Guardar y añadir otro" (issue #181, ver
+            // store()): campos que suelen repetirse dentro de un mismo lote
+            // (varios juegos de la misma plataforma/edición/región comprados
+            // juntos), arrastrados por query string en vez de sesión para no
+            // interferir con el flujo normal de alta si se navega a este
+            // formulario por cualquier otra vía.
+            'platform_id' => $request->query('platform_id'),
+            'edition_id' => $request->query('edition_id'),
+            'region_select' => $request->query('region_select'),
+            'purchase_place' => $request->query('purchase_place'),
+            'purchase_date' => $request->query('purchase_date'),
+            'rating' => $request->query('rating'),
         ];
 
         return view('games.create', compact('platforms', 'editions', 'prefill', 'availableGenres'));
@@ -198,6 +210,26 @@ class GameController extends Controller
             // 2026-09-10, issue #180) — el fondo aparece unos segundos
             // después en vez de retrasar el propio guardado.
             MatchGameWithIgdb::dispatch($game->id, assignBackground: true);
+        }
+
+        // "Guardar y añadir otro" (issue #181): catalogar un lote de golpe
+        // son, si no, tantos ciclos completos de listado → alta → guardar →
+        // listado como juegos tenga el lote. Solo se arrastran los campos
+        // que de verdad suelen repetirse dentro de un mismo lote (plataforma,
+        // edición, región, lugar/fecha de compra, conservación) — título,
+        // EAN, carátula y género quedan siempre en blanco.
+        if ($request->boolean('add_another')) {
+            $carry = array_filter([
+                'platform_id' => $validated['platform_id'] ?? null,
+                'edition_id' => $validated['edition_id'] ?? null,
+                'region_select' => $validated['region'] ?? null,
+                'purchase_place' => $validated['purchase_place'] ?? null,
+                'purchase_date' => $validated['purchase_date'] ?? null,
+                'rating' => $validated['rating'] ?? null,
+            ], fn ($value) => $value !== null);
+
+            return redirect()->route('web.games.create', $carry)
+                ->with('success', "«{$game->title}» añadido. Continúa con el siguiente.");
         }
 
         return redirect()->route('web.games.index')->with('success', 'Juego añadido correctamente.');
@@ -269,7 +301,12 @@ class GameController extends Controller
     }
 
     /**
-     * Muestra el formulario para editar un juego existente.
+     * Muestra el formulario para editar un juego existente. Acepta
+     * ?redirect_to= (issue #182): llega desde el lápiz de edición del
+     * listado, con la URL completa de esa página (filtros, orden y página
+     * incluidos) para poder volver exactamente ahí al guardar en vez de caer
+     * siempre en el listado sin filtrar — editar varios juegos seguidos
+     * desde un listado filtrado devolvía a la página 1 sin filtros cada vez.
      */
     public function edit(Request $request, Game $game): View
     {
@@ -285,7 +322,9 @@ class GameController extends Controller
         // preseleccionadas para no tener que cambiarlas a mano.
         $convertToOwned = $request->boolean('convert_to_owned');
 
-        return view('games.edit', compact('game', 'platforms', 'editions', 'convertToOwned', 'availableGenres'));
+        $redirectTo = $this->safeInternalRedirect($request->query('redirect_to'));
+
+        return view('games.edit', compact('game', 'platforms', 'editions', 'convertToOwned', 'availableGenres', 'redirectTo'));
     }
 
     /**
@@ -332,7 +371,9 @@ class GameController extends Controller
 
         $game->update($validated);
 
-        return redirect()->route('web.games.index')->with('success', 'Juego actualizado correctamente.');
+        $redirectTo = $this->safeInternalRedirect($request->input('redirect_to'));
+
+        return redirect()->to($redirectTo ?? route('web.games.index'))->with('success', 'Juego actualizado correctamente.');
     }
 
     /**
@@ -447,6 +488,22 @@ class GameController extends Controller
         }
 
         return array_values(array_filter(array_map('trim', explode(',', $raw))));
+    }
+
+    /**
+     * Valida que redirect_to (issue #182) sea una ruta interna segura antes
+     * de usarla en un redirect()->to() — sin esto, alguien podría manipular
+     * el campo oculto del formulario para mandar a un usuario autenticado a
+     * un dominio externo (open redirect). Solo se acepta una ruta relativa
+     * que empiece por una sola barra.
+     */
+    private function safeInternalRedirect(?string $url): ?string
+    {
+        if (blank($url) || ! str_starts_with($url, '/') || str_starts_with($url, '//') || str_contains($url, '://')) {
+            return null;
+        }
+
+        return $url;
     }
 
     /**

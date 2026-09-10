@@ -59,15 +59,22 @@
                     </a>
 
                     <div class="flex-1 min-w-0">
-                        <a href="{{ route('web.games.show', $game->id) }}" class="flex items-start justify-between gap-2">
-                            <span class="min-w-0 text-[15px] font-bold text-slate-100 line-clamp-2 leading-snug">{{ $game->title }}</span>
+                        <div class="flex items-start justify-between gap-2">
+                            <a href="{{ route('web.games.show', $game->id) }}" class="min-w-0 text-[15px] font-bold text-slate-100 line-clamp-2 leading-snug">{{ $game->title }}</a>
                             <span class="flex items-center gap-1.5 shrink-0">
                                 @if($game->for_sale)
                                     <x-gicon name="sell" class="text-[14px] text-amber-400" title="En venta" />
                                 @endif
                                 <x-platform-chip :platform="$game->platform" class="!px-2 !py-0.5 !text-[10px]" />
+                                {{-- Editar directo desde la tarjeta (issue #182): fuera del <a>
+                                     de arriba (anidar <a> es HTML inválido), con la misma URL
+                                     de vuelta que el resto de vistas. --}}
+                                <a href="{{ route('web.games.edit', ['game' => $game->id, 'redirect_to' => request()->fullUrl()]) }}"
+                                    class="text-slate-500 hover:text-indigo-300 transition-colors" title="Editar" aria-label="Editar {{ $game->title }}">
+                                    <x-gicon name="edit" class="text-[15px]" />
+                                </a>
                             </span>
-                        </a>
+                        </div>
 
                         <!-- Rejilla 2x2 (en vez de una tira que se amontona a la
                              izquierda y salta de línea sin criterio): conservación
@@ -138,6 +145,7 @@
                         <th scope="col" class="px-6 py-3.5 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">Conservación</th>
                         <th scope="col" class="px-6 py-3.5 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">Precio</th>
                         <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Fecha compra</th>
+                        <th scope="col" class="px-6 py-3.5 w-10"><span class="sr-only">Editar</span></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-800">
@@ -221,10 +229,21 @@
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
                                 {{ $game->purchase_date?->format('d/m/Y') ?? '—' }}
                             </td>
+
+                            <!-- Editar: enlace directo, sin pasar antes por la ficha de
+                                 detalle (issue #182). redirect_to lleva la URL completa de
+                                 este listado (filtros, orden y página incluidos) para volver
+                                 exactamente aquí al guardar. -->
+                            <td class="px-6 py-4 whitespace-nowrap text-right">
+                                <a href="{{ route('web.games.edit', ['game' => $game->id, 'redirect_to' => request()->fullUrl()]) }}"
+                                    class="text-slate-500 hover:text-indigo-300 transition-colors" title="Editar" aria-label="Editar {{ $game->title }}">
+                                    <x-gicon name="edit" class="text-[18px]" />
+                                </a>
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="px-6 py-12">
+                            <td colspan="10" class="px-6 py-12">
                                 @include('games._empty-state')
                             </td>
                         </tr>
@@ -268,6 +287,16 @@
                             <x-gicon name="emoji_events" class="text-[12px]" />
                         </span>
                     @endif
+                </a>
+
+                {{-- Editar directo desde la estantería (issue #182): fuera del <a> de
+                     arriba (anidar <a> es HTML inválido). Siempre visible en pantallas
+                     táctiles (sin :hover), solo al pasar el ratón en escritorio, para no
+                     saturar visualmente una rejilla pensada para mirar carátulas. --}}
+                <a href="{{ route('web.games.edit', ['game' => $game->id, 'redirect_to' => request()->fullUrl()]) }}"
+                    class="absolute bottom-1.5 left-1.5 flex items-center justify-center w-6 h-6 rounded-full bg-slate-900/80 text-slate-300 hover:text-indigo-300 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+                    title="Editar" aria-label="Editar {{ $game->title }}">
+                    <x-gicon name="edit" class="text-[13px]" />
                 </a>
 
                 <div class="mt-2">

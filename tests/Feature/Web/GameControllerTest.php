@@ -968,6 +968,76 @@ class GameControllerTest extends TestCase
     }
 
     /**
+     * Issue #181: catalogar un lote de golpe son, si no, tantos ciclos
+     * completos de listado → alta → guardar → listado como juegos tenga el
+     * lote. add_another=1 redirige de vuelta al propio formulario (no al
+     * listado) con los campos que suelen repetirse dentro de un mismo lote
+     * ya arrastrados por query string.
+     */
+    public function test_saving_with_add_another_redirects_to_create_with_carried_fields(): void
+    {
+        $user = User::factory()->create();
+        $platform = Platform::factory()->create();
+        $edition = Edition::factory()->create();
+
+        $response = $this->actingAs($user)->post('/games', [
+            'title' => 'Primer juego del lote',
+            'play_status' => 'pending',
+            'platform_id' => $platform->id,
+            'edition_id' => $edition->id,
+            'region_select' => 'PAL-ES',
+            'purchase_place' => 'GAME',
+            'purchase_date' => '2026-09-10',
+            'rating' => 4,
+            'add_another' => '1',
+        ]);
+
+        $response->assertRedirect(route('web.games.create', [
+            'platform_id' => $platform->id,
+            'edition_id' => $edition->id,
+            'region_select' => 'PAL-ES',
+            'purchase_place' => 'GAME',
+            'purchase_date' => '2026-09-10',
+            'rating' => 4,
+        ]));
+
+        $this->assertDatabaseHas('games', ['title' => 'Primer juego del lote']);
+    }
+
+    public function test_create_form_prefills_carried_fields_from_the_query_string(): void
+    {
+        $user = User::factory()->create();
+        $platform = Platform::factory()->create(['name' => 'PS Vita']);
+        $edition = Edition::factory()->create(['name' => 'Coleccionista']);
+
+        $response = $this->actingAs($user)->get('/games/create?'.http_build_query([
+            'platform_id' => $platform->id,
+            'edition_id' => $edition->id,
+            'region_select' => 'PAL-ES',
+            'purchase_place' => 'GAME',
+            'purchase_date' => '2026-09-10',
+            'rating' => 4,
+        ]));
+
+        $response->assertOk();
+        $response->assertSee('value="GAME"', false);
+        $response->assertSee('value="2026-09-10"', false);
+        $response->assertSee('value="4"', false);
+    }
+
+    public function test_saving_without_add_another_still_redirects_to_the_index(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post('/games', [
+            'title' => 'Juego suelto',
+            'play_status' => 'pending',
+        ]);
+
+        $response->assertRedirect(route('web.games.index'));
+    }
+
+    /**
      * Seguridad: mismo caso que ya cubre Api\GameControllerTest en el lado
      * API, pero nunca probado en el formulario web — GameController::store()
      * fuerza 'user_id' => auth()->id() por código (nunca desde $validated),
@@ -1421,6 +1491,57 @@ class GameControllerTest extends TestCase
 
         $response->assertRedirect(route('web.games.index'));
         $this->assertSame('Mi juego actualizado', $game->fresh()->title);
+    }
+
+    /**
+     * Issue #182: editar varios juegos seguidos desde un listado filtrado
+     * devolvía siempre a la página 1 sin filtros. El lápiz del listado manda
+     * la URL de origen completa como redirect_to (ver
+     * games/_results.blade.php), que el formulario de edición reenvía en un
+     * campo oculto (ver games/edit.blade.php).
+     */
+    public function test_update_redirects_back_to_the_provided_redirect_to_when_it_is_a_safe_internal_path(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['title' => 'Mi juego', 'play_status' => 'pending']);
+
+        $response = $this->actingAs($user)->put("/games/{$game->id}", [
+            'title' => 'Mi juego actualizado',
+            'play_status' => 'pending',
+            'redirect_to' => '/games?platform_id=3&page=2',
+        ]);
+
+        $response->assertRedirect('/games?platform_id=3&page=2');
+    }
+
+    /**
+     * Contra un open redirect: redirect_to viene de un campo oculto del
+     * formulario, así que hay que tratarlo como cualquier otro dato de
+     * usuario, no confiar en que sea siempre una ruta propia.
+     */
+    public function test_update_ignores_an_external_redirect_to_and_falls_back_to_the_index(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['play_status' => 'pending']);
+
+        $response = $this->actingAs($user)->put("/games/{$game->id}", [
+            'title' => 'Mi juego',
+            'play_status' => 'pending',
+            'redirect_to' => 'https://evil.example.com/phishing',
+        ]);
+
+        $response->assertRedirect(route('web.games.index'));
+    }
+
+    public function test_edit_page_includes_the_redirect_to_provided_in_the_query_string(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create();
+
+        $response = $this->actingAs($user)->get("/games/{$game->id}/edit?redirect_to=".urlencode('/games?platform_id=3'));
+
+        $response->assertOk();
+        $response->assertSee('name="redirect_to" value="/games?platform_id=3"', false);
     }
 
     public function test_user_cannot_update_another_users_game(): void

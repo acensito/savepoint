@@ -18,11 +18,12 @@
     $defaultStatus = $convertToOwned ? 'owned' : ($game ? $game->status : 'owned');
 
     // Solo al dar de alta (nunca editando, donde ya hay una edición elegida o
-    // deliberadamente ninguna): precarga la edición por defecto configurada
-    // en Ajustes (ver PanelController::updateSettings), si el usuario tiene
-    // una elegida.
-    $defaultEditionId = $game ? $game->edition_id : auth()->user()?->default_edition_id;
+    // deliberadamente ninguna): precarga la edición del lote anterior si
+    // viene de "Guardar y añadir otro" (issue #181, ver
+    // GameController::store()), si no la del ajuste por defecto de Ajustes.
+    $defaultEditionId = $game ? $game->edition_id : ($prefill['edition_id'] ?? auth()->user()?->default_edition_id);
     $defaultPurchaseDate = $game?->purchase_date?->format('Y-m-d')
+        ?? $prefill['purchase_date'] ?? null
         ?? ($convertToOwned || !$game ? now()->format('Y-m-d') : null);
 
     // Al pasar de la wishlist a la colección, precarga precio/lugar de
@@ -31,12 +32,13 @@
     // reales todavía (el usuario los confirma o corrige aquí antes de
     // guardar), pero es mejor punto de partida que nada.
     $defaultPricePaid = $game?->price_paid ?? ($convertToOwned ? $game?->wishlist_estimated_price : null);
-    $defaultPurchasePlace = $game?->purchase_place ?? ($convertToOwned ? $game?->wishlist_store : null);
+    $defaultPurchasePlace = $game?->purchase_place ?? ($convertToOwned ? $game?->wishlist_store : null) ?? ($prefill['purchase_place'] ?? null);
 
     $regionPresets = \App\Http\Controllers\Web\GameController::REGION_PRESETS;
-    // Misma idea que $defaultEditionId: región por defecto de Ajustes al dar
-    // de alta, vacío ("Sin especificar") si no la ha configurado.
-    $defaultRegionSelect = $game ? ($game->region ?? '') : (auth()->user()?->default_region ?? '');
+    // Misma idea que $defaultEditionId: región del lote anterior si viene de
+    // "Guardar y añadir otro", si no la de Ajustes al dar de alta, vacío
+    // ("Sin especificar") si tampoco hay ninguna configurada.
+    $defaultRegionSelect = $game ? ($game->region ?? '') : ($prefill['region_select'] ?? auth()->user()?->default_region ?? '');
     $currentRegionSelect = old('region_select', $defaultRegionSelect);
     $isCustomRegion = $currentRegionSelect !== '' && $currentRegionSelect !== 'other' && !in_array($currentRegionSelect, $regionPresets, true);
     $regionSelectValue = $isCustomRegion ? 'other' : $currentRegionSelect;
@@ -182,7 +184,7 @@
             <select name="platform_id" id="platform_id" class="{{ $input }}">
                 <option value="">Selecciona una plataforma</option>
                 @foreach($platforms as $platform)
-                    <option value="{{ $platform->id }}" {{ old('platform_id', $game?->platform_id) == $platform->id ? 'selected' : '' }}>
+                    <option value="{{ $platform->id }}" {{ old('platform_id', $game?->platform_id ?? $prefill['platform_id'] ?? null) == $platform->id ? 'selected' : '' }}>
                         {{ $platform->name }}
                     </option>
                 @endforeach
@@ -292,7 +294,7 @@
 
     <div>
         <label class="{{ $label }}">Conservación</label>
-        <input type="hidden" name="rating" id="rating" value="{{ old('rating', $game?->rating) }}">
+        <input type="hidden" name="rating" id="rating" value="{{ old('rating', $game?->rating ?? $prefill['rating'] ?? null) }}">
         <div class="flex items-center gap-3">
             <div id="rating-stars" class="flex items-center gap-1">
                 @for ($i = 1; $i <= 5; $i++)
