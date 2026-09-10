@@ -38,9 +38,7 @@
                      independientemente de qué haya detrás. --}}
                 <div class="js-game-card relative bg-slate-900 {{ $highlightLowRating && $game->needsAttention() ? 'after:absolute after:inset-0 after:rounded-2xl after:bg-amber-500/15 after:pointer-events-none hover:after:bg-amber-500/20' : 'hover:bg-slate-800/40' }} border border-slate-800 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs shadow-black/10 active:border-slate-700 transition-colors cursor-pointer"
                     data-href="{{ route('web.games.show', $game->id) }}">
-                    <input type="checkbox" form="bulk-form" name="game_ids[]" value="{{ $game->id }}"
-                        class="js-bulk-checkbox self-start mt-1 w-4 h-4 shrink-0 rounded border-slate-600 bg-slate-800 text-indigo-600 focus:ring-indigo-500"
-                        aria-label="Seleccionar {{ $game->title }}">
+                    <x-bulk-checkbox :game="$game" class="self-start mt-1 shrink-0" />
 
                     <!-- Carátula, título+plataforma y fecha+precio son <a> reales (no solo
                          el div.js-game-card con su click delegado, ver initGameCardTap en
@@ -52,9 +50,7 @@
                     <a href="{{ route('web.games.show', $game->id) }}" class="relative shrink-0">
                         <x-game-cover :game="$game" size="lg" class="!w-16 !rounded-xl !text-xl shadow-xs shadow-black/20" />
                         @if($game->play_status === 'finished')
-                            <span class="absolute -top-1.5 -right-1.5 flex items-center justify-center w-5 h-5 rounded-full bg-yellow-500 text-slate-950 ring-2 ring-slate-900" title="Terminado">
-                                <x-gicon name="emoji_events" :filled="true" class="text-[13px]" />
-                            </span>
+                            <x-finished-badge class="absolute -top-1.5 -right-1.5 ring-2 ring-slate-900" />
                         @endif
                     </a>
 
@@ -62,9 +58,7 @@
                         <div class="flex items-start justify-between gap-2">
                             <a href="{{ route('web.games.show', $game->id) }}" class="min-w-0 text-[15px] font-bold text-slate-100 line-clamp-2 leading-snug">{{ $game->title }}</a>
                             <span class="flex items-center gap-1.5 shrink-0">
-                                @if($game->for_sale)
-                                    <x-gicon name="sell" class="text-[14px] text-amber-400" title="En venta" />
-                                @endif
+                                <x-for-sale-flag :game="$game" class="text-[14px]" />
                                 <x-platform-chip :platform="$game->platform" class="!px-2 !py-0.5 !text-[10px]" />
                                 {{-- Editar directo desde la tarjeta (issue #182): fuera del <a>
                                      de arriba (anidar <a> es HTML inválido), con la misma URL
@@ -99,13 +93,7 @@
                                 @endif
                             </div>
                             <div class="flex justify-end min-w-0">
-                                @if($game->manual_status === 'included')
-                                    <span class="font-semibold text-emerald-400 truncate">CON MANUAL</span>
-                                @elseif($game->manual_status === 'booklet')
-                                    <span class="font-semibold text-emerald-400 truncate">CON FOLLETO</span>
-                                @elseif($game->manual_status === 'missing')
-                                    <span class="font-semibold text-amber-400 truncate">FALTA</span>
-                                @endif
+                                <x-manual-badge :status="$game->manual_status" class="truncate" />
                             </div>
                         </div>
 
@@ -155,9 +143,7 @@
                         <tr class="{{ $highlightLowRating && $game->needsAttention() ? 'bg-amber-500/15 hover:bg-amber-500/20' : 'hover:bg-slate-800/40' }} transition-colors">
                             <!-- Selección para acciones en bloque -->
                             <td class="js-bulk-select-col pl-6 pr-2 py-4">
-                                <input type="checkbox" form="bulk-form" name="game_ids[]" value="{{ $game->id }}"
-                                    class="js-bulk-checkbox w-4 h-4 rounded border-slate-600 bg-slate-800 text-indigo-600 focus:ring-indigo-500"
-                                    aria-label="Seleccionar {{ $game->title }}">
+                                <x-bulk-checkbox :game="$game" />
                             </td>
 
                             <!-- Título -->
@@ -174,9 +160,7 @@
                                         <x-game-cover :game="$game" size="sm" />
                                     </span>
                                     <a href="{{ route('web.games.show', $game->id) }}" class="text-sm font-bold text-slate-100 hover:text-indigo-300 transition-colors">{{ $game->title }}</a>
-                                    @if($game->for_sale)
-                                        <x-gicon name="sell" class="text-[15px] text-amber-400" title="En venta" />
-                                    @endif
+                                    <x-for-sale-flag :game="$game" class="text-[15px]" />
                                 </div>
                             </td>
 
@@ -204,15 +188,7 @@
 
                             <!-- Manual -->
                             <td class="px-6 py-4 whitespace-nowrap text-center">
-                                @if($game->manual_status === 'included')
-                                    <span class="text-xs font-semibold text-emerald-400">CON MANUAL</span>
-                                @elseif($game->manual_status === 'booklet')
-                                    <span class="text-xs font-semibold text-emerald-400">CON FOLLETO</span>
-                                @elseif($game->manual_status === 'missing')
-                                    <span class="text-xs font-semibold text-amber-400">FALTA</span>
-                                @else
-                                    <span class="text-sm text-slate-500">—</span>
-                                @endif
+                                <x-manual-badge :status="$game->manual_status" :show-dash="true" class="text-xs" />
                             </td>
 
                             <!-- Conservación (solo lectura: se cambia desde el formulario de edición) -->
@@ -266,9 +242,7 @@
                  vea alrededor de la carátula/texto sin desplazar la rejilla del
                  resto de tarjetas. --}}
             <div class="group relative {{ $highlightLowRating && $game->needsAttention() ? 'bg-slate-900 rounded-xl p-2 -m-2 after:absolute after:inset-0 after:rounded-xl after:bg-amber-500/15 after:pointer-events-none' : '' }}">
-                <input type="checkbox" form="bulk-form" name="game_ids[]" value="{{ $game->id }}"
-                    class="js-bulk-checkbox absolute top-2 left-2 z-10 w-4 h-4 rounded border-slate-500 bg-slate-900/80 text-indigo-600 focus:ring-indigo-500"
-                    aria-label="Seleccionar {{ $game->title }}">
+                <x-bulk-checkbox :game="$game" variant="overlay" class="absolute top-2 left-2 z-10" />
 
                 <a href="{{ route('web.games.show', $game->id) }}" class="block relative">
                     <x-game-cover :game="$game" size="lg" class="!w-full !aspect-[3/4] !h-auto !rounded-xl !text-3xl object-contain object-bottom group-hover:opacity-80 transition-opacity" />
@@ -283,9 +257,7 @@
                         </span>
                     @endif
                     @if($game->play_status === 'finished')
-                        <span class="absolute bottom-1.5 right-1.5 flex items-center justify-center w-5 h-5 rounded-full bg-yellow-500 text-slate-950" title="Terminado">
-                            <x-gicon name="emoji_events" class="text-[12px]" />
-                        </span>
+                        <x-finished-badge class="absolute bottom-1.5 right-1.5" />
                     @endif
                 </a>
 

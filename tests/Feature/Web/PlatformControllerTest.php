@@ -51,6 +51,22 @@ class PlatformControllerTest extends TestCase
         ]);
     }
 
+    /**
+     * Regresión de GeneratesUniqueSlug (issue #188, ahora compartido con
+     * ManufacturerController): dos plataformas con el mismo nombre no deben
+     * chocar en la columna slug (única).
+     */
+    public function test_creating_a_platform_with_a_duplicate_name_gets_a_suffixed_slug(): void
+    {
+        $user = User::factory()->create();
+        Platform::factory()->create(['name' => 'PlayStation 5', 'slug' => 'playstation-5']);
+
+        $response = $this->actingAs($user)->post('/platforms', ['name' => 'PlayStation 5']);
+
+        $response->assertRedirect(route('web.platforms.index'));
+        $this->assertDatabaseHas('platforms', ['name' => 'PlayStation 5', 'slug' => 'playstation-5-1']);
+    }
+
     public function test_user_can_create_a_platform_with_overridden_colors(): void
     {
         $user = User::factory()->create();

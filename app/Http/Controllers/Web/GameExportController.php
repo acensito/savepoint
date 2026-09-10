@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Game;
 use App\Models\Platform;
+use App\Services\Games\CsvFieldEscaper;
 use App\Services\Games\GameCollectionQuery;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -59,10 +60,6 @@ class GameExportController extends Controller
 
     private const EXPORT_STATUS_LABELS = ['owned' => 'En colección', 'sold' => 'Vendido'];
 
-    private const EXPORT_PLAY_STATUS_LABELS = ['pending' => 'Pendiente', 'playing' => 'Jugando', 'finished' => 'Terminado'];
-
-    private const EXPORT_MANUAL_LABELS = ['included' => 'Con Manual', 'missing' => 'Sin Manual', 'booklet' => 'Folleto'];
-
     /**
      * Exportación a CSV de la colección (botón "Exportar" del panel de
      * control): mismos filtros que index()/print(), sin paginar. A
@@ -90,12 +87,12 @@ class GameExportController extends Controller
                 $game->release_date?->format('Y-m-d'),
                 $genres ? implode(', ', $genres) : '',
                 self::EXPORT_STATUS_LABELS[$game->status] ?? '',
-                self::EXPORT_PLAY_STATUS_LABELS[$game->play_status] ?? '',
+                Game::PLAY_STATUS_LABELS[$game->play_status] ?? '',
                 $game->rating,
                 $game->price_paid,
                 $game->purchase_place,
                 $game->purchase_date?->format('Y-m-d'),
-                self::EXPORT_MANUAL_LABELS[$game->manual_status] ?? '',
+                Game::MANUAL_STATUS_LABELS[$game->manual_status] ?? '',
                 $game->region,
                 $game->age_rating,
                 $game->notes,
@@ -103,7 +100,7 @@ class GameExportController extends Controller
         });
 
         $csv = "\xEF\xBB\xBF".implode("\r\n", array_map(
-            fn (array $row) => implode(',', array_map($this->csvEscape(...), array_map('strval', $row))),
+            fn (array $row) => implode(',', array_map(CsvFieldEscaper::escape(...), array_map('strval', $row))),
             [self::EXPORT_HEADERS, ...$rows->all()],
         ))."\r\n";
 
@@ -111,31 +108,5 @@ class GameExportController extends Controller
             'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="savepoint-coleccion-'.now()->format('Y-m-d').'.csv"',
         ]);
-    }
-
-    /**
-     * CWE-1236 (CSV/formula injection): un valor que empiece por =, +, -, @,
-     * tabulador o retorno de carro se interpreta como fórmula al abrir el
-     * CSV en Excel/Sheets — justo lo que invita a hacer el comentario de
-     * export() de arriba (editar y volver a importar). Anteponer un
-     * apóstrofo fuerza a la hoja de cálculo a tratarlo como texto literal
-     * (mitigación estándar de OWASP); Excel/Sheets lo retira solo al abrir
-     * el fichero, así que no se nota si el CSV se edita ahí antes de
-     * reimportarlo. Si en cambio se reimporta el CSV tal cual (sin pasar por
-     * una hoja de cálculo), ese apóstrofo sí queda pegado al valor — coste
-     * aceptado del fix, y raro en la práctica (un título que empiece
-     * literalmente por uno de estos caracteres).
-     */
-    private function csvEscape(string $value): string
-    {
-        if (preg_match('/^[=+\-@\t\r]/', $value) === 1) {
-            $value = "'".$value;
-        }
-
-        if (str_contains($value, ',') || str_contains($value, '"') || str_contains($value, "\n")) {
-            return '"'.str_replace('"', '""', $value).'"';
-        }
-
-        return $value;
     }
 }

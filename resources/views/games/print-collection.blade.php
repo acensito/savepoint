@@ -86,11 +86,10 @@
         <p class="meta">Generado el {{ now()->format('d/m/Y H:i') }}</p>
 
         @php
-            $playStatusLabels = ['pending' => 'Pendiente', 'playing' => 'Jugando', 'finished' => 'Terminado'];
             $filters = array_filter([
                 $query !== '' ? "búsqueda «{$query}»" : null,
                 $platform ? "plataforma {$platform->name}" : null,
-                $playStatus !== '' ? 'estado ' . ($playStatusLabels[$playStatus] ?? $playStatus) : null,
+                $playStatus !== '' ? 'estado ' . (\App\Models\Game::PLAY_STATUS_LABELS[$playStatus] ?? $playStatus) : null,
             ]);
         @endphp
         <p class="meta">{{ $filters ? 'Filtros aplicados: ' . implode(', ', $filters) . '.' : 'Colección completa, sin filtros.' }}</p>

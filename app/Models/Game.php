@@ -120,7 +120,33 @@ class Game extends Model
 
     public const PLAY_STATUSES = ['pending', 'playing', 'finished'];
 
+    /**
+     * Etiqueta de cada estado de juego, antes repetida en 7 sitios distintos
+     * (layouts/app.blade.php, games/_form.blade.php, _filters.blade.php,
+     * show.blade.php, print-collection.blade.php, GameExportController,
+     * StatsController — issue #188, auditoría de mantenibilidad del
+     * 2026-09-10).
+     */
+    public const PLAY_STATUS_LABELS = [
+        'pending' => 'Pendiente',
+        'playing' => 'Jugando',
+        'finished' => 'Terminado',
+    ];
+
     public const MANUAL_STATUSES = ['included', 'missing', 'booklet'];
+
+    /**
+     * Igual que PLAY_STATUS_LABELS: antes repetida en games/_form.blade.php,
+     * show.blade.php y GameExportController (issue #188). "Con Manual"/"Sin
+     * Manual" en mayúscula: show.blade.php lo tenía en minúscula
+     * ("Con manual"), pequeña inconsistencia visual que desaparece al
+     * unificar en una sola fuente.
+     */
+    public const MANUAL_STATUS_LABELS = [
+        'included' => 'Con Manual',
+        'missing' => 'Sin Manual',
+        'booklet' => 'Folleto',
+    ];
 
     public const RATING_MIN = 1;
 

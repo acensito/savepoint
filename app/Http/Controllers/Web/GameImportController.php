@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Jobs\ImportGamesFromCsv;
 use App\Services\GameImport\GameCsvImporter;
+use App\Services\Games\CsvFieldEscaper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -39,7 +40,7 @@ class GameImportController extends Controller
         ];
 
         $csv = implode("\r\n", array_map(
-            fn (array $row) => implode(',', array_map($this->csvEscape(...), $row)),
+            fn (array $row) => implode(',', array_map(CsvFieldEscaper::escape(...), $row)),
             $rows
         ))."\r\n";
 
@@ -195,24 +196,5 @@ class GameImportController extends Controller
     public static function cacheTtl(): \DateTimeInterface
     {
         return now()->addDay();
-    }
-
-    /**
-     * Ver GameExportController::csvEscape() para el porqué (CWE-1236,
-     * CSV/formula injection). Aquí solo escribe las cabeceras fijas de la
-     * plantilla (nunca datos de usuario), pero se mantiene el mismo
-     * escapado por consistencia y por si en el futuro se usa para algo más.
-     */
-    private function csvEscape(string $value): string
-    {
-        if (preg_match('/^[=+\-@\t\r]/', $value) === 1) {
-            $value = "'".$value;
-        }
-
-        if (str_contains($value, ',') || str_contains($value, '"') || str_contains($value, "\n")) {
-            return '"'.str_replace('"', '""', $value).'"';
-        }
-
-        return $value;
     }
 }

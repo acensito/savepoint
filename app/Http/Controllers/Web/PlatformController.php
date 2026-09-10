@@ -2,16 +2,18 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Http\Controllers\Concerns\GeneratesUniqueSlug;
 use App\Http\Controllers\Controller;
 use App\Models\Manufacturer;
 use App\Models\Platform;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class PlatformController extends Controller
 {
+    use GeneratesUniqueSlug;
+
     public function index(): View
     {
         $platforms = Platform::with('manufacturer')->orderBy('name')->get();
@@ -29,7 +31,7 @@ class PlatformController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $this->validated($request);
-        $validated['slug'] = $this->uniqueSlug($validated['name']);
+        $validated['slug'] = $this->uniqueSlug(Platform::class, $validated['name']);
 
         Platform::create($validated);
 
@@ -48,7 +50,7 @@ class PlatformController extends Controller
         $validated = $this->validated($request);
 
         if ($validated['name'] !== $platform->name) {
-            $validated['slug'] = $this->uniqueSlug($validated['name'], $platform->id);
+            $validated['slug'] = $this->uniqueSlug(Platform::class, $validated['name'], $platform->id);
         }
 
         $platform->update($validated);
@@ -89,22 +91,5 @@ class PlatformController extends Controller
         unset($validated['override_colors']);
 
         return $validated;
-    }
-
-    private function uniqueSlug(string $name, ?int $ignoreId = null): string
-    {
-        $base = Str::slug($name);
-        $slug = $base;
-        $i = 1;
-
-        while (
-            Platform::where('slug', $slug)
-                ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
-                ->exists()
-        ) {
-            $slug = $base.'-'.$i++;
-        }
-
-        return $slug;
     }
 }
