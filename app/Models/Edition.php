@@ -5,6 +5,7 @@ namespace App\Models;
 use Database\Factories\EditionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -13,7 +14,7 @@ class Edition extends Model
     /** @use HasFactory<EditionFactory> */
     use HasFactory;
 
-    protected $fillable = ['name', 'format'];
+    protected $fillable = ['user_id', 'name', 'format'];
 
     /**
      * La columna `format` de la tabla sigue teniendo 'physical' como default
@@ -63,6 +64,17 @@ class Edition extends Model
         self::FORMAT_DIGITAL => ['label' => 'Digital', 'icon' => 'cloud'],
         self::FORMAT_CIAB => ['label' => 'CIAB (código en caja)', 'icon' => 'card_giftcard'],
     ];
+
+    /**
+     * Catálogo por cuenta (issue #175): cada usuario gestiona sus propias
+     * ediciones, sin dato compartido con el resto.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
 
     /**
      * Una edición puede estar disponible en múltiples plataformas.

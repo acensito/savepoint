@@ -15,9 +15,20 @@ class Platform extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name', 'slug', 'label', 'manufacturer_id',
+        'user_id', 'name', 'slug', 'label', 'manufacturer_id',
         'bg_color', 'text_color', 'border_color',
     ];
+
+    /**
+     * Catálogo por cuenta (issue #175): cada usuario gestiona sus propias
+     * plataformas, sin dato compartido con el resto.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
 
     /**
      * Una plataforma pertenece a un fabricante.
