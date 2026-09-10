@@ -2,11 +2,13 @@
 
 namespace Tests\Feature\Web;
 
+use App\Http\Controllers\Web\StatsController;
 use App\Models\Game;
 use App\Models\Platform;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 class StatsControllerTest extends TestCase
@@ -252,6 +254,43 @@ class StatsControllerTest extends TestCase
         // (GameObserver::saved()), esta segunda carga seguiría devolviendo
         // el total de antes.
         $this->actingAs($user)->get('/stats')->assertViewHas('totalGames', 2);
+    }
+
+    /**
+     * Auditoría de rendimiento del 2026-09-10: antes cualquier saved()
+     * invalidaba la caché, aunque el campo cambiado no entrara en ningún
+     * cálculo de estadísticas — solo abrir la wishlist ya dispara hasta 20
+     * guardados de cex_current_price/cex_checked_at (ver
+     * Jobs\FetchCexWishlistPrice), tirando la caché de 15 min sin motivo.
+     */
+    public function test_stats_cache_is_not_invalidated_by_a_change_to_an_irrelevant_field(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['notes' => 'Notas originales']);
+
+        $this->actingAs($user)->get('/stats');
+        $this->assertTrue(Cache::has(StatsController::cacheKey($user->id)));
+
+        // Recargado, no la misma instancia de creación: wasRecentlyCreated
+        // se queda a true en el objeto en memoria aunque se le haga un
+        // update() después — igual que Jobs\FetchCexWishlistPrice, que
+        // siempre recarga el modelo por id en vez de reusar uno ya creado.
+        Game::find($game->id)->update(['notes' => 'Notas nuevas', 'cex_current_price' => 9.99, 'cex_checked_at' => now()]);
+
+        $this->assertTrue(Cache::has(StatsController::cacheKey($user->id)));
+    }
+
+    public function test_stats_cache_is_invalidated_by_a_change_to_a_stats_relevant_field(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['price_paid' => 10]);
+
+        $this->actingAs($user)->get('/stats');
+        $this->assertTrue(Cache::has(StatsController::cacheKey($user->id)));
+
+        $game->update(['price_paid' => 20]);
+
+        $this->assertFalse(Cache::has(StatsController::cacheKey($user->id)));
     }
 
     public function test_stats_reflect_a_bulk_play_status_update(): void

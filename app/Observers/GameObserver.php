@@ -18,9 +18,25 @@ use Illuminate\Support\Facades\Cache;
  */
 class GameObserver
 {
+    /**
+     * Columnas que de verdad entran en algún cálculo de StatsController —
+     * auditoría de rendimiento del 2026-09-10: antes saved() invalidaba con
+     * CUALQUIER cambio, aunque fuera a un campo que ninguna estadística
+     * mira (notes, manual_status, region, igdb_*...). Solo abrir la
+     * wishlist ya dispara hasta 20 guardados de cex_current_price/
+     * cex_checked_at (ver Jobs\FetchCexWishlistPrice) — con eso, la caché
+     * de 15 min casi nunca llegaba a servirse de verdad.
+     */
+    private const STATS_RELEVANT_COLUMNS = [
+        'price_paid', 'rating', 'platform_id', 'status', 'play_status',
+        'purchase_date', 'release_date', 'genres', 'sold_at', 'sale_price',
+    ];
+
     public function saved(Game $game): void
     {
-        $this->forget($game);
+        if ($game->wasRecentlyCreated || $game->wasChanged(self::STATS_RELEVANT_COLUMNS)) {
+            $this->forget($game);
+        }
     }
 
     public function deleted(Game $game): void
