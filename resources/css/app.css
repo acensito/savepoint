@@ -6,6 +6,45 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+/* Instrument Sans autoalojada (issue #186, auditoría de rendimiento del
+   2026-09-10): antes un <link rel="stylesheet"> a fonts.googleapis.com en
+   layouts/app.blade.php y partials/auth-head.blade.php — su propio round
+   trip de DNS/TLS antes de poder pintar nada, y sin funcionar offline pese
+   a que la PWA se puede instalar. Solo el subset "latin" (U+0000-00FF cubre
+   de sobra el español, con tildes y ñ incluidas): sin latin-ext, pensado
+   para alfabetos que esta app no usa. Los tres pesos usados (400/500/600,
+   ver clases font-normal/font-medium/font-semibold) apuntan al mismo
+   fichero: es lo que sirve Google también, un solo archivo para los tres. */
+@font-face {
+    font-family: 'Instrument Sans';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('../fonts/instrument-sans-latin.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+        U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+    font-family: 'Instrument Sans';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('../fonts/instrument-sans-latin.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+        U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+    font-family: 'Instrument Sans';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('../fonts/instrument-sans-latin.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+        U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
     
 @layer base {
     button:not(:disabled),
@@ -405,7 +444,21 @@ summary::-webkit-details-marker {
     display: none;
 }
 
-/* Iconos servidos desde Google Fonts (Material Symbols), ver el <link> en resources/views/layouts/app.blade.php */
+/* Iconos autoalojados (Material Symbols, issue #186): antes un <link> a
+   fonts.googleapis.com con el subset (ver el icon_names= que llevaba esa
+   URL, ahora en el propio fichero descargado) — mismo motivo que Instrument
+   Sans más arriba. El subset en sí (qué iconos incluye) sigue viviendo en
+   partials/material-symbols-link.blade.php: ver ese fichero para cómo
+   regenerar resources/fonts/material-symbols-outlined.woff2 si hace falta
+   un icono nuevo. */
+@font-face {
+    font-family: 'Material Symbols Outlined';
+    font-style: normal;
+    font-weight: 100 700;
+    font-display: block;
+    src: url('../fonts/material-symbols-outlined.woff2') format('woff2');
+}
+
 .material-symbols-outlined {
     font-family: 'Material Symbols Outlined';
     font-weight: normal;

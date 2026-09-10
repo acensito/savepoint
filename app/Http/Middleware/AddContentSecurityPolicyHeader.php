@@ -36,8 +36,11 @@ class AddContentSecurityPolicyHeader
         $response->headers->set('Content-Security-Policy', implode('; ', [
             "default-src 'self'",
             "script-src 'self' 'nonce-{$nonce}'",
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-            "font-src 'self' https://fonts.gstatic.com",
+            // fonts.googleapis.com/fonts.gstatic.com ya no hacen falta aquí
+            // (issue #186): Instrument Sans y Material Symbols se autoalojan
+            // desde public/build, ver los @font-face en resources/css/app.css.
+            "style-src 'self' 'unsafe-inline'",
+            "font-src 'self'",
             "img-src 'self' data: blob: https:",
             // Sin plugins/Flash/Java embebidos en ningún punto de la app:
             // bloquearlo del todo en vez de heredar el 'self' de default-src.

@@ -39,11 +39,13 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="SavePoint">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap"
-          rel="stylesheet">
-    @include('partials.material-symbols-link')
+    {{-- Instrument Sans y Material Symbols autoalojadas (issue #186,
+         auditoría de rendimiento del 2026-09-10): antes un preconnect + dos
+         <link rel="stylesheet"> a fonts.googleapis.com aquí, con su propio
+         round trip de DNS/TLS antes de poder pintar nada, y sin funcionar
+         offline pese a que la PWA se puede instalar. Ver los @font-face en
+         app.css (y partials/material-symbols-link.blade.php para cómo
+         regenerar el subset de iconos si hace falta uno nuevo). --}}
     <script nonce="{{ $cspNonce }}">
         (function () {
             var canonicalTheme = @json($canonicalTheme);
