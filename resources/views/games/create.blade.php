@@ -19,6 +19,13 @@
 
                 <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
                     <a href="{{ route('web.games.index') }}" class="text-slate-400 hover:text-slate-100 text-sm font-medium px-4 py-2">Cancelar</a>
+                    {{-- Catalogar un lote de golpe (issue #181): arrastra plataforma,
+                         edición, región, lugar/fecha de compra y conservación al
+                         siguiente alta en vez de tener que volver a elegirlos (ver
+                         GameController::store()). --}}
+                    <button type="submit" name="add_another" value="1" class="border border-slate-700 text-slate-300 px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-800 hover:text-white transition-colors">
+                        Guardar y añadir otro
+                    </button>
                     <button type="submit" class="bg-(--color-navbar) text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-(--color-navbar-hover) transition-colors">
                         Guardar Juego
                     </button>

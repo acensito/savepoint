@@ -31,9 +31,39 @@
          hay un <form> individual de borrar por fila/tarjeta, y anidar formularios
          no es válido en HTML). Las casillas y los controles de la barra se asocian
          a él desde cualquier punto del documento con el atributo form="bulk-form". -->
-    <form id="bulk-form" method="POST">
+    <form id="bulk-form" method="POST" data-bulk-mark-sold-url="{{ route('web.games.bulk-mark-sold') }}">
         @csrf
     </form>
+
+    {{-- Marcar como vendido en bloque (issue #183): a diferencia del resto de
+         acciones de la barra, pide precio/fecha de venta antes de enviar, así
+         que necesita un diálogo intermedio en vez de un submit directo (ver
+         initBulkMarkAsSoldDialog en app.js). --}}
+    <dialog id="bulk-mark-sold-dialog" class="rounded-xl border border-slate-800 bg-slate-900 text-slate-100 p-0 backdrop:bg-black/60 w-full max-w-sm">
+        <div class="p-5">
+            <h2 class="text-base font-semibold text-slate-100">Marcar como vendido</h2>
+            <p class="text-xs text-slate-500 mt-1">El precio y la fecha se aplican a todos los juegos seleccionados. Se archivan en el histórico de ventas, igual que al marcar uno solo desde su ficha.</p>
+
+            <div class="mt-4 space-y-3">
+                <div>
+                    <label for="bulk-sale-price" class="block font-medium text-sm text-slate-300 mb-1">Precio de venta (todos)</label>
+                    <input type="number" step="0.01" min="0" id="bulk-sale-price"
+                        class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden">
+                    <span id="bulk-sale-price-error" class="hidden text-red-400 text-sm mt-1 block"></span>
+                </div>
+                <div>
+                    <label for="bulk-sold-at" class="block font-medium text-sm text-slate-300 mb-1">Fecha de venta</label>
+                    <input type="date" id="bulk-sold-at" value="{{ now()->format('Y-m-d') }}"
+                        class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden">
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 mt-5">
+                <button type="button" id="bulk-mark-sold-cancel" class="text-slate-400 hover:text-slate-100 text-sm font-medium px-4 py-2 transition-colors">Cancelar</button>
+                <button type="button" id="bulk-mark-sold-submit" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-500 transition-colors">Marcar como vendido</button>
+            </div>
+        </div>
+    </dialog>
 
     <div id="bulk-bar" class="hidden flex items-center gap-3 flex-wrap bg-indigo-500/10 border border-indigo-500/30 rounded-xl px-4 py-3 mb-4">
         <span id="bulk-count" class="text-sm font-medium text-indigo-200 flex-1 min-w-[140px]">0 juegos seleccionados</span>
@@ -53,6 +83,12 @@
             class="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/40 text-amber-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-500/20 transition-colors whitespace-nowrap">
             <x-gicon name="sell" class="text-[16px]" />
             Marcar en venta
+        </button>
+
+        <button type="button" id="bulk-mark-sold-btn"
+            class="flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/40 text-emerald-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-500/20 transition-colors whitespace-nowrap">
+            <x-gicon name="sell" class="text-[16px]" />
+            Marcar como vendido
         </button>
 
         <button type="submit" form="bulk-form" formaction="{{ route('web.games.bulk-delete') }}"

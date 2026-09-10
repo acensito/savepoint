@@ -28,9 +28,13 @@ class GameAutoIdentifyController extends Controller
     /**
      * Formulario de lanzamiento: solo ofrece plataformas con al menos un
      * juego sin carátula (lanzarlo sobre una plataforma ya completa no
-     * encontraría nada que revisar).
+     * encontraría nada que revisar). Acepta ?platform_id= para preseleccionar
+     * una (issue #184): llega desde el enlace "Identificar carátulas" que se
+     * ofrece al terminar una importación CSV, con la plataforma recién
+     * importada ya elegida en vez de tener que buscarla otra vez en el
+     * desplegable.
      */
-    public function create(): View
+    public function create(Request $request): View
     {
         $pendingCounts = Game::where('user_id', auth()->id())
             ->where('status', '!=', 'wishlist')
@@ -44,7 +48,9 @@ class GameAutoIdentifyController extends Controller
             ->get()
             ->map(fn (Platform $platform) => ['platform' => $platform, 'count' => $pendingCounts[$platform->id]]);
 
-        return view('games.auto-identify', compact('platforms'));
+        $preselectedPlatformId = $request->integer('platform_id') ?: null;
+
+        return view('games.auto-identify', compact('platforms', 'preselectedPlatformId'));
     }
 
     /**

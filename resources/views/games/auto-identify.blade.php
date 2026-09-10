@@ -54,7 +54,7 @@
                         <select name="platform_id" id="platform_id" required
                             class="w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden">
                             @foreach($platforms as $entry)
-                                <option value="{{ $entry['platform']->id }}">
+                                <option value="{{ $entry['platform']->id }}" {{ $preselectedPlatformId === $entry['platform']->id ? 'selected' : '' }}>
                                     {{ $entry['platform']->name }} ({{ $entry['count'] }} sin carátula)
                                 </option>
                             @endforeach

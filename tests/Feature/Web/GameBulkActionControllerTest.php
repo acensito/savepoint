@@ -17,6 +17,7 @@ class GameBulkActionControllerTest extends TestCase
         $this->post('/games/bulk-play-status')->assertRedirect('/login');
         $this->post('/games/bulk-for-sale')->assertRedirect('/login');
         $this->post('/games/bulk-unmark-for-sale')->assertRedirect('/login');
+        $this->post('/games/bulk-mark-sold')->assertRedirect('/login');
     }
 
     public function test_user_can_bulk_delete_their_own_games(): void
@@ -164,5 +165,65 @@ class GameBulkActionControllerTest extends TestCase
 
         $this->actingAs($user)->post('/games/bulk-unmark-for-sale', [])
             ->assertSessionHasErrors('game_ids');
+    }
+
+    public function test_user_can_bulk_mark_their_own_games_as_sold_with_a_shared_price_and_date(): void
+    {
+        $user = User::factory()->create();
+        $game1 = Game::factory()->for($user)->create(['status' => 'owned', 'for_sale' => true]);
+        $game2 = Game::factory()->for($user)->create(['status' => 'owned', 'for_sale' => false]);
+
+        $response = $this->actingAs($user)->post('/games/bulk-mark-sold', [
+            'game_ids' => [$game1->id, $game2->id],
+            'sale_price' => '15.50',
+            'sold_at' => '2026-09-10',
+        ]);
+
+        $response->assertRedirect(route('web.games.index'));
+
+        foreach ([$game1, $game2] as $game) {
+            $this->assertSoftDeleted('games', ['id' => $game->id]);
+            $sold = Game::onlyTrashed()->find($game->id);
+            $this->assertSame('sold', $sold->status);
+            $this->assertFalse((bool) $sold->for_sale);
+            $this->assertSame('15.50', $sold->sale_price);
+            $this->assertSame('2026-09-10', $sold->sold_at->format('Y-m-d'));
+        }
+    }
+
+    public function test_bulk_mark_sold_ignores_games_belonging_to_other_users(): void
+    {
+        $user = User::factory()->create();
+        $otherUsersGame = Game::factory()->for(User::factory())->create(['status' => 'owned']);
+
+        $this->actingAs($user)->post('/games/bulk-mark-sold', [
+            'game_ids' => [$otherUsersGame->id],
+            'sale_price' => '10',
+            'sold_at' => '2026-09-10',
+        ])->assertRedirect(route('web.games.index'));
+
+        $this->assertDatabaseHas('games', ['id' => $otherUsersGame->id, 'status' => 'owned', 'deleted_at' => null]);
+    }
+
+    public function test_bulk_mark_sold_requires_a_shared_sale_price_and_date(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create();
+
+        $this->actingAs($user)->post('/games/bulk-mark-sold', [
+            'game_ids' => [$game->id],
+        ])->assertSessionHasErrors(['sale_price', 'sold_at']);
+
+        $this->assertDatabaseHas('games', ['id' => $game->id, 'deleted_at' => null]);
+    }
+
+    public function test_bulk_mark_sold_requires_at_least_one_selected_game(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post('/games/bulk-mark-sold', [
+            'sale_price' => '10',
+            'sold_at' => '2026-09-10',
+        ])->assertSessionHasErrors('game_ids');
     }
 }

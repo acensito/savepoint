@@ -414,6 +414,63 @@ function initBulkActions() {
 
 initBulkActions();
 
+/**
+ * "Marcar como vendido" en bloque (issue #183): a diferencia del resto de
+ * botones de #bulk-bar, que envían #bulk-form directamente vía formaction,
+ * este pide antes precio/fecha de venta (compartidos para todo el lote, ver
+ * GameBulkActionController::bulkMarkAsSold()) en un diálogo — al confirmar,
+ * los deja como campos ocultos en #bulk-form y lo envía a mano.
+ */
+function initBulkMarkAsSoldDialog() {
+    const openBtn = document.getElementById('bulk-mark-sold-btn');
+    const dialog = document.getElementById('bulk-mark-sold-dialog');
+    const bulkForm = document.getElementById('bulk-form');
+    if (!openBtn || !dialog || !bulkForm) return;
+
+    const cancelBtn = document.getElementById('bulk-mark-sold-cancel');
+    const submitBtn = document.getElementById('bulk-mark-sold-submit');
+    const priceInput = document.getElementById('bulk-sale-price');
+    const priceError = document.getElementById('bulk-sale-price-error');
+    const soldAtInput = document.getElementById('bulk-sold-at');
+
+    function setHiddenField(name, value) {
+        let input = bulkForm.querySelector(`input[name="${name}"]`);
+        if (!input) {
+            input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = name;
+            bulkForm.appendChild(input);
+        }
+        input.value = value;
+    }
+
+    openBtn.addEventListener('click', () => {
+        priceError.classList.add('hidden');
+        dialog.showModal();
+        priceInput.focus();
+    });
+
+    cancelBtn.addEventListener('click', () => dialog.close());
+
+    submitBtn.addEventListener('click', () => {
+        const price = priceInput.value.trim();
+
+        if (price === '' || Number(price) < 0) {
+            priceError.textContent = 'Indica un precio de venta válido.';
+            priceError.classList.remove('hidden');
+            return;
+        }
+
+        setHiddenField('sale_price', price);
+        setHiddenField('sold_at', soldAtInput.value);
+
+        bulkForm.action = bulkForm.dataset.bulkMarkSoldUrl;
+        bulkForm.submit();
+    });
+}
+
+initBulkMarkAsSoldDialog();
+
 const GAMES_VIEW_CLASSES = {compact: 'games-compact-view', grid: 'games-grid-view', text: 'games-text-view'};
 
 /**
@@ -681,6 +738,7 @@ function initImportStatusPolling() {
     if (!statusEl) return;
 
     const statusUrl = statusEl.dataset.statusUrl;
+    const autoIdentifyUrl = statusEl.dataset.autoIdentifyUrl;
     const pendingEl = document.getElementById('import-status-pending');
     const slowWarningEl = document.getElementById('import-status-slow-warning');
     const resultEl = document.getElementById('import-status-result');
@@ -724,6 +782,25 @@ function initImportStatusPolling() {
             wrapper.appendChild(list);
 
             resultEl.appendChild(wrapper);
+        }
+
+        // Enlace directo al siguiente paso natural tras importar (issue
+        // #184): sin esto, había que ir al Panel a mano a buscar la
+        // plataforma otra vez en el desplegable de "Identificar en bloque".
+        // Con una sola plataforma en el CSV se preselecciona; con varias, se
+        // deja sin preseleccionar (el desplegable las lista todas igual).
+        const platformIds = data.platformIds || [];
+        if (platformIds.length && autoIdentifyUrl) {
+            const nextStep = document.createElement('div');
+            nextStep.className = 'mt-4 pt-4 border-t border-slate-800';
+            const url = platformIds.length === 1 ? `${autoIdentifyUrl}?platform_id=${platformIds[0]}` : autoIdentifyUrl;
+            nextStep.innerHTML = `
+                <a href="${url}" class="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-400 hover:text-indigo-300">
+                    <span class="material-symbols-outlined text-[16px]">image_search</span>
+                    Identificar carátulas de ${platformIds.length === 1 ? 'esta plataforma' : 'las plataformas importadas'}
+                </a>
+            `;
+            resultEl.appendChild(nextStep);
         }
     }
 

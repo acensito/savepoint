@@ -246,6 +246,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/games/bulk-play-status', [GameBulkActionController::class, 'updatePlayStatus'])->name('web.games.bulk-play-status');
     Route::post('/games/bulk-for-sale', [GameBulkActionController::class, 'markForSale'])->name('web.games.bulk-for-sale');
     Route::post('/games/bulk-unmark-for-sale', [GameBulkActionController::class, 'unmarkForSale'])->name('web.games.bulk-unmark-for-sale');
+    Route::post('/games/bulk-mark-sold', [GameBulkActionController::class, 'bulkMarkAsSold'])->name('web.games.bulk-mark-sold');
 
     Route::post('/games', [GameController::class, 'store'])->name('web.games.store');
     Route::get('/games/{game}/edit', [GameController::class, 'edit'])->name('web.games.edit');
