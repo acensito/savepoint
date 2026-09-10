@@ -58,7 +58,9 @@ Route::middleware('guest')->group(function () {
 
     // Recuperación de contraseña: pedir enlace por email y consumirlo con un token de un solo uso.
     Route::get('/forgot-password', [PasswordResetController::class, 'showForgot'])->name('password.request');
-    Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLink'])->name('password.email');
+    Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLink'])
+        ->middleware('throttle:password-reset-request')
+        ->name('password.email');
     Route::get('/reset-password/{token}', [PasswordResetController::class, 'showReset'])->name('password.reset');
     Route::post('/reset-password', [PasswordResetController::class, 'reset'])->name('password.update');
 });
@@ -95,6 +97,11 @@ Route::middleware('auth')->group(function () {
     // de Ajustes (ver x-toggle e initSettingsToggles en app.js), efecto y
     // persistencia inmediatos sin pasar por "Guardar ajustes".
     Route::patch('/panel/settings/toggles', [PanelController::class, 'updateToggle'])->name('web.panel.settings.toggles');
+    // Dispositivos de confianza de 2FA (auditoría de seguridad del
+    // 2026-09-10): revocar uno o todos a mano desde Ajustes, sin esperar a
+    // cambiar de contraseña.
+    Route::delete('/panel/settings/trusted-devices/{device}', [PanelController::class, 'revokeTrustedDevice'])->name('web.panel.settings.trusted-devices.revoke');
+    Route::delete('/panel/settings/trusted-devices', [PanelController::class, 'revokeAllTrustedDevices'])->name('web.panel.settings.trusted-devices.revoke-all');
     // Zona de peligro (#144): página propia (no en /panel directamente) para
     // que no compita en la misma pantalla con el resto de tarjetas, que solo
     // navegan sin actuar. Dos acciones, mismo patrón de confirmación
@@ -199,7 +206,12 @@ Route::middleware('auth')->group(function () {
     // plataforma (issue #128): mismo patrón job en cola + caché de progreso
     // + sondeo que la importación de arriba.
     Route::get('/games/auto-identify', [GameAutoIdentifyController::class, 'create'])->name('web.games.auto-identify');
-    Route::post('/games/auto-identify', [GameAutoIdentifyController::class, 'store'])->name('web.games.auto-identify.store');
+    // throttle:auto-identify-launch, no external-search-cex: una sola
+    // petición aquí dispara un job que hace muchas consultas a CEX (ver
+    // AppServiceProvider::register()), no una sola.
+    Route::post('/games/auto-identify', [GameAutoIdentifyController::class, 'store'])
+        ->middleware('throttle:auto-identify-launch')
+        ->name('web.games.auto-identify.store');
     Route::get('/games/auto-identify/status/{batchId}', [GameAutoIdentifyController::class, 'status'])->name('web.games.auto-identify.status');
     Route::post('/games/auto-identify/confirm/{batchId}', [GameAutoIdentifyController::class, 'confirm'])->name('web.games.auto-identify.confirm');
 

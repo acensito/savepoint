@@ -11,6 +11,14 @@ class GameBulkActionControllerTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_guest_is_redirected_to_login_from_every_bulk_action_route(): void
+    {
+        $this->post('/games/bulk-delete')->assertRedirect('/login');
+        $this->post('/games/bulk-play-status')->assertRedirect('/login');
+        $this->post('/games/bulk-for-sale')->assertRedirect('/login');
+        $this->post('/games/bulk-unmark-for-sale')->assertRedirect('/login');
+    }
+
     public function test_user_can_bulk_delete_their_own_games(): void
     {
         $user = User::factory()->create();

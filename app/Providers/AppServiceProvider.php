@@ -80,6 +80,16 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(5)->by($request->ip());
         });
 
+        // POST /forgot-password: Password::sendResetLink() ya limita por
+        // email (config('auth.passwords.users.throttle'), 60s entre envíos
+        // al MISMO email), pero eso no frena a una sola IP pidiendo el reset
+        // de una lista larga de emails distintos seguidos — bombardeo de
+        // bandejas de entrada ajenas / abuso del envío de correo. Por IP,
+        // igual que 'registration' arriba.
+        RateLimiter::for('password-reset-request', function (Request $request) {
+            return Limit::perMinute(5)->by($request->ip());
+        });
+
         // Límite general de la API (activado en bootstrap/app.php vía
         // throttleApi()): antes solo /login tenía protección propia
         // (ThrottlesLogins) y el resto (/games) no tenía ningún tope. Por
@@ -141,6 +151,19 @@ class AppServiceProvider extends ServiceProvider
         // propia del atacante, así que el límite puede ser más laxo.
         RateLimiter::for('external-search-igdb', function (Request $request) {
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+        });
+
+        // POST /games/auto-identify (GameAutoIdentifyController::store,
+        // issue #128): a diferencia de external-search-cex de arriba (una
+        // petición = una consulta a CEX), aquí una sola petición despacha un
+        // job que recorre TODOS los juegos sin carátula de una plataforma,
+        // uno o varios contra CEX cada uno — el límite de 30/min pensado
+        // para búsquedas sueltas dejaría lanzar decenas de esos lotes por
+        // minuto. Mucho más estricto: no hay ningún motivo legítimo para
+        // lanzar el identificador en bloque más de un puñado de veces
+        // seguidas.
+        RateLimiter::for('auto-identify-launch', function (Request $request) {
+            return Limit::perMinute(5)->by($request->user()?->id ?: $request->ip());
         });
     }
 }

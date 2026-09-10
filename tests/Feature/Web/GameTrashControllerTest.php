@@ -14,6 +14,16 @@ class GameTrashControllerTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_guest_is_redirected_to_login_from_every_trash_route(): void
+    {
+        $game = Game::factory()->create();
+        $game->delete();
+
+        $this->get('/games/trash')->assertRedirect('/login');
+        $this->post("/games/{$game->id}/restore")->assertRedirect('/login');
+        $this->delete("/games/{$game->id}/force-delete")->assertRedirect('/login');
+    }
+
     public function test_trash_excludes_sold_games(): void
     {
         $user = User::factory()->create();

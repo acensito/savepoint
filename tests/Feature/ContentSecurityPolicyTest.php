@@ -33,6 +33,14 @@ class ContentSecurityPolicyTest extends TestCase
         $this->assertStringNotContainsString('unsafe-eval', $scriptSrc);
     }
 
+    public function test_web_responses_block_plugins_and_a_base_href_takeover(): void
+    {
+        $csp = $this->get('/login')->headers->get('Content-Security-Policy');
+
+        $this->assertStringContainsString("object-src 'none'", $csp);
+        $this->assertStringContainsString("base-uri 'self'", $csp);
+    }
+
     public function test_the_nonce_is_different_on_every_request(): void
     {
         $first = $this->get('/login')->headers->get('Content-Security-Policy');

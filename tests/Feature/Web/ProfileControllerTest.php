@@ -3,6 +3,7 @@
 namespace Tests\Feature\Web;
 
 use App\Models\Game;
+use App\Models\TwoFactorTrustedDevice;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -85,6 +86,23 @@ class ProfileControllerTest extends TestCase
         ]);
 
         $this->assertDatabaseCount('personal_access_tokens', 0);
+    }
+
+    public function test_changing_the_password_revokes_trusted_two_factor_devices(): void
+    {
+        // Mismo motivo que el test de arriba: una cookie de "dispositivo de
+        // confianza" robada tampoco debe sobrevivir a un cambio de
+        // contraseña, o seguiría saltándose el 2FA hasta sus 30 días de vida.
+        $user = User::factory()->create(['password' => Hash::make('old-password')]);
+        TwoFactorTrustedDevice::issueFor($user, '127.0.0.1', 'PHPUnit');
+
+        $this->actingAs($user)->put('/profile/password', [
+            'current_password' => 'old-password',
+            'password' => 'New-Password1',
+            'password_confirmation' => 'New-Password1',
+        ]);
+
+        $this->assertDatabaseCount('two_factor_trusted_devices', 0);
     }
 
     public function test_changing_the_password_requires_the_correct_current_password(): void

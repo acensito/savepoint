@@ -66,6 +66,13 @@ class PasswordResetController extends Controller
                 // Ver ProfileController::updatePassword(): un token de la
                 // app móvil robado no debe seguir sirviendo tras un reset.
                 $user->tokens()->delete();
+
+                // Mismo motivo: una cookie de "dispositivo de confianza" de
+                // 2FA robada (equipo compartido, backup del navegador...) no
+                // debe seguir saltándose el segundo factor solo porque la
+                // contraseña ya se ha cambiado — sin esto, restablecer la
+                // contraseña por sospecha de robo no cerraba ese hueco.
+                $user->twoFactorTrustedDevices()->delete();
             }
         );
 

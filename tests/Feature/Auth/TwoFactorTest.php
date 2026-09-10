@@ -94,6 +94,22 @@ class TwoFactorTest extends TestCase
         $this->get(route('two-factor.challenge'))->assertRedirect(route('login'));
     }
 
+    /**
+     * Seguridad: la sesión "a medias" (two_factor.user_id) no debe bastar
+     * por sí sola para acceder a rutas protegidas — solo Auth::login() tras
+     * verify() concede acceso real. Sin este test, un fallo que confundiera
+     * "hay un desafío pendiente" con "está autenticado" pasaría inadvertido.
+     */
+    public function test_a_pending_challenge_does_not_grant_access_to_protected_routes(): void
+    {
+        $user = User::factory()->twoFactorEnabled()->create();
+
+        $response = $this->withPendingChallenge($user)->get(route('web.games.index'));
+
+        $response->assertRedirect(route('login'));
+        $this->assertGuest();
+    }
+
     public function test_challenge_redirects_to_login_without_a_pending_session(): void
     {
         $response = $this->get(route('two-factor.challenge'));

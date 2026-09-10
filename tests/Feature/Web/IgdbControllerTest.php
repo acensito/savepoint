@@ -14,6 +14,16 @@ class IgdbControllerTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_guest_is_redirected_to_login_from_every_igdb_route(): void
+    {
+        $game = Game::factory()->create();
+
+        $this->get("/games/{$game->id}/igdb-search")->assertRedirect('/login');
+        $this->post("/games/{$game->id}/igdb-apply")->assertRedirect('/login');
+        $this->get("/games/{$game->id}/igdb-artworks")->assertRedirect('/login');
+        $this->post("/games/{$game->id}/igdb-background")->assertRedirect('/login');
+    }
+
     public function test_igdb_search_lists_candidates_from_the_query(): void
     {
         $user = User::factory()->create();

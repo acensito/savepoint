@@ -12,6 +12,12 @@ class GameExportControllerTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_guest_is_redirected_to_login_from_every_export_route(): void
+    {
+        $this->get('/games/print')->assertRedirect('/login');
+        $this->get('/games/export')->assertRedirect('/login');
+    }
+
     public function test_print_lists_all_matching_games_ignoring_pagination(): void
     {
         $user = User::factory()->create();

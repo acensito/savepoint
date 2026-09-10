@@ -4,6 +4,7 @@ namespace Tests\Feature\Web;
 
 use App\Models\AppSetting;
 use App\Models\Game;
+use App\Models\TwoFactorTrustedDevice;
 use App\Models\User;
 use App\Services\Users\AbandonedAccountPruner;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -272,6 +273,22 @@ class UserControllerTest extends TestCase
         ]);
 
         $this->assertDatabaseCount('personal_access_tokens', 0);
+    }
+
+    public function test_admin_changing_another_users_password_revokes_their_trusted_two_factor_devices(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $other = User::factory()->create();
+        TwoFactorTrustedDevice::issueFor($other, '127.0.0.1', 'PHPUnit');
+
+        $this->actingAs($admin)->put("/panel/users/{$other->id}", [
+            'name' => $other->name,
+            'email' => $other->email,
+            'password' => 'Nueva-Password1',
+            'password_confirmation' => 'Nueva-Password1',
+        ]);
+
+        $this->assertDatabaseCount('two_factor_trusted_devices', 0);
     }
 
     public function test_admin_leaving_the_password_blank_does_not_revoke_the_users_existing_api_tokens(): void

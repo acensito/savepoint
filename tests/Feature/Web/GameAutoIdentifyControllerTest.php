@@ -35,6 +35,13 @@ class GameAutoIdentifyControllerTest extends TestCase
         $this->get('/games/auto-identify')->assertRedirect('/login');
     }
 
+    public function test_guest_is_redirected_to_login_from_every_other_auto_identify_route(): void
+    {
+        $this->post('/games/auto-identify')->assertRedirect('/login');
+        $this->getJson('/games/auto-identify/status/does-not-exist')->assertUnauthorized();
+        $this->post('/games/auto-identify/confirm/does-not-exist')->assertRedirect('/login');
+    }
+
     public function test_form_only_lists_platforms_with_games_missing_a_cover(): void
     {
         $user = User::factory()->create();
@@ -307,6 +314,30 @@ class GameAutoIdentifyControllerTest extends TestCase
         $this->actingAs($user)
             ->getJson('/games/auto-identify/status/does-not-exist')
             ->assertNotFound();
+    }
+
+    /**
+     * Seguridad: a diferencia de /search/quick o /games/cover-lookup (una
+     * petición = una consulta a CEX), aquí una sola petición despacha un job
+     * que recorre TODOS los juegos sin carátula de una plataforma contra
+     * CEX — el límite tiene que ser mucho más estricto (ver
+     * AppServiceProvider::register(), 'auto-identify-launch').
+     */
+    public function test_store_is_rate_limited(): void
+    {
+        Http::fake(['search.webuy.io/*' => Http::response(['hits' => []], 200)]);
+
+        $user = User::factory()->create();
+        $platform = Platform::factory()->create();
+        Game::factory()->for($user)->create(['platform_id' => $platform->id, 'cover' => null]);
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->actingAs($user)->post('/games/auto-identify', ['platform_id' => $platform->id]);
+        }
+
+        $response = $this->actingAs($user)->post('/games/auto-identify', ['platform_id' => $platform->id]);
+
+        $response->assertStatus(429);
     }
 
     public function test_store_requires_an_existing_platform(): void

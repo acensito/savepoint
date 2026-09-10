@@ -53,11 +53,13 @@ class RegisterController extends Controller
             'pending_theme' => ['nullable', Rule::in(User::THEMES)],
         ]);
 
+        // 'is_admin' no se manda: la columna ya tiene default(false) y no es
+        // fillable (ver User::class) — nunca depende de que nadie recuerde
+        // no pasarlo desde aquí.
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => $validated['password'],
-            'is_admin' => false,
             'two_factor_enabled' => true,
         ]);
 

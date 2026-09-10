@@ -19,15 +19,21 @@ use Random\RandomException;
 /**
  * @property Carbon|null $two_factor_code_expires_at
  */
+// 'is_admin' y 'created_at' NO están aquí a propósito: son datos
+// sensibles (privilegio de administrador / fecha usada por
+// AbandonedAccountPruner) que ningún formulario debe poder rellenar por
+// asignación masiva, aunque hoy ningún controlador les pase datos crudos
+// de la petición. Se asignan siempre con forceFill() en el sitio
+// correspondiente (ver UserController::store()), igual que
+// two_factor_verified_at.
 #[Fillable([
-    'name', 'email', 'password', 'is_admin', 'auto_igdb_background',
+    'name', 'email', 'password', 'auto_igdb_background',
     'theme', 'games_view', 'highlight_low_rating', 'navbar_color', 'default_sort', 'default_dir', 'default_per_page',
     'default_region', 'default_edition_id', 'quick_search_exclude_wishlist',
     'igdb_enabled', 'igdb_client_id', 'igdb_client_secret',
     'hide_for_sale_from_collection', 'avatar_path', 'two_factor_enabled',
     'section_wishlist_enabled', 'section_commissions_enabled', 'section_for_sale_enabled',
     'section_sales_enabled', 'section_stats_enabled',
-    'created_at',
 ])]
 #[Hidden(['password', 'remember_token', 'igdb_client_secret', 'two_factor_code'])]
 class User extends Authenticatable
