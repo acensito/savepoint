@@ -61,6 +61,69 @@ class PanelControllerTest extends TestCase
         $this->get('/panel/settings')->assertRedirect('/login');
     }
 
+    public function test_settings_lists_the_users_trusted_devices(): void
+    {
+        $user = User::factory()->create();
+        TwoFactorTrustedDevice::issueFor($user, '203.0.113.5', 'Mozilla/5.0 Test Browser');
+
+        $response = $this->actingAs($user)->get('/panel/settings');
+
+        $response->assertOk();
+        $response->assertSee('203.0.113.5');
+        $response->assertSee('Mozilla/5.0 Test Browser');
+    }
+
+    public function test_user_can_revoke_a_single_trusted_device(): void
+    {
+        $user = User::factory()->create();
+        TwoFactorTrustedDevice::issueFor($user, '203.0.113.5', 'PHPUnit');
+        $device = $user->twoFactorTrustedDevices()->first();
+
+        $this->actingAs($user)->delete(route('web.panel.settings.trusted-devices.revoke', $device))
+            ->assertRedirect();
+
+        $this->assertDatabaseCount('two_factor_trusted_devices', 0);
+    }
+
+    public function test_user_cannot_revoke_another_users_trusted_device(): void
+    {
+        $owner = User::factory()->create();
+        TwoFactorTrustedDevice::issueFor($owner, '203.0.113.5', 'PHPUnit');
+        $device = $owner->twoFactorTrustedDevices()->first();
+
+        $attacker = User::factory()->create();
+
+        $this->actingAs($attacker)->delete(route('web.panel.settings.trusted-devices.revoke', $device))
+            ->assertForbidden();
+
+        $this->assertDatabaseCount('two_factor_trusted_devices', 1);
+    }
+
+    public function test_user_can_revoke_all_trusted_devices_at_once(): void
+    {
+        $user = User::factory()->create();
+        TwoFactorTrustedDevice::issueFor($user, '203.0.113.5', 'PHPUnit 1');
+        TwoFactorTrustedDevice::issueFor($user, '203.0.113.6', 'PHPUnit 2');
+
+        $this->actingAs($user)->delete(route('web.panel.settings.trusted-devices.revoke-all'))
+            ->assertRedirect();
+
+        $this->assertDatabaseCount('two_factor_trusted_devices', 0);
+    }
+
+    public function test_guest_is_redirected_to_login_from_trusted_device_routes(): void
+    {
+        $user = User::factory()->create();
+        $device = TwoFactorTrustedDevice::query()->create([
+            'user_id' => $user->id,
+            'token_hash' => hash('sha256', 'x'),
+            'expires_at' => now()->addDays(30),
+        ]);
+
+        $this->delete(route('web.panel.settings.trusted-devices.revoke', $device))->assertRedirect('/login');
+        $this->delete(route('web.panel.settings.trusted-devices.revoke-all'))->assertRedirect('/login');
+    }
+
     public function test_settings_shows_the_auto_igdb_background_checkbox_unchecked_by_default(): void
     {
         $user = User::factory()->create();

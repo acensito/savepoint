@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Edition;
 use App\Models\Game;
 use App\Models\Platform;
+use App\Models\TwoFactorTrustedDevice;
 use App\Models\User;
 use App\Services\Project\ChangelogReader;
 use Illuminate\Http\JsonResponse;
@@ -190,7 +191,39 @@ class PanelController extends Controller
     {
         $editions = Edition::orderBy('name')->get();
 
-        return view('panel.settings', ['user' => auth()->user(), 'editions' => $editions]);
+        // Auditoría de seguridad del 2026-09-10: antes no había ninguna
+        // forma de ver (ni revocar a mano) los dispositivos que se
+        // marcaron "de confianza" para saltarse el 2FA durante 30 días —
+        // solo se limpiaban automáticamente al cambiar de contraseña o
+        // desactivar 2FA (ver ProfileController::updatePassword() y
+        // PanelController::updateToggle()).
+        $trustedDevices = auth()->user()->twoFactorTrustedDevices()->orderByDesc('created_at')->get();
+
+        return view('panel.settings', ['user' => auth()->user(), 'editions' => $editions, 'trustedDevices' => $trustedDevices]);
+    }
+
+    /**
+     * Revoca un dispositivo de confianza de 2FA concreto, a petición del
+     * propio usuario (p. ej. un equipo compartido/prestado del que ya no se
+     * fía, sin tener que esperar a cambiar de contraseña para forzarlo).
+     */
+    public function revokeTrustedDevice(TwoFactorTrustedDevice $device): RedirectResponse
+    {
+        abort_unless($device->user_id === auth()->id(), 403);
+
+        $device->delete();
+
+        return back()->with('success', 'Dispositivo revocado.');
+    }
+
+    /**
+     * Revoca de golpe todos los dispositivos de confianza de la cuenta.
+     */
+    public function revokeAllTrustedDevices(): RedirectResponse
+    {
+        auth()->user()->twoFactorTrustedDevices()->delete();
+
+        return back()->with('success', 'Todos los dispositivos de confianza han sido revocados.');
     }
 
     public function updateSettings(Request $request): RedirectResponse

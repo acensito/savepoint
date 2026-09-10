@@ -130,6 +130,46 @@
                     </div>
 
                     <div class="bg-slate-900 border border-slate-800 rounded-xl p-8">
+                        <h3 class="text-lg font-semibold text-slate-100 mb-1">Dispositivos de confianza</h3>
+                        <p class="text-sm text-slate-500 mb-6">
+                            Al marcar "confiar en este dispositivo" en el código de dos pasos, ese navegador deja de
+                            pedirlo durante 30 días. Se revocan solos al cambiar la contraseña o desactivar la
+                            verificación en dos pasos, pero también puedes revocarlos aquí a mano en cualquier momento
+                            — por ejemplo, si prestaste el equipo o ya no confías en él.
+                        </p>
+
+                        @if($trustedDevices->isEmpty())
+                            <p class="text-sm text-slate-500">No tienes ningún dispositivo marcado como de confianza ahora mismo.</p>
+                        @else
+                            <div class="space-y-2">
+                                @foreach($trustedDevices as $device)
+                                    <div class="flex items-center justify-between gap-3 py-2 border-b border-slate-800 last:border-0">
+                                        <div class="min-w-0">
+                                            <p class="text-sm text-slate-200 truncate">{{ $device->user_agent ?: 'Navegador desconocido' }}</p>
+                                            <p class="text-xs text-slate-500">
+                                                {{ $device->ip_address ?? 'IP desconocida' }}
+                                                · confiado el {{ $device->created_at->format('d/m/Y') }}
+                                                · caduca el {{ $device->expires_at->format('d/m/Y') }}
+                                            </p>
+                                        </div>
+                                        <form method="POST" action="{{ route('web.panel.settings.trusted-devices.revoke', $device) }}" class="shrink-0">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="text-xs font-medium text-red-400 hover:text-red-300">Revocar</button>
+                                        </form>
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            <form method="POST" action="{{ route('web.panel.settings.trusted-devices.revoke-all') }}" class="mt-4">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="text-sm font-medium text-red-400 hover:text-red-300">Revocar todos los dispositivos</button>
+                            </form>
+                        @endif
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl p-8">
                         <h3 class="text-lg font-semibold text-slate-100 mb-1">Apariencia</h3>
                         <p class="text-sm text-slate-500 mb-6">
                             Tema de la aplicación y color de la barra de navegación superior. En modo automático se

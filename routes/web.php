@@ -97,6 +97,11 @@ Route::middleware('auth')->group(function () {
     // de Ajustes (ver x-toggle e initSettingsToggles en app.js), efecto y
     // persistencia inmediatos sin pasar por "Guardar ajustes".
     Route::patch('/panel/settings/toggles', [PanelController::class, 'updateToggle'])->name('web.panel.settings.toggles');
+    // Dispositivos de confianza de 2FA (auditoría de seguridad del
+    // 2026-09-10): revocar uno o todos a mano desde Ajustes, sin esperar a
+    // cambiar de contraseña.
+    Route::delete('/panel/settings/trusted-devices/{device}', [PanelController::class, 'revokeTrustedDevice'])->name('web.panel.settings.trusted-devices.revoke');
+    Route::delete('/panel/settings/trusted-devices', [PanelController::class, 'revokeAllTrustedDevices'])->name('web.panel.settings.trusted-devices.revoke-all');
     // Zona de peligro (#144): página propia (no en /panel directamente) para
     // que no compita en la misma pantalla con el resto de tarjetas, que solo
     // navegan sin actuar. Dos acciones, mismo patrón de confirmación
