@@ -54,11 +54,51 @@ class GameController extends Controller
      */
     public const REGION_PRESETS = ['PAL-ES', 'PAL-EU', 'PAL-UK', 'PAL-FR', 'PAL-DE', 'PAL-IT', 'NTSC-U', 'NTSC-J'];
 
+    /**
+     * Filtros del listado que se recuerdan en sesión (issue #182 seguimiento,
+     * 2026-09-10: "que se quede el filtro establecido hasta que lo quite, por
+     * mucho que cambie de pantalla") — no incluye sort/dir/per_page, que ya
+     * tienen su propio mecanismo de valor por defecto (default_sort/
+     * default_per_page del usuario, ver PanelController).
+     */
+    private const REMEMBERED_FILTER_KEYS = ['q', 'platform_id', 'play_status', 'for_sale', 'rating', 'cover'];
+
+    private const FILTERS_SESSION_KEY = 'games.filters';
+
     // Colección del usuario, con búsqueda por título/EAN, filtros por plataforma/estado
     // (?q=, ?platform_id=, ?play_status=, ?status=), orden (?sort=, ?dir=) y
     // tamaño de página (?per_page=)
-    public function index(Request $request): View
+    public function index(Request $request): View|RedirectResponse
     {
+        // "Limpiar" (ver games/_filters.blade.php) manda ?clear=1 en vez de
+        // navegar a una URL sin parámetros a secas: sin esta señal explícita,
+        // sería indistinguible de llegar aquí desde cualquier otro sitio sin
+        // haber tocado los filtros, y el bloque de abajo restauraría los
+        // filtros recordados en vez de dejarlos limpios de verdad.
+        if ($request->boolean('clear')) {
+            session()->forget(self::FILTERS_SESSION_KEY);
+
+            return redirect()->route('web.games.index');
+        }
+
+        // Ninguno de los filtros recordados viene en esta petición (llegada
+        // "en limpio": menú, recargar la pestaña, volver de otra sección...):
+        // si había unos guardados de una visita anterior, se restauran
+        // redirigiendo a la misma URL con ellos ya puestos, para que tanto la
+        // consulta como el propio formulario de filtros los reflejen igual
+        // que si el usuario los hubiera vuelto a escribir. Sin esto último
+        // (fuera del ajax, que nunca es una "llegada" nueva de por sí) cada
+        // fetch de la búsqueda en vivo redirigiría también.
+        if (! $request->ajax() && collect(self::REMEMBERED_FILTER_KEYS)->every(fn ($key) => ! $request->has($key))) {
+            $remembered = session(self::FILTERS_SESSION_KEY, []);
+
+            if ($remembered !== []) {
+                return redirect()->route('web.games.index', $remembered);
+            }
+        } else {
+            session([self::FILTERS_SESSION_KEY => $request->only(self::REMEMBERED_FILTER_KEYS)]);
+        }
+
         // ConvertEmptyStringsToNull (middleware por defecto) transforma los campos
         // vacíos del formulario en null, así que hay que castear a string antes de
         // comparar con '' o whereNull() saldría disparado sin querer.

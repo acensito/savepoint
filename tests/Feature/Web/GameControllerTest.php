@@ -284,6 +284,55 @@ class GameControllerTest extends TestCase
         $this->assertSame('Sin carátula', $games->first()->title);
     }
 
+    /**
+     * Issue #182 seguimiento (2026-09-10): "que se quede el filtro
+     * establecido hasta que lo quite, por mucho que cambie de pantalla" — al
+     * llegar sin ningún filtro en la URL (menú, recargar, volver de otra
+     * sección), se restauran los que hubiera guardados de una visita
+     * anterior en la misma sesión.
+     */
+    public function test_index_remembers_filters_across_requests_without_query_params(): void
+    {
+        $user = User::factory()->create();
+        $platform = Platform::factory()->create();
+        Game::factory()->for($user)->create(['platform_id' => $platform->id]);
+        Game::factory()->for($user)->create();
+
+        $this->actingAs($user)->get(route('web.games.index', ['platform_id' => $platform->id]))->assertOk();
+
+        $response = $this->actingAs($user)->get(route('web.games.index'));
+
+        $response->assertRedirect(route('web.games.index', ['platform_id' => $platform->id]));
+    }
+
+    public function test_index_clear_forgets_the_remembered_filters(): void
+    {
+        $user = User::factory()->create();
+        $platform = Platform::factory()->create();
+
+        $this->actingAs($user)->get(route('web.games.index', ['platform_id' => $platform->id]))->assertOk();
+        $this->actingAs($user)->get(route('web.games.index', ['clear' => 1]))
+            ->assertRedirect(route('web.games.index'));
+
+        // Sin el redirect a los filtros recordados esta vez: ?clear=1 los olvidó.
+        $this->actingAs($user)->get(route('web.games.index'))->assertOk();
+    }
+
+    public function test_index_does_not_redirect_an_ajax_request_without_filters(): void
+    {
+        $user = User::factory()->create();
+        $platform = Platform::factory()->create();
+
+        $this->actingAs($user)->get(route('web.games.index', ['platform_id' => $platform->id]))->assertOk();
+
+        // Una petición ajax "en limpio" (sin filtros en la query) no debe
+        // redirigir nunca: el buscador en vivo espera el fragmento HTML de
+        // vuelta, no una redirección.
+        $response = $this->actingAs($user)->get(route('web.games.index'), ['X-Requested-With' => 'XMLHttpRequest']);
+
+        $response->assertOk();
+    }
+
     public function test_index_shows_for_sale_games_by_default(): void
     {
         $user = User::factory()->create(['hide_for_sale_from_collection' => false]);

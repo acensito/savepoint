@@ -94,7 +94,11 @@
             Filtrar
         </button>
         @if($hasActiveFilters)
-            <a href="{{ route('web.games.index') }}" class="flex items-center text-sm font-medium text-slate-400 hover:text-slate-100 whitespace-nowrap">
+            {{-- ?clear=1, no una URL sin parámetros a secas: es la única forma de
+                 distinguir "quiero limpiar los filtros" de "he llegado aquí sin
+                 haber tocado nada todavía", que en cambio restaura los filtros
+                 recordados de una visita anterior (ver GameController::index()). --}}
+            <a href="{{ route('web.games.index', ['clear' => 1]) }}" class="flex items-center text-sm font-medium text-slate-400 hover:text-slate-100 whitespace-nowrap">
                 Limpiar
             </a>
         @endif
