@@ -3,6 +3,7 @@
 namespace Tests\Feature\Web;
 
 use App\Http\Controllers\Web\GameAutoIdentifyController;
+use App\Jobs\IdentifyMissingGameCovers;
 use App\Models\Game;
 use App\Models\Platform;
 use App\Models\User;
@@ -35,11 +36,42 @@ class GameAutoIdentifyControllerTest extends TestCase
         $this->get('/games/auto-identify')->assertRedirect('/login');
     }
 
+    /**
+     * Regresión (auditoría de rendimiento del 2026-09-10): un run real de
+     * 107 juegos tardó 29s, la mitad del timeout por defecto de Laravel
+     * (60s) — Jobs\IdentifyMissingGameCovers necesita el suyo propio, más
+     * amplio, y un solo intento para no arriesgarse a una ráfaga doble
+     * contra CEX si Redis lo considerase "perdido" a mitad.
+     */
+    public function test_identify_job_has_a_generous_timeout_and_a_single_attempt(): void
+    {
+        $job = new IdentifyMissingGameCovers(1, 1, 'batch-id');
+
+        $this->assertSame(1800, $job->timeout);
+        $this->assertSame(1, $job->tries);
+    }
+
     public function test_guest_is_redirected_to_login_from_every_other_auto_identify_route(): void
     {
         $this->post('/games/auto-identify')->assertRedirect('/login');
         $this->getJson('/games/auto-identify/status/does-not-exist')->assertUnauthorized();
         $this->post('/games/auto-identify/confirm/does-not-exist')->assertRedirect('/login');
+    }
+
+    public function test_page_includes_an_edit_url_template_for_unmatched_games(): void
+    {
+        Http::fake(['search.webuy.io/*' => Http::response(['hits' => []], 200)]);
+
+        $user = User::factory()->create();
+        $platform = Platform::factory()->create();
+        Game::factory()->for($user)->create(['platform_id' => $platform->id, 'ean' => null, 'cover' => null]);
+
+        $this->actingAs($user);
+        $this->post('/games/auto-identify', ['platform_id' => $platform->id]);
+        $page = $this->get('/games/auto-identify');
+
+        $page->assertSee('data-edit-url-template=', false);
+        $page->assertSee('/games/:id/edit', false);
     }
 
     public function test_form_only_lists_platforms_with_games_missing_a_cover(): void
@@ -176,6 +208,26 @@ class GameAutoIdentifyControllerTest extends TestCase
         $status = $this->batchStatus($response);
         $status->assertJsonPath('total', 1);
         $this->assertCount(0, $status->json('candidates'));
+        $status->assertJsonPath('processed', 1);
+        $this->assertCount(1, $status->json('unmatched'));
+        $status->assertJsonPath('unmatched.0.title', 'Ambiguous Game');
+    }
+
+    public function test_store_reports_final_progress_and_done_state(): void
+    {
+        Http::fake(['search.webuy.io/*' => Http::response(['hits' => []], 200)]);
+
+        $user = User::factory()->create();
+        $platform = Platform::factory()->create();
+        Game::factory()->for($user)->count(3)->create(['platform_id' => $platform->id, 'ean' => null, 'cover' => null]);
+
+        $response = $this->actingAs($user)->post('/games/auto-identify', ['platform_id' => $platform->id]);
+
+        $status = $this->batchStatus($response);
+        $status->assertJsonPath('done', true);
+        $status->assertJsonPath('total', 3);
+        $status->assertJsonPath('processed', 3);
+        $this->assertCount(3, $status->json('unmatched'));
     }
 
     public function test_store_only_processes_games_of_the_chosen_platform_that_are_missing_a_cover(): void

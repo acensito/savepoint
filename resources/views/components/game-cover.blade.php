@@ -11,7 +11,13 @@
 @endphp
 
 @if($game?->cover)
-    <img src="{{ $game->coverUrl() }}" alt="{{ $game->title }}"
+    {{-- loading="lazy": con listados de 100 juegos/página, cargar las 100
+         carátulas de golpe (auditoría de rendimiento del 2026-09-10, ~56 KB
+         de media cada una) es la parte más cara de la página — el navegador
+         difiere las que quedan fuera de la ventana visible sin que haga
+         falta ninguna librería. Sin width/height fijos a propósito (ver
+         comentario de arriba: cada carátula crece con su proporción real). --}}
+    <img src="{{ $game->coverUrl() }}" alt="{{ $game->title }}" loading="lazy" decoding="async"
         {{ $attributes->merge(['class' => "$width h-auto $rounded border border-slate-700 shrink-0"]) }}>
 @else
     @php $colors = $game?->coverPlaceholderColors() ?? ['bg' => '#1e293b', 'text' => '#94a3b8', 'border' => '#334155']; @endphp

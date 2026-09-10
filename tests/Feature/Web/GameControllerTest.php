@@ -273,6 +273,19 @@ class GameControllerTest extends TestCase
         $this->assertSame('Sin plataforma', $games->first()->title);
     }
 
+    public function test_index_filters_by_no_cover(): void
+    {
+        $user = User::factory()->create();
+        Game::factory()->for($user)->create(['title' => 'Sin carátula', 'cover' => null]);
+        Game::factory()->for($user)->create(['title' => 'Con carátula', 'cover' => 'covers/x.jpg']);
+
+        $response = $this->actingAs($user)->get('/?cover=none');
+
+        $games = $response->viewData('games');
+        $this->assertCount(1, $games);
+        $this->assertSame('Sin carátula', $games->first()->title);
+    }
+
     public function test_index_shows_for_sale_games_by_default(): void
     {
         $user = User::factory()->create(['hide_for_sale_from_collection' => false]);

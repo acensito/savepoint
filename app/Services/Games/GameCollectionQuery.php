@@ -29,6 +29,7 @@ class GameCollectionQuery
         $playStatus = (string) $request->input('play_status', '');
         $forSale = (string) $request->input('for_sale', '');
         $rating = (string) $request->input('rating', '');
+        $cover = (string) $request->input('cover', '');
         [$sort, $dir] = $this->resolveSort($request);
         $sortColumn = GameController::SORTABLE_COLUMNS[$sort] ?? null;
 
@@ -46,6 +47,10 @@ class GameCollectionQuery
             )
             ->when($playStatus !== '', fn ($q) => $q->where('play_status', $playStatus))
             ->when(ctype_digit($rating), fn ($q) => $q->where('rating', (int) $rating))
+            // ?cover=none (issue del 2026-09-10, seguimiento del identificador
+            // en bloque #128): encontrar a mano los juegos sin carátula, sin
+            // depender de recordar cuáles eran tras confirmar un lote.
+            ->when($cover === 'none', fn ($q) => $q->whereNull('cover'))
             ->when(
                 $forSale === '1',
                 fn ($q) => $q->where('for_sale', true),
