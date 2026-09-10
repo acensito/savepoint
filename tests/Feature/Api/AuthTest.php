@@ -4,6 +4,7 @@ namespace Tests\Feature\Api;
 
 use App\Models\User;
 use App\Notifications\TwoFactorCodeNotification;
+use App\Services\Users\TokenAbility;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
@@ -27,6 +28,26 @@ class AuthTest extends TestCase
             ->assertJsonStructure(['message', 'access_token', 'token_type']);
 
         $this->assertDatabaseCount('personal_access_tokens', 1);
+    }
+
+    /**
+     * Issue de la auditoría de seguridad del 2026-09-10 ("ability-scoping de
+     * tokens Sanctum"): antes se creaba con el ability por defecto '*'
+     * (comodín, sin restricción) — ahora declara explícitamente para qué
+     * sirve.
+     */
+    public function test_login_issues_a_token_with_the_expected_abilities(): void
+    {
+        $user = User::factory()->create(['password' => Hash::make('password')]);
+
+        $this->postJson('/api/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ])->assertOk();
+
+        $token = $user->tokens()->sole();
+
+        $this->assertSame(TokenAbility::all(), $token->abilities);
     }
 
     public function test_login_fails_with_wrong_credentials(): void
@@ -53,7 +74,7 @@ class AuthTest extends TestCase
     {
         $user = User::factory()->create();
 
-        Sanctum::actingAs($user);
+        Sanctum::actingAs($user, TokenAbility::all());
 
         $this->getJson('/api/user')
             ->assertOk()
@@ -203,7 +224,7 @@ class AuthTest extends TestCase
             'igdb_client_secret' => 'super-secret-value',
         ]);
 
-        Sanctum::actingAs($user);
+        Sanctum::actingAs($user, TokenAbility::all());
 
         $response = $this->getJson('/api/user')->assertOk();
 

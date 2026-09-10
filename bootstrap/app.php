@@ -12,6 +12,8 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Laravel\Sanctum\Http\Middleware\CheckAbilities;
+use Laravel\Sanctum\Http\Middleware\CheckForAnyAbility;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -47,7 +49,16 @@ return Application::configure(basePath: dirname(__DIR__))
         // 'section:wishlist' etc. (ver routes/web.php, issue #32): 404 en
         // vez de la página si el usuario desactivó esa sección desde
         // /panel/settings.
-        $middleware->alias(['section' => EnsureSectionIsEnabled::class]);
+        //
+        // 'abilities'/'ability' (ver routes/api.php, TokenAbility): Sanctum
+        // ya no registra estos alias solo por instalarlo (a diferencia de
+        // versiones antiguas) — hay que declararlos a mano para poder
+        // exigir un ability concreto por ruta.
+        $middleware->alias([
+            'section' => EnsureSectionIsEnabled::class,
+            'abilities' => CheckAbilities::class,
+            'ability' => CheckForAnyAbility::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Respuestas de error localizadas en español para la API (/api/*),

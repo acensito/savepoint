@@ -5,6 +5,7 @@ namespace Tests\Feature\Api;
 use App\Models\Game;
 use App\Models\Platform;
 use App\Models\User;
+use App\Services\Users\TokenAbility;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -36,7 +37,7 @@ class GameControllerTest extends TestCase
 
     public function test_requesting_a_nonexistent_game_returns_404(): void
     {
-        Sanctum::actingAs(User::factory()->create());
+        Sanctum::actingAs(User::factory()->create(), TokenAbility::all());
 
         $this->getJson('/api/games/999999')
             ->assertStatus(404)
@@ -61,7 +62,7 @@ class GameControllerTest extends TestCase
         $user = User::factory()->create();
         Game::factory()->for($user)->count(3)->create();
 
-        Sanctum::actingAs($user);
+        Sanctum::actingAs($user, TokenAbility::all());
 
         $this->getJson('/api/games?per_page=-5')
             ->assertOk()
@@ -78,7 +79,7 @@ class GameControllerTest extends TestCase
         Game::factory()->for($user)->create(['title' => 'Hollow Knight']);
         Game::factory()->create(['title' => "Someone Else's Game"]); // otro usuario
 
-        Sanctum::actingAs($user);
+        Sanctum::actingAs($user, TokenAbility::all());
 
         foreach (["'; DROP TABLE games; --", "%' OR '1'='1", '___', '%%'] as $payload) {
             $response = $this->getJson('/api/games?q='.urlencode($payload))->assertOk();
@@ -101,7 +102,7 @@ class GameControllerTest extends TestCase
         Game::factory()->for($user)->count(2)->create();
         Game::factory()->for($otherUser)->create();
 
-        Sanctum::actingAs($user);
+        Sanctum::actingAs($user, TokenAbility::all());
 
         $response = $this->getJson('/api/games')->assertOk();
 
@@ -113,7 +114,7 @@ class GameControllerTest extends TestCase
         $user = User::factory()->create();
         Game::factory()->for($user)->count(25)->create();
 
-        Sanctum::actingAs($user);
+        Sanctum::actingAs($user, TokenAbility::all());
 
         $response = $this->getJson('/api/games')->assertOk();
 
@@ -127,7 +128,7 @@ class GameControllerTest extends TestCase
         $user = User::factory()->create();
         Game::factory()->for($user)->count(10)->create();
 
-        Sanctum::actingAs($user);
+        Sanctum::actingAs($user, TokenAbility::all());
 
         $response = $this->getJson('/api/games?per_page=5')->assertOk();
 
@@ -140,7 +141,7 @@ class GameControllerTest extends TestCase
         $user = User::factory()->create();
         Game::factory()->for($user)->count(5)->create();
 
-        Sanctum::actingAs($user);
+        Sanctum::actingAs($user, TokenAbility::all());
 
         $response = $this->getJson('/api/games?per_page=500')->assertOk();
 
@@ -153,7 +154,7 @@ class GameControllerTest extends TestCase
         Game::factory()->for($user)->create(['title' => 'Hollow Knight', 'ean' => '111']);
         Game::factory()->for($user)->create(['title' => 'Celeste', 'ean' => '222']);
 
-        Sanctum::actingAs($user);
+        Sanctum::actingAs($user, TokenAbility::all());
 
         $response = $this->getJson('/api/games?q=hollow')->assertOk();
         $this->assertCount(1, $response->json('data'));
@@ -180,7 +181,7 @@ class GameControllerTest extends TestCase
             'status' => 'wishlist',
         ]);
 
-        Sanctum::actingAs($user);
+        Sanctum::actingAs($user, TokenAbility::all());
 
         $this->getJson("/api/games?platform_id={$platform->id}")
             ->assertOk()
@@ -200,7 +201,7 @@ class GameControllerTest extends TestCase
         $user = User::factory()->create();
         $game = Game::factory()->for($user)->create();
 
-        Sanctum::actingAs($user);
+        Sanctum::actingAs($user, TokenAbility::all());
 
         $this->getJson("/api/games/{$game->id}")
             ->assertOk()
@@ -212,7 +213,7 @@ class GameControllerTest extends TestCase
         $owner = User::factory()->create();
         $game = Game::factory()->for($owner)->create();
 
-        Sanctum::actingAs(User::factory()->create());
+        Sanctum::actingAs(User::factory()->create(), TokenAbility::all());
 
         $this->getJson("/api/games/{$game->id}")
             ->assertStatus(403)
@@ -224,7 +225,7 @@ class GameControllerTest extends TestCase
         $user = User::factory()->create();
         $platform = Platform::factory()->create();
 
-        Sanctum::actingAs($user);
+        Sanctum::actingAs($user, TokenAbility::all());
 
         $response = $this->postJson('/api/games', [
             'title' => 'Hollow Knight',
@@ -249,7 +250,7 @@ class GameControllerTest extends TestCase
         $victim = User::factory()->create();
         $platform = Platform::factory()->create();
 
-        Sanctum::actingAs($attacker);
+        Sanctum::actingAs($attacker, TokenAbility::all());
 
         $response = $this->postJson('/api/games', [
             'title' => 'Hollow Knight',
@@ -269,7 +270,7 @@ class GameControllerTest extends TestCase
 
     public function test_creating_a_game_requires_title_and_platform(): void
     {
-        Sanctum::actingAs(User::factory()->create());
+        Sanctum::actingAs(User::factory()->create(), TokenAbility::all());
 
         $this->postJson('/api/games', [])
             ->assertStatus(422)
@@ -282,7 +283,7 @@ class GameControllerTest extends TestCase
         // Regresión: la API aceptaba rating 1-10 mientras el formulario web
         // lo restringe a 1-5 (ver Game::RATING_MIN/MAX) — un alta por API
         // fuera de ese rango rendía raro en la web.
-        Sanctum::actingAs(User::factory()->create());
+        Sanctum::actingAs(User::factory()->create(), TokenAbility::all());
         $platform = Platform::factory()->create();
 
         $this->postJson('/api/games', [
@@ -297,7 +298,7 @@ class GameControllerTest extends TestCase
         // Regresión: la API aceptaba cualquier string para status (ver
         // Game::STATUSES) — incluido 'sold', que ni el propio formulario web
         // permite asignar directamente (solo vía SalesController::markAsSold()).
-        Sanctum::actingAs(User::factory()->create());
+        Sanctum::actingAs(User::factory()->create(), TokenAbility::all());
         $platform = Platform::factory()->create();
 
         $this->postJson('/api/games', [
@@ -309,7 +310,7 @@ class GameControllerTest extends TestCase
 
     public function test_creating_a_game_rejects_a_play_status_outside_the_webs_closed_enum(): void
     {
-        Sanctum::actingAs(User::factory()->create());
+        Sanctum::actingAs(User::factory()->create(), TokenAbility::all());
         $platform = Platform::factory()->create();
 
         $this->postJson('/api/games', [
@@ -321,7 +322,7 @@ class GameControllerTest extends TestCase
 
     public function test_creating_a_game_accepts_status_play_status_and_rating_within_the_webs_ranges(): void
     {
-        Sanctum::actingAs(User::factory()->create());
+        Sanctum::actingAs(User::factory()->create(), TokenAbility::all());
         $platform = Platform::factory()->create();
 
         $this->postJson('/api/games', [
@@ -348,7 +349,7 @@ class GameControllerTest extends TestCase
      */
     public function test_creating_a_game_rejects_a_price_paid_beyond_the_database_column_size(): void
     {
-        Sanctum::actingAs(User::factory()->create());
+        Sanctum::actingAs(User::factory()->create(), TokenAbility::all());
         $platform = Platform::factory()->create();
 
         $this->postJson('/api/games', [
@@ -360,7 +361,7 @@ class GameControllerTest extends TestCase
 
     public function test_creating_a_game_accepts_a_price_paid_at_the_maximum_allowed_value(): void
     {
-        Sanctum::actingAs(User::factory()->create());
+        Sanctum::actingAs(User::factory()->create(), TokenAbility::all());
         $platform = Platform::factory()->create();
 
         $this->postJson('/api/games', [
@@ -375,7 +376,7 @@ class GameControllerTest extends TestCase
     public function test_updating_a_game_rejects_a_price_paid_beyond_the_database_column_size(): void
     {
         $user = User::factory()->create();
-        Sanctum::actingAs($user);
+        Sanctum::actingAs($user, TokenAbility::all());
         $game = Game::factory()->for($user)->create(['price_paid' => 10]);
 
         $this->putJson("/api/games/{$game->id}", [
@@ -393,7 +394,7 @@ class GameControllerTest extends TestCase
         $attacker = User::factory()->create();
         $game = Game::factory()->for($owner)->create();
 
-        Sanctum::actingAs($owner);
+        Sanctum::actingAs($owner, TokenAbility::all());
 
         $this->putJson("/api/games/{$game->id}", [
             'title' => 'Still mine',
@@ -411,7 +412,7 @@ class GameControllerTest extends TestCase
         $user = User::factory()->create();
         $game = Game::factory()->for($user)->create(['status' => 'owned']);
 
-        Sanctum::actingAs($user);
+        Sanctum::actingAs($user, TokenAbility::all());
 
         $this->putJson("/api/games/{$game->id}", ['status' => 'sold'])
             ->assertStatus(422)
@@ -425,7 +426,7 @@ class GameControllerTest extends TestCase
         $user = User::factory()->create();
         $game = Game::factory()->for($user)->create();
 
-        Sanctum::actingAs($user);
+        Sanctum::actingAs($user, TokenAbility::all());
 
         $this->putJson("/api/games/{$game->id}", ['rating' => 10])
             ->assertStatus(422)
@@ -437,7 +438,7 @@ class GameControllerTest extends TestCase
         $user = User::factory()->create();
         $game = Game::factory()->for($user)->create(['title' => 'Old title']);
 
-        Sanctum::actingAs($user);
+        Sanctum::actingAs($user, TokenAbility::all());
 
         $this->putJson("/api/games/{$game->id}", ['title' => 'New title'])
             ->assertOk()
@@ -451,7 +452,7 @@ class GameControllerTest extends TestCase
         $owner = User::factory()->create();
         $game = Game::factory()->for($owner)->create(['title' => 'Untouched']);
 
-        Sanctum::actingAs(User::factory()->create());
+        Sanctum::actingAs(User::factory()->create(), TokenAbility::all());
 
         $this->putJson("/api/games/{$game->id}", ['title' => 'Hijacked'])
             ->assertStatus(403)
@@ -465,7 +466,7 @@ class GameControllerTest extends TestCase
         $user = User::factory()->create();
         $game = Game::factory()->for($user)->create();
 
-        Sanctum::actingAs($user);
+        Sanctum::actingAs($user, TokenAbility::all());
 
         $this->deleteJson("/api/games/{$game->id}")->assertOk();
 
@@ -477,7 +478,7 @@ class GameControllerTest extends TestCase
         $owner = User::factory()->create();
         $game = Game::factory()->for($owner)->create();
 
-        Sanctum::actingAs(User::factory()->create());
+        Sanctum::actingAs(User::factory()->create(), TokenAbility::all());
 
         $this->deleteJson("/api/games/{$game->id}")
             ->assertStatus(403)
