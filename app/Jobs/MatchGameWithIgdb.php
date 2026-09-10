@@ -20,6 +20,15 @@ use Illuminate\Queue\SerializesModels;
  * (games.igdb_matched_at null); si IGDB no encuentra nada o el usuario no
  * tiene IGDB activado, igual se marca como intentado para no repetirlo en
  * cada visita (ver IgdbGameMatcher).
+ *
+ * $assignBackground (issue #180, seguimiento de la auditoría de rendimiento
+ * del 2026-09-10): GameController::store() también usaba esta misma lógica,
+ * pero síncrona dentro de la petición de alta cuando el ajuste "Fondo
+ * automático desde IGDB" está activo — hasta ~16s de latencia visible al
+ * guardar (búsqueda + timeToBeat + artworks, cada una con su propio timeout).
+ * Con esto en true, además de matchIfNeeded() se pide el primer artwork
+ * disponible y se fija como fondo, igual que hacía
+ * GameController::autoAssignIgdbBackground() antes de moverse aquí.
  */
 class MatchGameWithIgdb implements ShouldQueue
 {
@@ -27,6 +36,7 @@ class MatchGameWithIgdb implements ShouldQueue
 
     public function __construct(
         public readonly int $gameId,
+        public readonly bool $assignBackground = false,
     ) {}
 
     public function handle(): void
@@ -45,5 +55,15 @@ class MatchGameWithIgdb implements ShouldQueue
         $igdbLookup = IgdbLookupService::forUser($game->user);
 
         (new IgdbGameMatcher($igdbLookup, new AgeRatingResolver))->matchIfNeeded($game);
+
+        if (! $this->assignBackground || $game->igdb_id === null) {
+            return;
+        }
+
+        $artworkId = $igdbLookup->artworks($game->igdb_id)[0] ?? null;
+
+        if ($artworkId !== null) {
+            $game->update(['igdb_background' => $artworkId]);
+        }
     }
 }

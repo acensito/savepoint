@@ -54,6 +54,59 @@ class MatchGameWithIgdbTest extends TestCase
         Http::assertSent(fn ($request) => $request->hasHeader('Client-ID', 'owner-client-id'));
     }
 
+    public function test_handle_with_assign_background_sets_the_first_artwork(): void
+    {
+        $owner = User::factory()->create([
+            'igdb_enabled' => true,
+            'igdb_client_id' => 'owner-client-id',
+            'igdb_client_secret' => 'owner-client-secret',
+        ]);
+        $game = Game::factory()->for($owner)->create(['title' => 'Celeste', 'developer' => null]);
+
+        Http::fake([
+            'id.twitch.tv/oauth2/token' => Http::response(['access_token' => 'owner-token', 'expires_in' => 5184000], 200),
+            'api.igdb.com/v4/games' => Http::response([[
+                'id' => 305,
+                'name' => 'Celeste',
+                'involved_companies' => [['developer' => true, 'company' => ['name' => 'Maddy Makes Games']]],
+            ]], 200),
+            'api.igdb.com/v4/game_time_to_beats' => Http::response([], 200),
+            'api.igdb.com/v4/artworks' => Http::response([
+                ['image_id' => 'ar1abc'],
+                ['image_id' => 'ar2def'],
+            ], 200),
+        ]);
+
+        (new MatchGameWithIgdb($game->id, assignBackground: true))->handle();
+
+        $this->assertSame('ar1abc', $game->fresh()->igdb_background);
+    }
+
+    public function test_handle_without_assign_background_leaves_the_background_empty(): void
+    {
+        $owner = User::factory()->create([
+            'igdb_enabled' => true,
+            'igdb_client_id' => 'owner-client-id',
+            'igdb_client_secret' => 'owner-client-secret',
+        ]);
+        $game = Game::factory()->for($owner)->create(['title' => 'Celeste', 'developer' => null]);
+
+        Http::fake([
+            'id.twitch.tv/oauth2/token' => Http::response(['access_token' => 'owner-token', 'expires_in' => 5184000], 200),
+            'api.igdb.com/v4/games' => Http::response([[
+                'id' => 305,
+                'name' => 'Celeste',
+                'involved_companies' => [['developer' => true, 'company' => ['name' => 'Maddy Makes Games']]],
+            ]], 200),
+            'api.igdb.com/v4/game_time_to_beats' => Http::response([], 200),
+        ]);
+
+        (new MatchGameWithIgdb($game->id))->handle();
+
+        $this->assertNull($game->fresh()->igdb_background);
+        Http::assertNotSent(fn ($request) => $request->url() === 'https://api.igdb.com/v4/artworks');
+    }
+
     public function test_handle_does_nothing_when_the_owner_has_not_enabled_igdb(): void
     {
         $owner = User::factory()->create(['igdb_enabled' => false]);

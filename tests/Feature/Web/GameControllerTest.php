@@ -7,8 +7,6 @@ use App\Models\Edition;
 use App\Models\Game;
 use App\Models\Platform;
 use App\Models\User;
-use App\Services\GameLookup\IgdbGameMatch;
-use App\Services\GameLookup\IgdbLookupService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Bus;
@@ -821,26 +819,34 @@ class GameControllerTest extends TestCase
 
     public function test_creating_a_game_with_auto_igdb_background_enabled_sets_the_first_artwork(): void
     {
-        $user = User::factory()->create(['auto_igdb_background' => true]);
+        // El match + fondo ya no ocurre en línea dentro de store() (issue
+        // #180): se despacha MatchGameWithIgdb::dispatch(assignBackground:
+        // true), que en test corre en línea por QUEUE_CONNECTION=sync (ver
+        // phpunit.xml) pero construye IgdbLookupService a mano vía
+        // forUser(), no por inyección de dependencias — de ahí Http::fake()
+        // en vez de mockear el servicio (igual que
+        // Tests\Feature\Jobs\MatchGameWithIgdbTest).
+        $user = User::factory()->create([
+            'auto_igdb_background' => true,
+            'igdb_enabled' => true,
+            'igdb_client_id' => 'user-client-id',
+            'igdb_client_secret' => 'user-client-secret',
+        ]);
         $platform = Platform::factory()->create(['name' => 'Nintendo Switch']);
 
-        $this->mock(IgdbLookupService::class, function ($mock) {
-            $mock->shouldReceive('search')
-                ->once()
-                ->with('Celeste', 'Nintendo Switch', 10)
-                ->andReturn([new IgdbGameMatch(
-                    igdbId: 305,
-                    title: 'Celeste',
-                    platforms: 'Nintendo Switch',
-                    developer: 'Maddy Makes Games',
-                    releaseDate: '2018-01-25',
-                    genres: ['Platform', 'Indie'],
-                    rating: 87.65,
-                    ageRatings: null,
-                )]);
-            $mock->shouldReceive('artworks')->once()->with(305)->andReturn(['ar1abc', 'ar2def']);
-            $mock->shouldReceive('timeToBeat')->once()->with(305)->andReturn(['normally' => 64800, 'count' => 150]);
-        });
+        Http::fake([
+            'id.twitch.tv/oauth2/token' => Http::response(['access_token' => 'user-token', 'expires_in' => 5184000], 200),
+            'api.igdb.com/v4/games' => Http::response([[
+                'id' => 305,
+                'name' => 'Celeste',
+                'involved_companies' => [['developer' => true, 'company' => ['name' => 'Maddy Makes Games']]],
+            ]], 200),
+            'api.igdb.com/v4/game_time_to_beats' => Http::response([], 200),
+            'api.igdb.com/v4/artworks' => Http::response([
+                ['image_id' => 'ar1abc'],
+                ['image_id' => 'ar2def'],
+            ], 200),
+        ]);
 
         $response = $this->actingAs($user)->post('/games', [
             'title' => 'Celeste',
@@ -857,13 +863,14 @@ class GameControllerTest extends TestCase
 
     public function test_creating_a_game_with_auto_igdb_background_disabled_leaves_the_background_empty(): void
     {
-        $user = User::factory()->create(['auto_igdb_background' => false]);
+        $user = User::factory()->create([
+            'auto_igdb_background' => false,
+            'igdb_enabled' => true,
+            'igdb_client_id' => 'user-client-id',
+            'igdb_client_secret' => 'user-client-secret',
+        ]);
 
-        $this->mock(IgdbLookupService::class, function ($mock) {
-            $mock->shouldNotReceive('search');
-            $mock->shouldNotReceive('artworks');
-            $mock->shouldNotReceive('timeToBeat');
-        });
+        Http::fake();
 
         $response = $this->actingAs($user)->post('/games', [
             'title' => 'Celeste',
@@ -875,17 +882,22 @@ class GameControllerTest extends TestCase
         $game = Game::where('title', 'Celeste')->firstOrFail();
         $this->assertNull($game->igdb_matched_at);
         $this->assertNull($game->igdb_background);
+        Http::assertNothingSent();
     }
 
     public function test_creating_a_game_with_auto_igdb_background_enabled_but_no_igdb_match_leaves_the_background_empty(): void
     {
-        $user = User::factory()->create(['auto_igdb_background' => true]);
+        $user = User::factory()->create([
+            'auto_igdb_background' => true,
+            'igdb_enabled' => true,
+            'igdb_client_id' => 'user-client-id',
+            'igdb_client_secret' => 'user-client-secret',
+        ]);
 
-        $this->mock(IgdbLookupService::class, function ($mock) {
-            $mock->shouldReceive('search')->once()->andReturn([]);
-            $mock->shouldNotReceive('artworks');
-            $mock->shouldNotReceive('timeToBeat');
-        });
+        Http::fake([
+            'id.twitch.tv/oauth2/token' => Http::response(['access_token' => 'user-token', 'expires_in' => 5184000], 200),
+            'api.igdb.com/v4/games' => Http::response([], 200),
+        ]);
 
         $response = $this->actingAs($user)->post('/games', [
             'title' => 'Un juego sin match',
@@ -898,26 +910,27 @@ class GameControllerTest extends TestCase
         $this->assertNotNull($game->igdb_matched_at);
         $this->assertNull($game->igdb_id);
         $this->assertNull($game->igdb_background);
+        Http::assertNotSent(fn ($request) => $request->url() === 'https://api.igdb.com/v4/artworks');
     }
 
     public function test_creating_a_game_with_auto_igdb_background_enabled_but_no_artworks_leaves_the_background_empty(): void
     {
-        $user = User::factory()->create(['auto_igdb_background' => true]);
+        $user = User::factory()->create([
+            'auto_igdb_background' => true,
+            'igdb_enabled' => true,
+            'igdb_client_id' => 'user-client-id',
+            'igdb_client_secret' => 'user-client-secret',
+        ]);
 
-        $this->mock(IgdbLookupService::class, function ($mock) {
-            $mock->shouldReceive('search')->once()->andReturn([new IgdbGameMatch(
-                igdbId: 42,
-                title: 'Sin arte',
-                platforms: null,
-                developer: null,
-                releaseDate: null,
-                genres: null,
-                rating: null,
-                ageRatings: null,
-            )]);
-            $mock->shouldReceive('artworks')->once()->with(42)->andReturn([]);
-            $mock->shouldReceive('timeToBeat')->once()->with(42)->andReturn(null);
-        });
+        Http::fake([
+            'id.twitch.tv/oauth2/token' => Http::response(['access_token' => 'user-token', 'expires_in' => 5184000], 200),
+            'api.igdb.com/v4/games' => Http::response([[
+                'id' => 42,
+                'name' => 'Sin arte',
+            ]], 200),
+            'api.igdb.com/v4/game_time_to_beats' => Http::response([], 200),
+            'api.igdb.com/v4/artworks' => Http::response([], 200),
+        ]);
 
         $response = $this->actingAs($user)->post('/games', [
             'title' => 'Sin arte',

@@ -8,8 +8,6 @@ use App\Models\Edition;
 use App\Models\Game;
 use App\Models\Platform;
 use App\Services\GameLookup\ExternalCoverDownloader;
-use App\Services\GameLookup\IgdbGameMatcher;
-use App\Services\GameLookup\IgdbLookupService;
 use App\Services\Games\GameCollectionQuery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -23,8 +21,6 @@ class GameController extends Controller
 {
     public function __construct(
         private readonly GameCollectionQuery $collectionQuery,
-        private readonly IgdbLookupService $igdbLookup,
-        private readonly IgdbGameMatcher $igdbMatcher,
         private readonly ExternalCoverDownloader $coverDownloader,
     ) {}
 
@@ -196,7 +192,12 @@ class GameController extends Controller
         $game = Game::create($validated);
 
         if (auth()->user()->auto_igdb_background) {
-            $this->autoAssignIgdbBackground($game);
+            // En cola, no síncrono: la búsqueda + timeToBeat + artworks de
+            // IGDB (hasta 4s de timeout cada una) podían dejar hasta ~16s
+            // de latencia visible al guardar (auditoría de rendimiento del
+            // 2026-09-10, issue #180) — el fondo aparece unos segundos
+            // después en vez de retrasar el propio guardado.
+            MatchGameWithIgdb::dispatch($game->id, assignBackground: true);
         }
 
         return redirect()->route('web.games.index')->with('success', 'Juego añadido correctamente.');
@@ -226,34 +227,6 @@ class GameController extends Controller
         }
 
         return view('games.show', compact('game'));
-    }
-
-    /**
-     * Ajuste "Fondo automático desde IGDB" (ver PanelController::settings):
-     * si el juego recién dado de alta se identifica en IGDB y tiene arte
-     * disponible, fija el primero como fondo, sin esperar a que el usuario
-     * lo elija a mano. Nunca bloquea el alta si IGDB falla o no encuentra
-     * nada — IgdbLookupService ya devuelve vacío/null en ese caso, nunca
-     * lanza una excepción.
-     *
-     * Síncrono a propósito, a diferencia del match de show() (ver
-     * MatchGameWithIgdb): el alta ya es una petición POST del usuario, no
-     * bloquea la lectura de una ficha, y este flujo necesita el resultado en
-     * el momento (igdb_id) para poder pedir a continuación el arte.
-     */
-    private function autoAssignIgdbBackground(Game $game): void
-    {
-        $this->igdbMatcher->matchIfNeeded($game);
-
-        if ($game->igdb_id === null) {
-            return;
-        }
-
-        $artworkId = $this->igdbLookup->artworks($game->igdb_id)[0] ?? null;
-
-        if ($artworkId !== null) {
-            $game->update(['igdb_background' => $artworkId]);
-        }
     }
 
     /**

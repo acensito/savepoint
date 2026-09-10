@@ -79,15 +79,27 @@ services:
         # pero el coste de activarlo es nulo. Fsync cada segundo (por defecto,
         # "everysec") en vez de en cada escritura: pérdida máxima de ~1s de
         # datos a cambio de no penalizar el rendimiento en cada operación.
-        # --maxmemory con política de desalojo LRU: al ser solo caché/sesiones
-        # (con copia real en Postgres) no hay riesgo real en perder claves
-        # antiguas bajo presión de memoria; evita que Redis crezca sin límite.
-        command: redis-server --appendonly yes --maxmemory 64mb --maxmemory-policy allkeys-lru
-        # Perfil "servidor" (por defecto):
-        mem_limit: 128m
+        # --maxmemory con política de desalojo LRU: evita que Redis crezca sin
+        # límite. OJO: esta misma instancia también guarda sesiones (db0,
+        # SETEX con el tiempo de vida de la sesión) y los payloads de la cola
+        # (listas/sorted sets sin TTL propio) — allkeys-lru puede desalojar
+        # cualquiera de los dos bajo presión de memoria, no solo caché
+        # (logout aleatorio / error 419, o una importación que nunca llega a
+        # ejecutarse). Con 64mb el límite se podía llegar a rozar en uso real;
+        # 192mb deja margen de sobra para que eso no pase en el uso normal de
+        # un solo usuario (auditoría de rendimiento del 2026-09-10, issue
+        # #179). Separar sesión+cola de la caché en una instancia/política
+        # aparte sería más robusto de raíz, pero es un cambio mayor que se
+        # deja para más adelante si este margen resultase insuficiente.
+        command: redis-server --appendonly yes --maxmemory 192mb --maxmemory-policy allkeys-lru
+        # Perfil "servidor" (por defecto): mem_limit por encima de maxmemory
+        # para dejarle hueco de sobra al propio proceso de Redis (AOF, etc.).
+        mem_limit: 256m
         cpus: "0.5"
-        # Perfil "NAS": comenta las dos líneas de arriba y descomenta estas dos.
-        # mem_limit: 96m
+        # Perfil "NAS": comenta las tres líneas de arriba y descomenta estas
+        # tres (maxmemory más bajo para no acaparar un NAS con poca RAM).
+        # command: redis-server --appendonly yes --maxmemory 96mb --maxmemory-policy allkeys-lru
+        # mem_limit: 160m
         # cpus: "0.5"
         ports:
             # Cerrado al exterior: Solo accesible desde localhost
