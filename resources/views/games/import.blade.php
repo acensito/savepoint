@@ -24,7 +24,8 @@
                  entonces pinta el mismo resumen que antes llegaba ya listo en
                  la propia redirección. -->
             <div id="import-status" class="bg-slate-900 border border-slate-800 rounded-xl p-6 mb-6"
-                data-status-url="{{ route('web.games.import.status', $importId) }}">
+                data-status-url="{{ route('web.games.import.status', $importId) }}"
+                data-auto-identify-url="{{ route('web.games.auto-identify') }}">
                 <div id="import-status-pending" class="flex items-center gap-2 text-slate-300">
                     <x-gicon name="progress_activity" class="text-[20px] animate-spin" />
                     Importando tu colección… puede tardar un poco con ficheros grandes.

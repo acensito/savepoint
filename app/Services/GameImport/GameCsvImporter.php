@@ -102,14 +102,14 @@ class GameCsvImporter
      * plataformas/ediciones que no existan todavía en el catálogo se crean
      * sobre la marcha.
      *
-     * @return array{imported: int, createdPlatforms: int, createdEditions: int, errors: string[]}
+     * @return array{imported: int, createdPlatforms: int, createdEditions: int, errors: string[], platformIds: int[]}
      */
     public function import(string $path, int $userId): array
     {
         $parsed = $this->openFile($path);
 
         if (isset($parsed['error'])) {
-            return ['imported' => 0, 'createdPlatforms' => 0, 'createdEditions' => 0, 'errors' => [$parsed['error']]];
+            return ['imported' => 0, 'createdPlatforms' => 0, 'createdEditions' => 0, 'errors' => [$parsed['error']], 'platformIds' => []];
         }
 
         ['handle' => $handle, 'delimiter' => $delimiter, 'columns' => $columns] = $parsed;
@@ -119,6 +119,7 @@ class GameCsvImporter
         $createdEditions = 0;
         $errors = [];
         $rowNumber = 1;
+        $platformIds = [];
 
         while (($row = fgetcsv($handle, 0, $delimiter)) !== false) {
             $rowNumber++;
@@ -153,6 +154,8 @@ class GameCsvImporter
                     $createdEditions += $wasCreated ? 1 : 0;
                 }
 
+                $status = $this->mapValue($get('propiedad'), self::STATUS_MAP, 'owned');
+
                 Game::create([
                     'user_id' => $userId,
                     'title' => $title,
@@ -162,7 +165,7 @@ class GameCsvImporter
                     'edition_id' => $editionId,
                     'release_date' => $this->parseDate($get('fecha lanzamiento')),
                     'genres' => $this->parseGenres($get('generos')),
-                    'status' => $this->mapValue($get('propiedad'), self::STATUS_MAP, 'owned'),
+                    'status' => $status,
                     'play_status' => $this->mapValue($get('estado de juego'), self::PLAY_STATUS_MAP, 'pending'),
                     'rating' => $this->parseRating($get('conservacion')),
                     'price_paid' => $this->parseDecimal($get('precio pagado')),
@@ -174,6 +177,16 @@ class GameCsvImporter
                     'notes' => $get('notas') ?: null,
                 ]);
 
+                // Plataformas de la importación con al menos un juego que
+                // "Identificar en bloque" (issue #128) sí recogería después
+                // (nunca wishlist, ver IdentifyMissingGameCovers): permite
+                // encadenar directamente a esa pantalla al terminar (issue
+                // #184, auditoría de flujos del 2026-09-10) sin tener que ir
+                // al Panel a mano a elegir la plataforma otra vez.
+                if ($platformId !== null && $status !== 'wishlist') {
+                    $platformIds[$platformId] = true;
+                }
+
                 $imported++;
             } catch (Throwable $e) {
                 $errors[] = "Fila {$rowNumber} («{$title}»): no se ha podido importar ({$e->getMessage()}).";
@@ -182,7 +195,9 @@ class GameCsvImporter
 
         fclose($handle);
 
-        return compact('imported', 'createdPlatforms', 'createdEditions', 'errors');
+        $platformIds = array_keys($platformIds);
+
+        return compact('imported', 'createdPlatforms', 'createdEditions', 'errors', 'platformIds');
     }
 
     /**

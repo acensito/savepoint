@@ -128,6 +128,32 @@ class GameImportControllerTest extends TestCase
     }
 
     /**
+     * Issue #184: al terminar la importación, la pantalla ofrece un enlace
+     * directo a "Identificar carátulas" para la plataforma recién importada
+     * en vez de tener que ir al Panel a buscarla otra vez en el desplegable.
+     * La wishlist se excluye a propósito: "Identificar en bloque" nunca la
+     * toca (ver Jobs\IdentifyMissingGameCovers), así que no tendría sentido
+     * ofrecer el enlace para una plataforma que solo tiene juegos ahí.
+     */
+    public function test_import_status_reports_the_platforms_imported_excluding_wishlist_only_ones(): void
+    {
+        $user = User::factory()->create();
+
+        $csv = "Título,Plataforma,Propiedad\r\n"
+             ."Hollow Knight,Nintendo Switch,En colección\r\n"
+             ."Celeste,Nintendo Switch,En colección\r\n"
+             ."Silksong,PS5,Lista de deseos\r\n";
+
+        $response = $this->actingAs($user)->post('/games/import', ['file' => $this->csvFile($csv)]);
+        $status = $this->importStatus($response);
+
+        $status->assertJsonPath('imported', 3);
+
+        $switch = Platform::where('name', 'Nintendo Switch')->firstOrFail();
+        $this->assertSame([$switch->id], $status->json('platformIds'));
+    }
+
+    /**
      * Regresión (#142 + import real de #128): "Normal" existe a la vez en
      * varios soportes (cartucho/disco/diskette), así que buscarla solo por
      * nombre es ambigua sin una columna de formato en el CSV — se prefiere

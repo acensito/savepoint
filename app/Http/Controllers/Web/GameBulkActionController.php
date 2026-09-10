@@ -82,6 +82,46 @@ class GameBulkActionController extends Controller
     }
 
     /**
+     * Marca de golpe como vendidos todos los juegos seleccionados en el
+     * listado, con un único precio y fecha de venta compartidos para todo el
+     * lote (issue #183): pedir un precio distinto por juego rompería la
+     * ventaja de hacerlo en bloque, y en la práctica un lote catalogado
+     * junto (misma bolsa/compra) también suele venderse junto al mismo
+     * precio por unidad. Mismo ciclo que SalesController::markAsSold() para
+     * uno solo: envía a la papelera, recuperable desde /sales.
+     */
+    public function bulkMarkAsSold(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            // max:99999999.99: tope real de la columna decimal(10,2) — ver
+            // GameController::validated() para el mismo motivo.
+            'sale_price' => 'required|numeric|min:0|max:99999999.99',
+            'sold_at' => 'required|date',
+        ]);
+
+        $ids = $this->ownedSelectedIds($request);
+
+        Game::whereIn('id', $ids)->update([
+            'sale_price' => $validated['sale_price'],
+            'sold_at' => $validated['sold_at'],
+            'status' => 'sold',
+            'for_sale' => false,
+        ]);
+
+        // Mass delete por query builder, no Model::destroy(): mismo motivo
+        // que destroy() más arriba, no dispara el evento 'deleted' de
+        // Eloquent, de ahí el Cache::forget() explícito.
+        Game::whereIn('id', $ids)->delete();
+
+        Cache::forget(StatsController::cacheKey(auth()->id()));
+
+        return redirect()->route('web.games.index')->with(
+            'success',
+            count($ids).' '.Str::plural('juego', count($ids)).' '.(count($ids) === 1 ? 'marcado' : 'marcados').' como vendido.'
+        );
+    }
+
+    /**
      * Inversa de markForSale(), pero desde la propia página "En venta" (#123
      * seguimiento): antes solo se podía quitar un juego cada vez, desde su
      * ficha (ver GameController::quickUpdate()) — al vivir esta página
