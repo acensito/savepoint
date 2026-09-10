@@ -6,6 +6,7 @@ use App\Exceptions\ApiErrorCode;
 use App\Exceptions\ApiException;
 use App\Models\Game;
 use App\Models\User;
+use App\Services\Users\TokenAbility;
 use Illuminate\Contracts\Notifications\Dispatcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -33,7 +34,7 @@ class ErrorContractTest extends TestCase
 
         $user = User::factory()->create();
         $game = Game::factory()->for($user)->create();
-        Sanctum::actingAs(User::factory()->create());
+        Sanctum::actingAs(User::factory()->create(), TokenAbility::all());
 
         $this->getJson("/api/games/{$game->id}")
             ->assertForbidden()
@@ -54,7 +55,7 @@ class ErrorContractTest extends TestCase
 
     public function test_validation_errors_have_code_status_message_and_errors(): void
     {
-        Sanctum::actingAs(User::factory()->create());
+        Sanctum::actingAs(User::factory()->create(), TokenAbility::all());
 
         $this->postJson('/api/games', [])
             ->assertUnprocessable()

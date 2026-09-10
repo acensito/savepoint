@@ -8,6 +8,7 @@ use App\Http\Controllers\Concerns\SendsTwoFactorCode;
 use App\Http\Controllers\Concerns\ThrottlesLogins;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\Users\TokenAbility;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -204,8 +205,11 @@ class AuthController extends Controller
 
     private function issueTokenResponse(User $user): JsonResponse
     {
-        // Creamos un token llamado 'MobileApp' (puedes llamarlo como quieras)
-        $token = $user->createToken('MobileApp')->plainTextToken;
+        // TokenAbility::all() en vez de dejar el ability por defecto de
+        // Sanctum ('*', comodín sin restricción): un token filtrado antes
+        // tenía acceso total a la cuenta vía API sin límite alguno (ver
+        // TokenAbility para el porqué completo).
+        $token = $user->createToken('MobileApp', TokenAbility::all())->plainTextToken;
 
         return response()->json([
             'message' => 'Login exitoso',
