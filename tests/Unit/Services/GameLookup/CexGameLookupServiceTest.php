@@ -80,6 +80,72 @@ class CexGameLookupServiceTest extends TestCase
         });
     }
 
+    /**
+     * Auditoría de rendimiento del 2026-09-10: el catálogo de CEX es
+     * compartido entre toda la instancia y no cambia de un minuto para
+     * otro — repetir la misma consulta (buscador rápido, "buscar carátula",
+     * identificador en bloque reintentando el mismo título) no debería
+     * volver a golpear la red.
+     */
+    public function test_search_caches_identical_queries_without_a_second_request(): void
+    {
+        Http::fake(['search.webuy.io/*' => Http::response(['hits' => [['boxName' => 'Zelda', 'boxId' => '1']]], 200)]);
+
+        $service = $this->makeService();
+        $first = $service->search('Zelda');
+        $second = $service->search('Zelda');
+
+        $this->assertEquals($first, $second);
+        Http::assertSentCount(1);
+    }
+
+    public function test_search_cache_is_case_insensitive(): void
+    {
+        Http::fake(['search.webuy.io/*' => Http::response(['hits' => [['boxName' => 'Zelda', 'boxId' => '1']]], 200)]);
+
+        $service = $this->makeService();
+        $service->search('Zelda');
+        $service->search('zelda');
+        $service->search('  ZELDA  ');
+
+        Http::assertSentCount(1);
+    }
+
+    public function test_search_does_not_cache_across_different_queries(): void
+    {
+        Http::fake(['search.webuy.io/*' => Http::response(['hits' => []], 200)]);
+
+        $service = $this->makeService();
+        $service->search('Zelda');
+        $service->search('Mario');
+
+        Http::assertSentCount(2);
+    }
+
+    public function test_search_does_not_cache_a_connection_failure(): void
+    {
+        $attempt = 0;
+        Http::fake([
+            'search.webuy.io/*' => function () use (&$attempt) {
+                $attempt++;
+
+                return $attempt === 1
+                    ? throw new ConnectionException('timed out')
+                    : Http::response(['hits' => [['boxName' => 'Zelda', 'boxId' => '1']]], 200);
+            },
+        ]);
+
+        $service = $this->makeService();
+        $this->assertSame([], $service->search('Zelda'));
+        $this->assertNotEmpty($service->search('Zelda'));
+
+        // Http::assertSentCount() no sirve aquí: un fake que lanza no llega
+        // a registrarse como "enviado" — el contador propio del closure sí
+        // prueba que la segunda llamada intentó la red de verdad en vez de
+        // servirse de una caché que nunca debió escribirse tras el fallo.
+        $this->assertSame(2, $attempt);
+    }
+
     public function test_search_returns_empty_array_for_a_blank_query_without_making_a_request(): void
     {
         // Http::preventStrayRequests() (Tests\TestCase) haría fallar el test

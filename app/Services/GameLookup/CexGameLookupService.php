@@ -2,6 +2,7 @@
 
 namespace App\Services\GameLookup;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -26,6 +27,27 @@ class CexGameLookupService implements GameLookupInterface
     private const TIMEOUT_SECONDS = 4;
 
     private const MAX_RESULTS = 8;
+
+    /**
+     * El catálogo de CEX (instancia compartida, no por cuenta) no cambia de
+     * un minuto para otro — cachear la misma consulta evita golpear
+     * repetidamente un servicio externo no oficial desde varios sitios que
+     * pueden pedir lo mismo en poco tiempo: el buscador rápido (una consulta
+     * por pulsación con debounce), "buscar carátula" al editar un juego, y
+     * el identificador en bloque (issue #128), que reintenta con el mismo
+     * título en cada pasada mientras el juego siga sin match.
+     */
+    private const HITS_CACHE_TTL_MINUTES = 30;
+
+    /**
+     * Un "sin resultados" se cachea menos tiempo: podría deberse a un fallo
+     * puntual del lado de CEX en vez de que el catálogo de verdad no tenga
+     * nada, así que conviene reintentarlo de verdad más pronto que una
+     * búsqueda que sí trajo resultados reales.
+     */
+    private const EMPTY_HITS_CACHE_TTL_MINUTES = 5;
+
+    private const HITS_CACHE_KEY_PREFIX = 'cex-hits:';
 
     public function __construct(
         private readonly string $host,
@@ -86,6 +108,14 @@ class CexGameLookupService implements GameLookupInterface
             return [];
         }
 
+        $cacheKey = self::HITS_CACHE_KEY_PREFIX.sha1(Str::lower($query));
+
+        /** @var array<int, array<string, mixed>>|null $cached */
+        $cached = Cache::get($cacheKey);
+        if ($cached !== null) {
+            return $cached;
+        }
+
         try {
             $response = Http::timeout(self::TIMEOUT_SECONDS)
                 ->withHeaders([
@@ -119,8 +149,16 @@ class CexGameLookupService implements GameLookupInterface
             return [];
         }
 
-        /** @var array<int, array<string, mixed>> */
-        return $response->json('hits', []);
+        /** @var array<int, array<string, mixed>> $hits */
+        $hits = $response->json('hits', []);
+
+        Cache::put(
+            $cacheKey,
+            $hits,
+            now()->addMinutes($hits === [] ? self::EMPTY_HITS_CACHE_TTL_MINUTES : self::HITS_CACHE_TTL_MINUTES),
+        );
+
+        return $hits;
     }
 
     /**
