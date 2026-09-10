@@ -1205,8 +1205,20 @@ function initQuickSearch() {
     if (!dialog || !input || !results || !url) return;
 
     let debounceTimer = null;
+    // Descarta la respuesta de una búsqueda anterior si todavía no había
+    // llegado cuando se lanzó una más reciente (issue #189): sin esto, una
+    // respuesta lenta a lo tecleado hace un momento podía llegar después que
+    // la última y pisar en pantalla un resultado que ya no corresponde a lo
+    // que hay escrito en el campo.
+    let searchAbortController = null;
+
+    const hasSearchCriteria = () => Boolean(input.value.trim() || platformFilter?.value || playStatusFilter?.value);
 
     const runSearch = async () => {
+        searchAbortController?.abort();
+        const controller = new AbortController();
+        searchAbortController = controller;
+
         const params = new URLSearchParams({q: input.value.trim()});
         if (platformFilter?.value) params.set('platform_id', platformFilter.value);
         if (playStatusFilter?.value) params.set('play_status', playStatusFilter.value);
@@ -1215,13 +1227,30 @@ function initQuickSearch() {
 
         try {
             const response = await fetch(`${url}?${params.toString()}`, {
-                headers: {'X-Requested-With': 'XMLHttpRequest'}, credentials: 'same-origin',
+                headers: {'X-Requested-With': 'XMLHttpRequest'}, credentials: 'same-origin', signal: controller.signal,
             });
             if (!response.ok) return;
 
             results.innerHTML = await response.text();
         } catch (e) {
-            // Sin conexión o similar: se deja el resultado anterior en pantalla.
+            // Abortada a propósito (una búsqueda más reciente la sustituyó) o
+            // sin conexión: en ambos casos se deja el resultado en pantalla
+            // tal cual está.
+        }
+    };
+
+    // Sin texto ni filtros no hay nada que buscar (issue #189): el servidor
+    // devolvería igualmente una lista vacía (ver SearchController::quick()),
+    // así que dispararlo siempre era una petición desperdiciada. El mensaje
+    // es el mismo que pinta el servidor para esa misma consulta en blanco
+    // (ver games/_quick-search-results.blade.php), para que se vea igual
+    // tanto si ha llegado a pedirse como si no.
+    const searchOrClear = () => {
+        if (hasSearchCriteria()) {
+            runSearch();
+        } else {
+            searchAbortController?.abort();
+            results.innerHTML = '<p class="px-4 py-10 text-center text-sm text-slate-500">Escribe para buscar un juego por título o EAN, o elige un filtro.</p>';
         }
     };
 
@@ -1237,7 +1266,7 @@ function initQuickSearch() {
         dialog.showModal();
         input.focus();
         input.select();
-        runSearch();
+        searchOrClear();
     };
 
     triggers.forEach((trigger) => {
@@ -1269,11 +1298,11 @@ function initQuickSearch() {
 
     input.addEventListener('input', () => {
         clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(runSearch, QUICK_SEARCH_DEBOUNCE_MS);
+        debounceTimer = setTimeout(searchOrClear, QUICK_SEARCH_DEBOUNCE_MS);
     });
 
     [platformFilter, playStatusFilter].forEach((select) => {
-        select?.addEventListener('change', runSearch);
+        select?.addEventListener('change', searchOrClear);
     });
 
     // Enter navega directamente al primer resultado, sin tener que soltar el

@@ -33,6 +33,20 @@ class ContentSecurityPolicyTest extends TestCase
         $this->assertStringNotContainsString('unsafe-eval', $scriptSrc);
     }
 
+    /**
+     * Issue #186: Instrument Sans y Material Symbols se autoalojan desde
+     * public/build en vez de fonts.googleapis.com/fonts.gstatic.com, así que
+     * el CSP ya no necesita permitirlos.
+     */
+    public function test_web_responses_do_not_allow_google_fonts_anymore(): void
+    {
+        $csp = $this->get('/login')->headers->get('Content-Security-Policy');
+
+        $this->assertStringNotContainsString('fonts.googleapis.com', $csp);
+        $this->assertStringNotContainsString('fonts.gstatic.com', $csp);
+        $this->assertStringContainsString("font-src 'self'", $csp);
+    }
+
     public function test_web_responses_block_plugins_and_a_base_href_takeover(): void
     {
         $csp = $this->get('/login')->headers->get('Content-Security-Policy');

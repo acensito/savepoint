@@ -356,8 +356,13 @@ class Game extends Model
      * IgdbController::artworks()/setBackground()), o null si no se
      * ha elegido ninguno. Se guarda solo el image_id de IGDB, no la URL
      * completa, para poder pedir aquí el tamaño que convenga en cada sitio.
+     *
+     * 720p, no 1080p (el valor por defecto hasta la auditoría de rendimiento
+     * del 2026-09-10, issue #187): games/show.blade.php lo pinta en una
+     * franja de ~200px de alto tras un degradado oscuro — un 1920×1080
+     * (150-400 KB) ahí es indistinguible de un 1280×720 bastante más ligero.
      */
-    public function backgroundUrl(string $size = '1080p'): ?string
+    public function backgroundUrl(string $size = '720p'): ?string
     {
         return $this->igdb_background ? "https://images.igdb.com/igdb/image/upload/t_{$size}/{$this->igdb_background}.jpg" : null;
     }

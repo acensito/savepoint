@@ -12,11 +12,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="SavePoint">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap"
-          rel="stylesheet">
-    @include('partials.material-symbols-link')
+    {{-- Instrument Sans y Material Symbols autoalojadas (issue #186): ver
+         los @font-face en app.css y layouts/app.blade.php. --}}
     <script nonce="{{ $cspNonce }}">
         // Bloqueante a propósito: ver el mismo script en layouts/app.blade.php.
         (function () {
