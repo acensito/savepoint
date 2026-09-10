@@ -426,9 +426,9 @@
         <select id="quick-search-play-status"
                 class="shrink-0 rounded-lg border border-slate-700 bg-slate-800 text-slate-300 px-2 py-1.5 text-xs focus:border-indigo-500 focus:ring-indigo-500 outline-hidden">
             <option value="">Cualquier estado</option>
-            <option value="pending">Pendiente</option>
-            <option value="playing">Jugando</option>
-            <option value="finished">Terminado</option>
+            @foreach(\App\Models\Game::PLAY_STATUS_LABELS as $value => $label)
+                <option value="{{ $value }}">{{ $label }}</option>
+            @endforeach
         </select>
     </div>
 

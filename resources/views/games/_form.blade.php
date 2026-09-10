@@ -272,9 +272,9 @@
         <div>
             <label for="play_status" class="{{ $label }}">Estado de juego</label>
             <select name="play_status" id="play_status" class="{{ $input }}">
-                <option value="pending" {{ old('play_status', $game?->play_status) == 'pending' ? 'selected' : '' }}>Pendiente</option>
-                <option value="playing" {{ old('play_status', $game?->play_status) == 'playing' ? 'selected' : '' }}>Jugando</option>
-                <option value="finished" {{ old('play_status', $game?->play_status) == 'finished' ? 'selected' : '' }}>Terminado</option>
+                @foreach(\App\Models\Game::PLAY_STATUS_LABELS as $value => $playStatusLabel)
+                    <option value="{{ $value }}" {{ old('play_status', $game?->play_status) == $value ? 'selected' : '' }}>{{ $playStatusLabel }}</option>
+                @endforeach
             </select>
             @error('play_status') <span class="{{ $error }}">{{ $message }}</span> @enderror
         </div>
@@ -341,9 +341,9 @@
             <label for="manual_status" class="{{ $label }}">Manual</label>
             <select name="manual_status" id="manual_status" class="{{ $input }}">
                 <option value="">--</option>
-                <option value="included" {{ old('manual_status', $game?->manual_status) == 'included' ? 'selected' : '' }}>Con Manual</option>
-                <option value="missing" {{ old('manual_status', $game?->manual_status) == 'missing' ? 'selected' : '' }}>Sin Manual</option>
-                <option value="booklet" {{ old('manual_status', $game?->manual_status) == 'booklet' ? 'selected' : '' }}>Folleto</option>
+                @foreach(\App\Models\Game::MANUAL_STATUS_LABELS as $value => $manualStatusLabel)
+                    <option value="{{ $value }}" {{ old('manual_status', $game?->manual_status) == $value ? 'selected' : '' }}>{{ $manualStatusLabel }}</option>
+                @endforeach
             </select>
             @error('manual_status') <span class="{{ $error }}">{{ $message }}</span> @enderror
         </div>

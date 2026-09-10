@@ -14,7 +14,7 @@
     $timeToBeatLabels = ['hastily' => 'Rápido', 'normally' => 'Normal', 'completely' => 'Completista'];
 
     $purchase = [
-        ['icon' => 'menu_book', 'label' => 'Manual', 'value' => ['included' => 'Con manual', 'missing' => 'Sin manual', 'booklet' => 'Folleto'][$game->manual_status] ?? null],
+        ['icon' => 'menu_book', 'label' => 'Manual', 'value' => \App\Models\Game::MANUAL_STATUS_LABELS[$game->manual_status] ?? null],
         ['icon' => 'storefront', 'label' => 'Lugar de compra', 'value' => $game->purchase_place],
         ['icon' => 'event', 'label' => 'Fecha de compra', 'value' => $game->purchase_date?->format('d/m/Y')],
     ];
@@ -87,7 +87,7 @@
                                 @else
                                     <x-gicon name="schedule" class="text-[18px]" />
                                 @endif
-                                {{ ['pending' => 'Pendiente', 'playing' => 'Jugando', 'finished' => 'Terminado'][$game->play_status] ?? $game->play_status }}
+                                {{ \App\Models\Game::PLAY_STATUS_LABELS[$game->play_status] ?? $game->play_status }}
 
                                 @php
                                     $statusLabels = ['owned' => 'En colección', 'wishlist' => 'Lista de deseos', 'sold' => 'Vendido'];

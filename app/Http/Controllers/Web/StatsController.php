@@ -208,7 +208,7 @@ class StatsController extends Controller
             ->groupBy('play_status')
             ->pluck('total', 'play_status');
 
-        $labels = ['pending' => 'Pendiente', 'playing' => 'Jugando', 'finished' => 'Terminado'];
+        $labels = Game::PLAY_STATUS_LABELS;
         $colors = ['pending' => '#94a3b8', 'playing' => '#818cf8', 'finished' => '#34d399'];
 
         return collect($labels)->map(fn ($label, $key) => [

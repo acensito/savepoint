@@ -46,9 +46,9 @@
 
         <select name="play_status" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden text-sm">
             <option value="">Cualquier estado de juego</option>
-            <option value="pending" {{ $playStatus === 'pending' ? 'selected' : '' }}>Pendiente</option>
-            <option value="playing" {{ $playStatus === 'playing' ? 'selected' : '' }}>Jugando</option>
-            <option value="finished" {{ $playStatus === 'finished' ? 'selected' : '' }}>Terminado</option>
+            @foreach(\App\Models\Game::PLAY_STATUS_LABELS as $value => $playStatusLabel)
+                <option value="{{ $value }}" {{ $playStatus === $value ? 'selected' : '' }}>{{ $playStatusLabel }}</option>
+            @endforeach
         </select>
 
         <select name="for_sale" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden text-sm">
