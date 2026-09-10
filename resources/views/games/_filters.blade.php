@@ -63,6 +63,13 @@
             @endforeach
         </select>
 
+        {{-- Encontrar a mano los que se quedaron sin carátula tras el
+             identificador en bloque (issue #128), sin depender de la memoria. --}}
+        <select name="cover" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden text-sm">
+            <option value="">Con o sin carátula</option>
+            <option value="none" {{ ($cover ?? '') === 'none' ? 'selected' : '' }}>Sin carátula</option>
+        </select>
+
         <select name="sort" class="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden text-sm">
             <option value="">Más recientes primero</option>
             <option value="title" {{ $sort === 'title' ? 'selected' : '' }}>Título</option>
