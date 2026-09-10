@@ -35,6 +35,32 @@ class GameTest extends TestCase
         $this->assertNull($game->coverUrl());
     }
 
+    /**
+     * Issue #187: 720p por defecto, no 1080p — indistinguible en la franja
+     * de ~200px de alto donde se pinta (games/show.blade.php), pero bastante
+     * más ligero.
+     */
+    public function test_background_url_defaults_to_the_720p_size(): void
+    {
+        $game = new Game(['igdb_background' => 'ar1abc']);
+
+        $this->assertSame('https://images.igdb.com/igdb/image/upload/t_720p/ar1abc.jpg', $game->backgroundUrl());
+    }
+
+    public function test_background_url_accepts_a_custom_size(): void
+    {
+        $game = new Game(['igdb_background' => 'ar1abc']);
+
+        $this->assertSame('https://images.igdb.com/igdb/image/upload/t_thumb/ar1abc.jpg', $game->backgroundUrl('thumb'));
+    }
+
+    public function test_background_url_is_null_without_a_background(): void
+    {
+        $game = new Game(['title' => 'Sin fondo']);
+
+        $this->assertNull($game->backgroundUrl());
+    }
+
     public function test_cover_placeholder_colors_uses_the_platform_colors_when_assigned(): void
     {
         $platform = new Platform(['bg_color' => '#111111', 'text_color' => '#222222', 'border_color' => '#333333']);
