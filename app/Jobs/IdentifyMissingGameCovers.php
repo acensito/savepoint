@@ -126,6 +126,7 @@ class IdentifyMissingGameCovers implements ShouldQueue
             GameAutoIdentifyController::cacheKey($this->batchId),
             [
                 'user_id' => $this->userId,
+                'phase' => 'identify',
                 'done' => $done,
                 'total' => $total,
                 'processed' => $processed,

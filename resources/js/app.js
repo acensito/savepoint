@@ -839,6 +839,19 @@ function initAutoIdentifyStatusPolling() {
         ` + renderUnmatched(data.unmatched);
     }
 
+    function renderConfirmed(data) {
+        pendingEl.classList.add('hidden');
+        resultEl.classList.remove('hidden');
+
+        const applied = data.applied ?? 0;
+        resultEl.innerHTML = `
+            <div class="flex items-center gap-2 text-emerald-400 font-semibold">
+                <span class="material-symbols-outlined text-[20px]">check_circle</span>
+                ${applied === 1 ? '1 carátula aplicada.' : `${applied} carátulas aplicadas.`}
+            </div>
+        `;
+    }
+
     async function poll() {
         try {
             const response = await fetch(statusUrl, {headers: {'Accept': 'application/json'}});
@@ -849,21 +862,32 @@ function initAutoIdentifyStatusPolling() {
             }
 
             const data = await response.json();
+            // 'confirm': aplicando los candidatos ya seleccionados (ver
+            // Jobs\ConfirmIdentifiedGameCovers, issue #178) -- antes esto se
+            // hacía dentro de la propia petición web, arriesgándose al
+            // timeout de nginx/PHP-FPM con un lote grande.
+            const isConfirming = data.phase === 'confirm';
 
             if (!data.done) {
-                // 'processed'/'total' solo existen desde que el job (ver
-                // Jobs\IdentifyMissingGameCovers) empezó a guardar progreso
-                // real cada pocos juegos, no solo al terminar — con una
-                // plataforma grande, antes esto se quedaba en el mismo
-                // mensaje genérico varios minutos sin ningún indicio de avance.
+                // 'processed'/'total' solo existen desde que los jobs
+                // empezaron a guardar progreso real cada pocos juegos, no
+                // solo al terminar — con un lote grande, antes esto se
+                // quedaba en el mismo mensaje genérico varios minutos sin
+                // ningún indicio de avance.
                 if (typeof data.processed === 'number' && typeof data.total === 'number' && data.total > 0) {
-                    pendingTextEl.textContent = `Buscando candidatos en CEX… ${data.processed} de ${data.total} revisados.`;
+                    pendingTextEl.textContent = isConfirming
+                        ? `Aplicando carátulas… ${data.processed} de ${data.total}.`
+                        : `Buscando candidatos en CEX… ${data.processed} de ${data.total} revisados.`;
                 }
                 setTimeout(poll, 1500);
                 return;
             }
 
-            renderCandidates(data);
+            if (isConfirming) {
+                renderConfirmed(data);
+            } else {
+                renderCandidates(data);
+            }
         } catch (e) {
             pendingTextEl.textContent = 'No se ha podido consultar el estado de la búsqueda.';
         }

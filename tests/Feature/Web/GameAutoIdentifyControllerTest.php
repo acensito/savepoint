@@ -3,6 +3,7 @@
 namespace Tests\Feature\Web;
 
 use App\Http\Controllers\Web\GameAutoIdentifyController;
+use App\Jobs\ConfirmIdentifiedGameCovers;
 use App\Jobs\IdentifyMissingGameCovers;
 use App\Models\Game;
 use App\Models\Platform;
@@ -281,6 +282,55 @@ class GameAutoIdentifyControllerTest extends TestCase
         $this->assertSame('0812872018012', $game->ean);
         $this->assertNotNull($game->cover);
         Storage::disk('public')->assertExists($game->cover);
+    }
+
+    /**
+     * Regresión (auditoría de rendimiento del 2026-09-10, issue #178): antes
+     * confirm() descargaba cada carátula dentro de la propia petición web —
+     * ahora despacha Jobs\ConfirmIdentifiedGameCovers y el lote se puede
+     * seguir con el mismo sondeo que ya usa la fase de identificar, con
+     * 'phase' => 'confirm' para distinguirlas.
+     */
+    public function test_confirm_reports_progress_through_the_same_batch(): void
+    {
+        Storage::fake('public');
+        Http::fake([
+            'search.webuy.io/*' => Http::response([
+                'hits' => [[
+                    'boxName' => 'Celeste',
+                    'boxId' => '0812872018012',
+                    'imageUrls' => ['large' => 'https://es.static.webuy.com/celeste_l.jpg'],
+                ]],
+            ], 200),
+            'es.static.webuy.com/*' => Http::response('fake-jpeg-bytes', 200, ['Content-Type' => 'image/jpeg']),
+        ]);
+
+        $user = User::factory()->create();
+        $platform = Platform::factory()->create();
+        $game = Game::factory()->for($user)->create(['platform_id' => $platform->id, 'title' => 'Celeste', 'ean' => null, 'cover' => null]);
+
+        $storeResponse = $this->actingAs($user)->post('/games/auto-identify', ['platform_id' => $platform->id]);
+        $batchId = $storeResponse->getSession()->get('batchId');
+
+        $confirmResponse = $this->actingAs($user)
+            ->post(route('web.games.auto-identify.confirm', $batchId), ['game_ids' => [$game->id]]);
+
+        $confirmBatchId = $confirmResponse->getSession()->get('batchId');
+        $this->assertSame($batchId, $confirmBatchId);
+
+        $status = $this->getJson(route('web.games.auto-identify.status', $confirmBatchId));
+        $status->assertJsonPath('phase', 'confirm');
+        $status->assertJsonPath('done', true);
+        $status->assertJsonPath('total', 1);
+        $status->assertJsonPath('applied', 1);
+    }
+
+    public function test_confirm_job_has_a_generous_timeout_and_a_single_attempt(): void
+    {
+        $job = new ConfirmIdentifiedGameCovers(1, 'batch-id', []);
+
+        $this->assertSame(1800, $job->timeout);
+        $this->assertSame(1, $job->tries);
     }
 
     public function test_confirm_ignores_unselected_candidates(): void

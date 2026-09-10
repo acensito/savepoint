@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\ConfirmIdentifiedGameCovers;
 use App\Jobs\IdentifyMissingGameCovers;
 use App\Models\Game;
 use App\Models\Platform;
-use App\Services\GameLookup\ExternalCoverDownloader;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,8 +25,6 @@ use Illuminate\View\View;
  */
 class GameAutoIdentifyController extends Controller
 {
-    public function __construct(private readonly ExternalCoverDownloader $coverDownloader) {}
-
     /**
      * Formulario de lanzamiento: solo ofrece plataformas con al menos un
      * juego sin carátula (lanzarlo sobre una plataforma ya completa no
@@ -61,7 +59,7 @@ class GameAutoIdentifyController extends Controller
         ]);
 
         $batchId = (string) Str::uuid();
-        Cache::put(self::cacheKey($batchId), ['user_id' => auth()->id(), 'done' => false], self::cacheTtl());
+        Cache::put(self::cacheKey($batchId), ['user_id' => auth()->id(), 'phase' => 'identify', 'done' => false], self::cacheTtl());
 
         IdentifyMissingGameCovers::dispatch(auth()->id(), (int) $validated['platform_id'], $batchId);
 
@@ -84,12 +82,19 @@ class GameAutoIdentifyController extends Controller
     }
 
     /**
-     * Aplica solo los candidatos que el usuario ha dejado marcados en la
-     * cola de revisión — el resto del lote se descarta sin más (una pasada
-     * futura los vuelve a intentar, ver Jobs\IdentifyMissingGameCovers). La
-     * carátula no se descarga hasta este momento, no al generar el
-     * candidato: así no se guardan ficheros huérfanos de los que el usuario
-     * termina rechazando.
+     * Despacha en segundo plano la aplicación de los candidatos que el
+     * usuario ha dejado marcados en la cola de revisión — el resto del
+     * lote se descarta sin más (una pasada futura los vuelve a intentar,
+     * ver Jobs\IdentifyMissingGameCovers). La carátula no se descarga hasta
+     * este momento, no al generar el candidato: así no se guardan ficheros
+     * huérfanos de los que el usuario termina rechazando.
+     *
+     * Antes esto descargaba cada carátula dentro de la propia petición web
+     * — confirmar un lote grande (50+) podía tardar minutos y arriesgarse
+     * al timeout de nginx/PHP-FPM a mitad, con algunas carátulas aplicadas
+     * y otras no (auditoría de rendimiento del 2026-09-10, issue #178).
+     * Ahora reutiliza el mismo lote (misma cacheKey) con 'phase' => 'confirm'
+     * para que la vista siga el mismo sondeo que ya usa para identificar.
      */
     public function confirm(Request $request, string $batchId): RedirectResponse
     {
@@ -104,37 +109,24 @@ class GameAutoIdentifyController extends Controller
             'game_ids.*' => ['integer'],
         ]);
 
-        $candidatesByGameId = collect((array) $status['candidates'])->keyBy('game_id');
-        $applied = 0;
+        $selectedIds = array_map('intval', Arr::get($validated, 'game_ids', []));
+        $candidates = collect((array) $status['candidates'])
+            ->whereIn('game_id', $selectedIds)
+            ->values()
+            ->all();
 
-        foreach (Arr::get($validated, 'game_ids', []) as $gameId) {
-            $candidate = $candidatesByGameId->get((int) $gameId);
-            $game = $candidate !== null
-                ? Game::where('user_id', auth()->id())->find($candidate['game_id'])
-                : null;
+        Cache::put(self::cacheKey($batchId), [
+            'user_id' => auth()->id(),
+            'phase' => 'confirm',
+            'done' => false,
+            'total' => count($candidates),
+            'processed' => 0,
+            'applied' => 0,
+        ], self::cacheTtl());
 
-            if ($candidate === null || $game === null) {
-                continue;
-            }
+        ConfirmIdentifiedGameCovers::dispatch(auth()->id(), $batchId, $candidates);
 
-            $cover = $this->coverDownloader->download($candidate['proposed_cover_url']);
-            if ($cover === null) {
-                continue;
-            }
-
-            $game->update([
-                'cover' => $cover,
-                'ean' => $game->ean ?? $candidate['proposed_ean'],
-            ]);
-            $applied++;
-        }
-
-        Cache::forget(self::cacheKey($batchId));
-
-        return redirect()->route('web.games.auto-identify')->with(
-            'success',
-            $applied === 1 ? '1 carátula aplicada.' : "{$applied} carátulas aplicadas."
-        );
+        return redirect()->route('web.games.auto-identify')->with('batchId', $batchId);
     }
 
     /**
