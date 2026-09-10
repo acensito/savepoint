@@ -773,15 +773,39 @@ function initAutoIdentifyStatusPolling() {
     const statusUrl = statusEl.dataset.statusUrl;
     const confirmUrl = statusEl.dataset.confirmUrl;
     const csrfToken = statusEl.dataset.csrfToken;
+    const editUrlTemplate = statusEl.dataset.editUrlTemplate;
     const pendingEl = document.getElementById('auto-identify-status-pending');
+    const pendingTextEl = document.getElementById('auto-identify-status-pending-text');
     const resultEl = document.getElementById('auto-identify-status-result');
+
+    function editUrl(gameId) {
+        return editUrlTemplate.replace(':id', gameId);
+    }
+
+    function renderUnmatched(unmatched) {
+        if (!unmatched || !unmatched.length) return '';
+
+        const items = unmatched.map((u) => `
+            <li class="flex items-center justify-between gap-3 py-1.5">
+                <span class="text-slate-300 truncate">${escapeHtml(u.title)}</span>
+                <a href="${editUrl(u.game_id)}" class="text-indigo-400 hover:text-indigo-300 shrink-0">Editar →</a>
+            </li>
+        `).join('');
+
+        return `
+            <div class="mt-5 pt-4 border-t border-slate-800">
+                <p class="text-sm text-slate-400 mb-2">${unmatched.length} sin candidato fiable — puedes corregirlos a mano:</p>
+                <ul class="text-sm space-y-1 max-h-48 overflow-y-auto">${items}</ul>
+            </div>
+        `;
+    }
 
     function renderCandidates(data) {
         pendingEl.classList.add('hidden');
         resultEl.classList.remove('hidden');
 
         if (!data.candidates.length) {
-            resultEl.innerHTML = `<p class="text-sm text-slate-400">No se ha encontrado ningún candidato fiable entre los ${data.total} ${data.total === 1 ? 'juego revisado' : 'juegos revisados'}.</p>`;
+            resultEl.innerHTML = `<p class="text-sm text-slate-400">No se ha encontrado ningún candidato fiable entre los ${data.total} ${data.total === 1 ? 'juego revisado' : 'juegos revisados'}.</p>` + renderUnmatched(data.unmatched);
             return;
         }
 
@@ -812,7 +836,7 @@ function initAutoIdentifyStatusPolling() {
                     </button>
                 </div>
             </form>
-        `;
+        ` + renderUnmatched(data.unmatched);
     }
 
     async function poll() {
@@ -820,20 +844,28 @@ function initAutoIdentifyStatusPolling() {
             const response = await fetch(statusUrl, {headers: {'Accept': 'application/json'}});
 
             if (!response.ok) {
-                pendingEl.textContent = 'No se ha podido consultar el estado de la búsqueda.';
+                pendingTextEl.textContent = 'No se ha podido consultar el estado de la búsqueda.';
                 return;
             }
 
             const data = await response.json();
 
             if (!data.done) {
+                // 'processed'/'total' solo existen desde que el job (ver
+                // Jobs\IdentifyMissingGameCovers) empezó a guardar progreso
+                // real cada pocos juegos, no solo al terminar — con una
+                // plataforma grande, antes esto se quedaba en el mismo
+                // mensaje genérico varios minutos sin ningún indicio de avance.
+                if (typeof data.processed === 'number' && typeof data.total === 'number' && data.total > 0) {
+                    pendingTextEl.textContent = `Buscando candidatos en CEX… ${data.processed} de ${data.total} revisados.`;
+                }
                 setTimeout(poll, 1500);
                 return;
             }
 
             renderCandidates(data);
         } catch (e) {
-            pendingEl.textContent = 'No se ha podido consultar el estado de la búsqueda.';
+            pendingTextEl.textContent = 'No se ha podido consultar el estado de la búsqueda.';
         }
     }
 

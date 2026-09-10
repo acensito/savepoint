@@ -25,10 +25,11 @@
             <div id="auto-identify-status" class="bg-slate-900 border border-slate-800 rounded-xl p-6 mb-6"
                 data-status-url="{{ route('web.games.auto-identify.status', $batchId) }}"
                 data-confirm-url="{{ route('web.games.auto-identify.confirm', $batchId) }}"
-                data-csrf-token="{{ csrf_token() }}">
+                data-csrf-token="{{ csrf_token() }}"
+                data-edit-url-template="{{ route('web.games.edit', ':id') }}">
                 <div id="auto-identify-status-pending" class="flex items-center gap-2 text-slate-300">
                     <x-gicon name="progress_activity" class="text-[20px] animate-spin" />
-                    Buscando candidatos en CEX… puede tardar un poco según cuántos juegos falten.
+                    <span id="auto-identify-status-pending-text">Buscando candidatos en CEX… puede tardar un poco según cuántos juegos falten.</span>
                 </div>
                 <div id="auto-identify-status-result" class="hidden"></div>
             </div>
