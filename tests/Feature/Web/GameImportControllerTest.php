@@ -10,6 +10,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
@@ -151,6 +152,42 @@ class GameImportControllerTest extends TestCase
 
         $switch = Platform::where('name', 'Nintendo Switch')->firstOrFail();
         $this->assertSame([$switch->id], $status->json('platformIds'));
+    }
+
+    /**
+     * Regresión (issue #185, auditoría de rendimiento del 2026-09-10): antes
+     * de memoizar, cada fila disparaba su propia consulta
+     * whereRaw('LOWER(name) = ?') aunque repitiera la plataforma/edición ya
+     * resuelta en una fila anterior del mismo fichero — una colección real
+     * de varios cientos de juegos son, en la práctica, un puñado de
+     * plataformas/ediciones distintas repetidas una y otra vez.
+     */
+    public function test_import_only_queries_a_repeated_platform_and_edition_once(): void
+    {
+        $user = User::factory()->create();
+        Platform::factory()->create(['name' => 'Nintendo Switch']);
+        Edition::factory()->create(['name' => 'Estándar', 'format' => Edition::FORMAT_PHYSICAL_DISC]);
+
+        $rows = collect(range(1, 20))
+            ->map(fn (int $i) => "Juego {$i},Nintendo Switch,Estándar")
+            ->implode("\r\n");
+        $csv = "Título,Plataforma,Edición\r\n{$rows}\r\n";
+
+        DB::enableQueryLog();
+        $response = $this->actingAs($user)->post('/games/import', ['file' => $this->csvFile($csv)]);
+        $this->importStatus($response)->assertJsonPath('imported', 20);
+        $queries = DB::getQueryLog();
+        DB::disableQueryLog();
+
+        $platformLookups = collect($queries)
+            ->filter(fn (array $q) => str_contains($q['query'], 'LOWER(name)') && str_contains($q['query'], 'platforms'))
+            ->count();
+        $editionLookups = collect($queries)
+            ->filter(fn (array $q) => str_contains($q['query'], 'LOWER(name)') && str_contains($q['query'], 'editions'))
+            ->count();
+
+        $this->assertSame(1, $platformLookups);
+        $this->assertSame(1, $editionLookups);
     }
 
     /**

@@ -46,6 +46,25 @@ class GameCsvImporter
     ];
 
     /**
+     * Ids de plataforma/edición ya resueltos en la corrida de import() en
+     * curso, por nombre en minúsculas — una colección real repite la misma
+     * plataforma/edición en la inmensa mayoría de sus filas, y sin esto cada
+     * una disparaba su propia consulta whereRaw('LOWER(name) = ?') (issue
+     * #185, auditoría de rendimiento del 2026-09-10). Se reinician al
+     * principio de cada import() en vez de vivir solo en el constructor: el
+     * importador se resuelve por inyección de dependencias y no hay garantía
+     * de que cada import() se ejecute sobre una instancia nueva.
+     *
+     * @var array<string, int>
+     */
+    private array $platformIdsByName = [];
+
+    /**
+     * @var array<string, int>
+     */
+    private array $editionIdsByName = [];
+
+    /**
      * Abre el CSV, detecta separador y cabeceras. Devuelve
      * ['handle' => resource, 'delimiter' => string, 'columns' => array] o
      * ['error' => string] si el fichero no se puede leer/está vacío/no tiene
@@ -113,6 +132,9 @@ class GameCsvImporter
         }
 
         ['handle' => $handle, 'delimiter' => $delimiter, 'columns' => $columns] = $parsed;
+
+        $this->platformIdsByName = [];
+        $this->editionIdsByName = [];
 
         $imported = 0;
         $createdPlatforms = 0;
@@ -208,18 +230,24 @@ class GameCsvImporter
      */
     private function resolvePlatform(string $name): array
     {
-        $platform = Platform::whereRaw('LOWER(name) = ?', [Str::lower($name)])->first();
+        $key = Str::lower($name);
 
-        if ($platform) {
-            return [$platform->id, false];
+        if (isset($this->platformIdsByName[$key])) {
+            return [$this->platformIdsByName[$key], false];
         }
 
-        $platform = Platform::create([
-            'name' => $name,
-            'slug' => $this->uniqueSlug(Platform::class, $name),
-        ]);
+        $platform = Platform::whereRaw('LOWER(name) = ?', [$key])->first();
 
-        return [$platform->id, true];
+        if (! $platform) {
+            $platform = Platform::create([
+                'name' => $name,
+                'slug' => $this->uniqueSlug(Platform::class, $name),
+            ]);
+        }
+
+        $this->platformIdsByName[$key] = $platform->id;
+
+        return [$platform->id, $platform->wasRecentlyCreated];
     }
 
     /**
@@ -237,17 +265,23 @@ class GameCsvImporter
      */
     private function resolveEdition(string $name): array
     {
-        $edition = Edition::whereRaw('LOWER(name) = ?', [Str::lower($name)])
+        $key = Str::lower($name);
+
+        if (isset($this->editionIdsByName[$key])) {
+            return [$this->editionIdsByName[$key], false];
+        }
+
+        $edition = Edition::whereRaw('LOWER(name) = ?', [$key])
             ->orderByRaw("CASE WHEN format = 'physical_disc' THEN 0 ELSE 1 END")
             ->first();
 
-        if ($edition) {
-            return [$edition->id, false];
+        if (! $edition) {
+            $edition = Edition::create(['name' => $name]);
         }
 
-        $edition = Edition::create(['name' => $name]);
+        $this->editionIdsByName[$key] = $edition->id;
 
-        return [$edition->id, true];
+        return [$edition->id, $edition->wasRecentlyCreated];
     }
 
     private function uniqueSlug(string $modelClass, string $name): string
