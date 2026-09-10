@@ -69,7 +69,7 @@
                                 {{-- Editar directo desde la tarjeta (issue #182): fuera del <a>
                                      de arriba (anidar <a> es HTML inválido), con la misma URL
                                      de vuelta que el resto de vistas. --}}
-                                <a href="{{ route('web.games.edit', ['game' => $game->id, 'redirect_to' => request()->fullUrl()]) }}"
+                                <a href="{{ route('web.games.edit', ['game' => $game->id, 'redirect_to' => request()->getRequestUri()]) }}"
                                     class="text-slate-500 hover:text-indigo-300 transition-colors" title="Editar" aria-label="Editar {{ $game->title }}">
                                     <x-gicon name="edit" class="text-[15px]" />
                                 </a>
@@ -235,7 +235,7 @@
                                  este listado (filtros, orden y página incluidos) para volver
                                  exactamente aquí al guardar. -->
                             <td class="px-6 py-4 whitespace-nowrap text-right">
-                                <a href="{{ route('web.games.edit', ['game' => $game->id, 'redirect_to' => request()->fullUrl()]) }}"
+                                <a href="{{ route('web.games.edit', ['game' => $game->id, 'redirect_to' => request()->getRequestUri()]) }}"
                                     class="text-slate-500 hover:text-indigo-300 transition-colors" title="Editar" aria-label="Editar {{ $game->title }}">
                                     <x-gicon name="edit" class="text-[18px]" />
                                 </a>
@@ -293,7 +293,7 @@
                      arriba (anidar <a> es HTML inválido). Siempre visible en pantallas
                      táctiles (sin :hover), solo al pasar el ratón en escritorio, para no
                      saturar visualmente una rejilla pensada para mirar carátulas. --}}
-                <a href="{{ route('web.games.edit', ['game' => $game->id, 'redirect_to' => request()->fullUrl()]) }}"
+                <a href="{{ route('web.games.edit', ['game' => $game->id, 'redirect_to' => request()->getRequestUri()]) }}"
                     class="absolute bottom-1.5 left-1.5 flex items-center justify-center w-6 h-6 rounded-full bg-slate-900/80 text-slate-300 hover:text-indigo-300 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
                     title="Editar" aria-label="Editar {{ $game->title }}">
                     <x-gicon name="edit" class="text-[13px]" />
