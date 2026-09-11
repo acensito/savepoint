@@ -22,6 +22,7 @@ class IgdbControllerTest extends TestCase
         $this->post("/games/{$game->id}/igdb-apply")->assertRedirect('/login');
         $this->get("/games/{$game->id}/igdb-artworks")->assertRedirect('/login');
         $this->post("/games/{$game->id}/igdb-background")->assertRedirect('/login');
+        $this->get("/games/{$game->id}/igdb-covers")->assertRedirect('/login');
     }
 
     public function test_igdb_search_lists_candidates_from_the_query(): void
@@ -282,6 +283,46 @@ class IgdbControllerTest extends TestCase
         $game = Game::factory()->for($owner)->create(['igdb_id' => 305]);
 
         $this->actingAs(User::factory()->create())->getJson("/games/{$game->id}/igdb-artworks")->assertForbidden();
+    }
+
+    public function test_igdb_covers_lists_the_matched_games_cover(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['igdb_id' => 305]);
+
+        $this->mock(IgdbLookupService::class, function ($mock) {
+            $mock->shouldReceive('covers')->once()->with(305)->andReturn(['co1abc', 'co2def']);
+        });
+
+        $response = $this->actingAs($user)->getJson("/games/{$game->id}/igdb-covers");
+
+        $response->assertOk();
+        $response->assertJson(['results' => [
+            ['image_id' => 'co1abc', 'thumb_url' => 'https://images.igdb.com/igdb/image/upload/t_cover_small/co1abc.jpg', 'cover_url' => 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1abc.jpg'],
+            ['image_id' => 'co2def', 'thumb_url' => 'https://images.igdb.com/igdb/image/upload/t_cover_small/co2def.jpg', 'cover_url' => 'https://images.igdb.com/igdb/image/upload/t_cover_big/co2def.jpg'],
+        ]]);
+    }
+
+    public function test_igdb_covers_returns_no_results_without_a_matched_igdb_id(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['igdb_id' => null]);
+
+        $this->mock(IgdbLookupService::class, function ($mock) {
+            $mock->shouldNotReceive('covers');
+        });
+
+        $this->actingAs($user)->getJson("/games/{$game->id}/igdb-covers")
+            ->assertOk()
+            ->assertJson(['results' => []]);
+    }
+
+    public function test_igdb_covers_is_forbidden_for_another_users_game(): void
+    {
+        $owner = User::factory()->create();
+        $game = Game::factory()->for($owner)->create(['igdb_id' => 305]);
+
+        $this->actingAs(User::factory()->create())->getJson("/games/{$game->id}/igdb-covers")->assertForbidden();
     }
 
     public function test_igdb_set_background_saves_the_chosen_image_id(): void

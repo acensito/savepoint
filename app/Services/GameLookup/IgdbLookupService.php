@@ -194,6 +194,57 @@ class IgdbLookupService
     }
 
     /**
+     * Carátulas (endpoint covers, distinto de artworks) de un juego ya
+     * identificado en IGDB por su id — mismo patrón que artworks(): solo
+     * tiene sentido pedirlas por igdb_id, nunca por título (#129).
+     *
+     * @return string[]
+     */
+    public function covers(int $igdbId, int $limit = 8): array
+    {
+        if (! $this->isConfigured()) {
+            return [];
+        }
+
+        $token = $this->accessToken();
+        if ($token === null) {
+            return [];
+        }
+
+        try {
+            $response = Http::timeout(self::TIMEOUT_SECONDS)
+                ->withHeaders([
+                    'Client-ID' => $this->clientId,
+                    'Authorization' => "Bearer {$token}",
+                ])
+                ->withBody(
+                    "fields image_id; where game = {$igdbId}; limit ".max(1, min($limit, 20)).';',
+                    'text/plain',
+                )
+                ->post('https://api.igdb.com/v4/covers');
+        } catch (Throwable $e) {
+            Log::warning('IGDB covers lookup failed', ['message' => $e->getMessage()]);
+
+            return [];
+        }
+
+        if ($response->failed()) {
+            Log::warning('IGDB covers lookup returned an error status', ['status' => $response->status()]);
+
+            return [];
+        }
+
+        /** @var array<int, array<string, mixed>> $covers */
+        $covers = $response->json() ?? [];
+
+        return collect($covers)
+            ->pluck('image_id')
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    /**
      * Duración media para completar un juego ya identificado en IGDB por su
      * id, sacada originalmente de HowLongToBeat (sin API oficial propia —
      * IGDB la agrega en un endpoint aparte, no viene incluida en search()).

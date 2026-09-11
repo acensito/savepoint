@@ -35,6 +35,23 @@ class ExternalCoverDownloaderTest extends TestCase
         Storage::disk('public')->assertExists($path);
     }
 
+    /**
+     * images.igdb.com se añadió al allowlist en #129 para poder descargar
+     * carátulas elegidas desde IGDB, no solo desde CEX.
+     */
+    public function test_downloads_and_stores_an_image_from_igdb(): void
+    {
+        Http::fake([
+            'images.igdb.com/*' => Http::response('fake-jpeg-bytes', 200, ['Content-Type' => 'image/jpeg']),
+        ]);
+
+        $path = (new ExternalCoverDownloader)->download('https://images.igdb.com/igdb/image/upload/t_cover_big/abc123.jpg');
+
+        $this->assertNotNull($path);
+        $this->assertStringEndsWith('.jpg', $path);
+        Storage::disk('public')->assertExists($path);
+    }
+
     public function test_rejects_a_host_that_is_not_allowlisted(): void
     {
         Http::fake();

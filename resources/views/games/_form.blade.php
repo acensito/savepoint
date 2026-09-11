@@ -141,6 +141,20 @@
         <button type="button" id="cex-cover-manual-btn"
             class="shrink-0 text-xs font-medium text-indigo-400 hover:text-indigo-300 px-2">Buscar</button>
     </div>
+
+    {{-- IGDB como alternativa a CEX (#129): solo tiene sentido en edición y
+         si el juego ya está emparejado con IGDB (games.igdb_id). Deliberadamente
+         más discreto que el botón de CEX de arriba — CEX sigue siendo la
+         fuente por defecto, esto es solo una opción secundaria para no
+         abrumar con un segundo buscador con el mismo peso visual. También se
+         dispara solo con esto si la búsqueda en CEX no encuentra nada. --}}
+    @if($game?->igdb_id)
+        <button type="button" id="igdb-cover-check-btn"
+            data-url="{{ route('web.games.igdb-covers', $game) }}"
+            class="mt-1.5 block text-[11px] font-medium text-slate-500 hover:text-slate-300">
+            ¿Prefieres la carátula de IGDB?
+        </button>
+    @endif
 </div>
 
 <!-- Datos básicos -->
@@ -619,6 +633,72 @@
         const removeCoverCheckbox = document.querySelector('input[name="remove_cover"]');
         const eanInput = document.getElementById('ean');
         const titleInput = document.getElementById('title');
+        const igdbBtn = document.getElementById('igdb-cover-check-btn');
+
+        // Renderiza resultados de CEX o de IGDB (#129) con la misma lista y el
+        // mismo manejador de "elegir": ambos devuelven cover_url, y los de
+        // IGDB añaden thumb_url (miniatura más ligera para la lista) pero no
+        // title/ean/platform, de ahí los valores por defecto de abajo.
+        function renderResults(results) {
+            resultsEl.innerHTML = results.map((r, i) => `
+                <li>
+                    <button type="button" class="js-cover-pick w-full flex items-center gap-2 p-1.5 rounded-lg hover:bg-slate-700 text-left" data-index="${i}">
+                        ${(r.thumb_url || r.cover_url)
+                            ? `<img src="${escapeHtml(r.thumb_url || r.cover_url)}" alt="" class="w-8 h-8 object-cover rounded border border-slate-700 shrink-0">`
+                            : `<div class="w-8 h-8 rounded bg-slate-800 border border-slate-700 shrink-0"></div>`}
+                        <span class="flex-1 min-w-0">
+                            <span class="block text-xs text-slate-200 truncate">${escapeHtml(r.title || 'Carátula de IGDB')}</span>
+                            ${r.ean ? `<span class="block text-[10px] text-slate-500">EAN ${escapeHtml(r.ean)}</span>` : ''}
+                        </span>
+                        <span class="text-[9px] font-semibold uppercase text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 rounded px-1 py-0.5 shrink-0">${escapeHtml(r.platform || 'IGDB')}</span>
+                    </button>
+                </li>
+            `).join('');
+            resultsEl.classList.remove('hidden');
+
+            resultsEl.querySelectorAll('.js-cover-pick').forEach((el) => {
+                el.addEventListener('click', () => {
+                    const result = results[Number(el.dataset.index)];
+
+                    if (result.cover_url) {
+                        coverFallbackPreview =
+                            `<img id="cover-preview-img" src="${escapeHtml(result.cover_url)}" alt="Carátula" class="w-24 h-auto rounded-xl border border-slate-700">`;
+                        document.getElementById('cover-wrapper').innerHTML = coverFallbackPreview;
+                        coverUrlInput.value = result.cover_url;
+                        if (coverFileInput) coverFileInput.value = '';
+                        if (removeCoverCheckbox) removeCoverCheckbox.checked = false;
+                    }
+
+                    if (result.ean && eanInput) {
+                        eanInput.value = result.ean;
+                    }
+
+                    resultsEl.classList.add('hidden');
+                    manualWrapper.classList.add('hidden');
+                });
+            });
+        }
+
+        // Devuelve true si encontró y pintó algo. Se usa tanto como
+        // alternativa automática (CEX sin resultados) como manual (botón
+        // "¿Prefieres la carátula de IGDB?").
+        async function searchIgdb() {
+            if (!igdbBtn) return false;
+
+            try {
+                const response = await fetch(igdbBtn.dataset.url, { headers: { 'Accept': 'application/json' } });
+                if (!response.ok) return false;
+                const { results } = await response.json();
+                if (!results.length) return false;
+
+                statusEl.classList.add('hidden');
+                manualWrapper.classList.remove('hidden');
+                renderResults(results);
+                return true;
+            } catch (err) {
+                return false;
+            }
+        }
 
         async function search(query) {
             btn.disabled = true;
@@ -635,6 +715,12 @@
                 const { results } = await response.json();
 
                 if (!results.length) {
+                    if (igdbBtn) {
+                        statusEl.textContent = 'Buscando en IGDB…';
+                        if (await searchIgdb()) return;
+                    }
+
+                    statusEl.classList.remove('hidden');
                     statusEl.textContent = 'Sin resultados en CEX. Prueba con otras palabras del título:';
                     manualWrapper.classList.remove('hidden');
                     if (!manualInput.value) manualInput.value = query || titleInput.value;
@@ -643,43 +729,7 @@
 
                 statusEl.classList.add('hidden');
                 manualWrapper.classList.remove('hidden');
-                resultsEl.innerHTML = results.map((r, i) => `
-                    <li>
-                        <button type="button" class="js-cex-cover-pick w-full flex items-center gap-2 p-1.5 rounded-lg hover:bg-slate-700 text-left" data-index="${i}">
-                            ${r.cover_url
-                                ? `<img src="${escapeHtml(r.cover_url)}" alt="" class="w-8 h-8 object-cover rounded border border-slate-700 shrink-0">`
-                                : `<div class="w-8 h-8 rounded bg-slate-800 border border-slate-700 shrink-0"></div>`}
-                            <span class="flex-1 min-w-0">
-                                <span class="block text-xs text-slate-200 truncate">${escapeHtml(r.title)}</span>
-                                ${r.ean ? `<span class="block text-[10px] text-slate-500">EAN ${escapeHtml(r.ean)}</span>` : ''}
-                            </span>
-                            ${r.platform ? `<span class="text-[9px] font-semibold uppercase text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 rounded px-1 py-0.5 shrink-0">${escapeHtml(r.platform)}</span>` : ''}
-                        </button>
-                    </li>
-                `).join('');
-                resultsEl.classList.remove('hidden');
-
-                resultsEl.querySelectorAll('.js-cex-cover-pick').forEach((el) => {
-                    el.addEventListener('click', () => {
-                        const result = results[Number(el.dataset.index)];
-
-                        if (result.cover_url) {
-                            coverFallbackPreview =
-                                `<img id="cover-preview-img" src="${escapeHtml(result.cover_url)}" alt="Carátula" class="w-24 h-auto rounded-xl border border-slate-700">`;
-                            document.getElementById('cover-wrapper').innerHTML = coverFallbackPreview;
-                            coverUrlInput.value = result.cover_url;
-                            if (coverFileInput) coverFileInput.value = '';
-                            if (removeCoverCheckbox) removeCoverCheckbox.checked = false;
-                        }
-
-                        if (result.ean && eanInput) {
-                            eanInput.value = result.ean;
-                        }
-
-                        resultsEl.classList.add('hidden');
-                        manualWrapper.classList.add('hidden');
-                    });
-                });
+                renderResults(results);
             } catch (err) {
                 statusEl.classList.remove('hidden');
                 statusEl.textContent = 'No se pudo buscar en CEX. Comprueba tu conexión e inténtalo de nuevo.';
@@ -702,6 +752,20 @@
                 manualBtn.click();
             }
         });
+
+        if (igdbBtn) {
+            igdbBtn.addEventListener('click', async () => {
+                igdbBtn.disabled = true;
+                statusEl.classList.remove('hidden');
+                statusEl.textContent = 'Buscando en IGDB…';
+
+                if (!(await searchIgdb())) {
+                    statusEl.textContent = 'IGDB no tiene ninguna carátula para este juego.';
+                }
+
+                igdbBtn.disabled = false;
+            });
+        }
     })();
 
     filterEditions();

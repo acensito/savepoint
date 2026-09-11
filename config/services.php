@@ -49,10 +49,21 @@ return [
         'app_id' => env('CEX_ALGOLIA_APP_ID', 'LNNFEEWZVA'),
         'api_key' => env('CEX_ALGOLIA_API_KEY', 'bf79f2b6699e60a18ae330a1248b452c'),
         'index' => env('CEX_ALGOLIA_INDEX', 'prod_cex_es'),
-        // Hosts permitidos para descargar la carátula sugerida al dar de alta
-        // (GameController::downloadExternalCover): evita que ese campo del
-        // formulario se pueda usar como proxy hacia una URL arbitraria (SSRF).
-        'image_hosts' => array_values(array_filter(explode(',', env('CEX_IMAGE_HOSTS', 'es.static.webuy.com')))),
+    ],
+
+    /*
+    | Hosts permitidos para descargar una carátula sugerida desde una fuente
+    | externa (ExternalCoverDownloader): evita que ese campo del formulario se
+    | pueda usar como proxy hacia una URL arbitraria (SSRF). Antes solo vivía
+    | bajo 'cex', pero desde #129 la carátula sugerida también puede venir de
+    | IGDB (images.igdb.com, host fijo del CDN, no configurable por env como
+    | el de CEX porque no ha cambiado nunca).
+    */
+    'covers' => [
+        'allowed_hosts' => array_values(array_filter(array_merge(
+            explode(',', env('CEX_IMAGE_HOSTS', 'es.static.webuy.com')),
+            ['images.igdb.com'],
+        ))),
     ],
 
     /*
