@@ -271,6 +271,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/games/{game}/igdb-artworks', [IgdbController::class, 'artworks'])
         ->middleware('throttle:external-search-igdb')
         ->name('web.games.igdb-artworks');
+    Route::get('/games/{game}/igdb-covers', [IgdbController::class, 'covers'])
+        ->middleware('throttle:external-search-igdb')
+        ->name('web.games.igdb-covers');
     Route::post('/games/{game}/igdb-background', [IgdbController::class, 'setBackground'])->name('web.games.igdb-background');
     Route::put('/games/{game}', [GameController::class, 'update'])->name('web.games.update');
     Route::post('/games/{game}/mark-sold', [SalesController::class, 'markAsSold'])->name('web.games.mark-sold');

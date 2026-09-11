@@ -139,6 +139,33 @@ class IgdbController extends Controller
     }
 
     /**
+     * Carátulas de IGDB para el juego ya identificado (games.igdb_id), como
+     * alternativa a la búsqueda en CEX de "Buscar carátula" (#129): CEX sigue
+     * siendo la fuente por defecto, esto solo entra cuando CEX no encuentra
+     * nada o el usuario prefiere explícitamente probar con IGDB. Igual que
+     * artworks(), solo lista candidatos — la descarga real ocurre al guardar
+     * el formulario (GameController::store()/update() + cover_url).
+     */
+    public function covers(Game $game): JsonResponse
+    {
+        Gate::authorize('update', $game);
+
+        if ($game->igdb_id === null) {
+            return response()->json(['results' => []]);
+        }
+
+        $results = collect($this->igdbLookup->covers($game->igdb_id))
+            ->map(fn (string $imageId) => [
+                'image_id' => $imageId,
+                'thumb_url' => "https://images.igdb.com/igdb/image/upload/t_cover_small/{$imageId}.jpg",
+                'cover_url' => "https://images.igdb.com/igdb/image/upload/t_cover_big/{$imageId}.jpg",
+            ])
+            ->values();
+
+        return response()->json(['results' => $results]);
+    }
+
+    /**
      * Fija (o quita, con image_id vacío) el fondo entre las opciones de
      * artworks(): siempre disponible como elección explícita del usuario,
      * tanto si el ajuste "Fondo automático" (ver PanelController::
