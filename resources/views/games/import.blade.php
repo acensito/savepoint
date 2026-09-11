@@ -1,7 +1,11 @@
 @extends('layouts.app')
 
 @php
+    use Illuminate\Support\Str;
+
     $importId = session('importId');
+    $input = 'w-full rounded-lg border border-slate-700 bg-slate-800 text-slate-100 px-4 py-2 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden';
+    $label = 'block font-medium text-sm text-slate-300 mb-1';
 @endphp
 
 @section('content')
@@ -88,11 +92,80 @@
                             </table>
                         </div>
                         <p class="text-xs text-slate-500 mt-2">Primeras filas de ejemplo. La importación real no tiene límite de filas.</p>
+
+                        {{-- Duplicados (#143): findDuplicates() escanea el CSV completo, no solo
+                             las filas de ejemplo de arriba. Se pintan aparte con una decisión
+                             por fila (Sobrescribir/Omitir, Omitir por defecto) que viaja al
+                             enviar el formulario en #import-duplicate-decisions. --}}
+                        <div id="import-duplicates" class="hidden mt-4 pt-4 border-t border-slate-800">
+                            <div class="flex items-center justify-between gap-3 mb-2">
+                                <p class="text-sm font-medium text-amber-400">
+                                    <span id="import-duplicates-count"></span> ya en tu colección (mismo título, plataforma y edición):
+                                </p>
+                                <div class="flex gap-3 shrink-0">
+                                    <button type="button" id="import-duplicates-skip-all" class="text-xs font-medium text-slate-400 hover:text-slate-200">Omitir todos</button>
+                                    <button type="button" id="import-duplicates-overwrite-all" class="text-xs font-medium text-indigo-400 hover:text-indigo-300">Sobrescribir todos</button>
+                                </div>
+                            </div>
+                            <ul id="import-duplicates-list" class="space-y-2 max-h-64 overflow-y-auto"></ul>
+                        </div>
                     </div>
                 </div>
 
+                <div class="pt-4 border-t border-slate-800 space-y-4">
+                    <div>
+                        <span class="{{ $label }}">Modo de importación</span>
+                        <div class="flex flex-wrap gap-3 mt-1">
+                            <label class="flex items-center gap-2 cursor-pointer rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 has-checked:border-indigo-500">
+                                <input type="radio" name="mode" value="add" class="accent-indigo-500" {{ old('mode', 'add') === 'add' ? 'checked' : '' }}>
+                                Añadir
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer rounded-lg border border-red-900/40 px-3 py-2 text-sm text-slate-300 has-checked:border-red-500">
+                                <input type="radio" name="mode" value="replace" class="accent-red-500" {{ old('mode') === 'replace' ? 'checked' : '' }}>
+                                Reemplazar
+                            </label>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-1">
+                            Añadir revisa si una fila ya existe (mismo título, plataforma y edición) antes de darla de alta.
+                            Reemplazar envía a la papelera los juegos del alcance elegido y los sustituye por el CSV entero.
+                        </p>
+                    </div>
+
+                    <div id="import-scope-wrap" class="hidden">
+                        <label for="import-scope-select" class="{{ $label }}">Alcance de Reemplazar</label>
+                        <select id="import-scope-select" name="scope_platform_id" class="{{ $input }}">
+                            <option value="" data-name="{{ \App\Http\Controllers\Web\PanelController::CLEAR_ALL_CONFIRM_TEXT }}" {{ (string) old('scope_platform_id', $selectedPlatformId) === '' ? 'selected' : '' }}>
+                                Toda la colección
+                            </option>
+                            @foreach($platforms as $platform)
+                                <option value="{{ $platform->id }}" data-name="{{ $platform->name }}" {{ (string) old('scope_platform_id', $selectedPlatformId) === (string) $platform->id ? 'selected' : '' }}>
+                                    {{ $platform->name }} ({{ $platform->games_count }} {{ Str::plural('juego', $platform->games_count) }})
+                                </option>
+                            @endforeach
+                            <option value="{{ \App\Http\Controllers\Web\PanelController::NO_PLATFORM_VALUE }}" data-name="Sin plataforma" {{ old('scope_platform_id', $selectedPlatformId) === \App\Http\Controllers\Web\PanelController::NO_PLATFORM_VALUE ? 'selected' : '' }}>
+                                Sin plataforma ({{ $noPlatformCount }} {{ Str::plural('juego', $noPlatformCount) }})
+                            </option>
+                        </select>
+                        @error('scope_platform_id')
+                            <span class="text-red-400 text-sm mt-1 block">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    <div id="import-confirm-wrap" class="hidden">
+                        <label for="import-confirm" class="{{ $label }}">
+                            Escribe <span id="import-confirm-name" class="font-semibold text-red-400"></span> para confirmar
+                        </label>
+                        <input type="text" id="import-confirm" name="confirm" value="{{ old('confirm') }}" autocomplete="off" autocorrect="off" spellcheck="false" class="{{ $input }}">
+                        @error('confirm')
+                            <span class="text-red-400 text-sm mt-1 block">{{ $message }}</span>
+                        @enderror
+                    </div>
+                </div>
+
+                <input type="hidden" id="import-duplicate-decisions" name="duplicate_decisions" value="">
+
                 <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="submit" class="bg-(--color-navbar) text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-(--color-navbar-hover) transition-colors">
+                    <button type="submit" id="import-submit" class="bg-(--color-navbar) text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-(--color-navbar-hover) transition-colors">
                         Importar
                     </button>
                 </div>

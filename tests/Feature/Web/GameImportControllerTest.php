@@ -4,6 +4,7 @@ namespace Tests\Feature\Web;
 
 use App\Http\Controllers\Web\GameImportController;
 use App\Models\Edition;
+use App\Models\Game;
 use App\Models\Platform;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -431,5 +432,162 @@ class GameImportControllerTest extends TestCase
 
         $this->actingAs($user)->postJson('/games/import/preview', ['file' => $this->csvFile($csv)])
             ->assertStatus(422);
+    }
+
+    /**
+     * #143: preview() escanea el CSV completo (no solo las 5 filas de
+     * ejemplo) en busca de filas que coincidan con un juego ya existente por
+     * título+plataforma+edición, sin distinguir mayúsculas.
+     */
+    public function test_preview_reports_a_duplicate_row_matching_title_platform_and_edition(): void
+    {
+        $user = User::factory()->create();
+        $platform = Platform::factory()->for($user)->create(['name' => 'Nintendo Switch']);
+        $edition = Edition::factory()->for($user)->create(['name' => 'Normal']);
+        $existing = Game::factory()->for($user)->create([
+            'title' => 'Celeste', 'platform_id' => $platform->id, 'edition_id' => $edition->id,
+        ]);
+
+        $csv = "Título,Plataforma,Edición\r\ncelestE,nintendo switch,normal\r\n";
+
+        $response = $this->actingAs($user)->postJson('/games/import/preview', ['file' => $this->csvFile($csv)]);
+
+        $response->assertOk();
+        $this->assertCount(1, $response->json('duplicates'));
+        $response->assertJsonPath('duplicates.0.row', 2);
+        $response->assertJsonPath('duplicates.0.existingGameId', $existing->id);
+        $this->assertDatabaseCount('games', 1);
+        $this->assertDatabaseCount('platforms', 1);
+        $this->assertDatabaseCount('editions', 1);
+    }
+
+    /**
+     * Misma plataforma y título, pero edición distinta: no es el mismo
+     * duplicado (una Coleccionista no es la misma copia que una Normal).
+     */
+    public function test_preview_does_not_report_a_row_with_a_different_edition_as_a_duplicate(): void
+    {
+        $user = User::factory()->create();
+        $platform = Platform::factory()->for($user)->create(['name' => 'Nintendo Switch']);
+        Edition::factory()->for($user)->create(['name' => 'Normal']);
+        Game::factory()->for($user)->create([
+            'title' => 'Celeste', 'platform_id' => $platform->id, 'edition_id' => null,
+        ]);
+
+        $csv = "Título,Plataforma,Edición\r\nCeleste,Nintendo Switch,Coleccionista\r\n";
+
+        $response = $this->actingAs($user)->postJson('/games/import/preview', ['file' => $this->csvFile($csv)]);
+
+        $response->assertOk();
+        $this->assertCount(0, $response->json('duplicates'));
+    }
+
+    public function test_add_mode_overwrites_an_existing_duplicate_when_chosen(): void
+    {
+        $user = User::factory()->create();
+        $platform = Platform::factory()->for($user)->create(['name' => 'Nintendo Switch']);
+        $existing = Game::factory()->for($user)->create([
+            'title' => 'Celeste', 'platform_id' => $platform->id, 'edition_id' => null, 'rating' => 2,
+        ]);
+
+        $csv = "Título,Plataforma,Conservación\r\nCeleste,Nintendo Switch,5\r\n";
+
+        $response = $this->actingAs($user)->post('/games/import', [
+            'file' => $this->csvFile($csv),
+            'duplicate_decisions' => json_encode([2 => 'overwrite']),
+        ]);
+
+        $status = $this->importStatus($response);
+        $status->assertJsonPath('duplicatesOverwritten', 1);
+        $status->assertJsonPath('duplicatesSkipped', 0);
+        $status->assertJsonPath('imported', 0);
+        $this->assertDatabaseCount('games', 1);
+        $this->assertSame(5, $existing->fresh()->rating);
+    }
+
+    public function test_add_mode_skips_an_existing_duplicate_by_default(): void
+    {
+        $user = User::factory()->create();
+        $platform = Platform::factory()->for($user)->create(['name' => 'Nintendo Switch']);
+        $existing = Game::factory()->for($user)->create([
+            'title' => 'Celeste', 'platform_id' => $platform->id, 'edition_id' => null, 'rating' => 2,
+        ]);
+
+        $csv = "Título,Plataforma,Conservación\r\nCeleste,Nintendo Switch,5\r\n";
+
+        // Sin duplicate_decisions: el import real vuelve a comprobar por su
+        // cuenta y, sin decisión, omite (nunca crea un duplicado sin que
+        // nadie lo pida).
+        $response = $this->actingAs($user)->post('/games/import', ['file' => $this->csvFile($csv)]);
+
+        $status = $this->importStatus($response);
+        $status->assertJsonPath('duplicatesSkipped', 1);
+        $status->assertJsonPath('imported', 0);
+        $this->assertDatabaseCount('games', 1);
+        $this->assertSame(2, $existing->fresh()->rating);
+    }
+
+    public function test_replace_mode_soft_deletes_the_whole_collection_before_importing(): void
+    {
+        $user = User::factory()->create();
+        $oldGame = Game::factory()->for($user)->create(['title' => 'Old Game']);
+
+        $csv = "Título\r\nNew Game\r\n";
+
+        $response = $this->actingAs($user)->post('/games/import', [
+            'file' => $this->csvFile($csv),
+            'mode' => 'replace',
+            'confirm' => 'BORRAR',
+        ]);
+
+        $this->importStatus($response)->assertJsonPath('imported', 1);
+        $this->assertSoftDeleted($oldGame);
+        $this->assertDatabaseHas('games', ['title' => 'New Game', 'deleted_at' => null]);
+    }
+
+    public function test_replace_mode_scoped_to_a_platform_only_deletes_that_platforms_games(): void
+    {
+        $user = User::factory()->create();
+        $switch = Platform::factory()->for($user)->create(['name' => 'Nintendo Switch']);
+        $ps5 = Platform::factory()->for($user)->create(['name' => 'PS5']);
+        $switchGame = Game::factory()->for($user)->create(['title' => 'Old Switch Game', 'platform_id' => $switch->id]);
+        $ps5Game = Game::factory()->for($user)->create(['title' => 'Old PS5 Game', 'platform_id' => $ps5->id]);
+
+        // La fila de PS5 no pertenece al alcance elegido (Switch): se omite
+        // y se reporta, no se importa ni se borra nada de PS5.
+        $csv = "Título,Plataforma\r\nNew Switch Game,Nintendo Switch\r\nNew PS5 Game,PS5\r\n";
+
+        $response = $this->actingAs($user)->post('/games/import', [
+            'file' => $this->csvFile($csv),
+            'mode' => 'replace',
+            'scope_platform_id' => (string) $switch->id,
+            'confirm' => 'Nintendo Switch',
+        ]);
+
+        $status = $this->importStatus($response);
+        $status->assertJsonPath('imported', 1);
+        $status->assertJsonPath('skippedScope', 1);
+        $this->assertSoftDeleted($switchGame);
+        $this->assertDatabaseHas('games', ['id' => $ps5Game->id, 'deleted_at' => null]);
+        $this->assertDatabaseHas('games', ['title' => 'New Switch Game', 'platform_id' => $switch->id, 'deleted_at' => null]);
+        $this->assertDatabaseMissing('games', ['title' => 'New PS5 Game']);
+    }
+
+    public function test_replace_mode_rejects_a_confirmation_that_does_not_match_and_deletes_nothing(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create();
+
+        $csv = "Título\r\nNew Game\r\n";
+
+        $response = $this->actingAs($user)->post('/games/import', [
+            'file' => $this->csvFile($csv),
+            'mode' => 'replace',
+            'confirm' => 'algo distinto',
+        ]);
+
+        $response->assertSessionHasErrors('confirm');
+        $this->assertDatabaseHas('games', ['id' => $game->id, 'deleted_at' => null]);
+        $this->assertDatabaseMissing('games', ['title' => 'New Game']);
     }
 }

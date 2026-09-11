@@ -5,7 +5,7 @@
 // depender de acordarse de subir un número a mano (issue #186, auditoría de
 // rendimiento del 2026-09-10 — antes era un 'v1' fijo que nunca cambiaba,
 // así que los assets de compilaciones antiguas nunca se desalojaban).
-const STATIC_CACHE_NAME = 'savepoint-static-10c9527cf5';
+const STATIC_CACHE_NAME = 'savepoint-static-9112d44476';
 
 // Carátulas: a diferencia de /build/*, Storage::put() les da un nombre único
 // al subirlas pero nada impide que un día se empiecen a sobrescribir bajo la

@@ -12,12 +12,23 @@
                 'icon' => 'upload_file',
                 'title' => 'Importar colección',
                 'description' => 'Alta masiva de juegos desde un fichero CSV.',
+                // #143: acotar a una plataforma se elige aquí y se lleva como
+                // ?platform_id= a la propia página de importación, donde
+                // determina el alcance del modo Reemplazar (no filtra la
+                // subida en sí).
+                'platform_select' => true,
+                'action_label' => 'Ir',
             ],
             [
                 'route' => route('web.games.export'),
                 'icon' => 'download',
                 'title' => 'Exportar colección',
                 'description' => 'Descarga un CSV con toda la colección, con las mismas columnas que la importación: se puede editar y volver a importar.',
+                // #143: GameCollectionQuery ya sabe filtrar por platform_id
+                // (GameExportController::export ya lo usa) — aquí solo falta
+                // el desplegable que arma la query string.
+                'platform_select' => true,
+                'action_label' => 'Descargar',
             ],
             [
                 'route' => route('web.games.print'),
@@ -104,18 +115,47 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     @foreach($cards as $card)
                         @php $cardColor = $card['color'] ?? 'indigo'; @endphp
-                        <a href="{{ $card['route'] }}" @if(isset($card['target'])) target="{{ $card['target'] }}"
-                           rel="noopener" @endif
-                           class="group flex items-start gap-4 bg-slate-900 border rounded-xl p-6 transition-colors {{ $cardColor === 'red' ? 'border-red-900/40 hover:border-red-500/50' : 'border-slate-800 hover:border-indigo-500/50' }}">
-                            <div
-                                class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 {{ $cardColor === 'red' ? 'bg-red-500/10' : 'bg-indigo-500/10' }}">
-                                <x-gicon name="{{ $card['icon'] }}" class="text-[20px] {{ $cardColor === 'red' ? 'text-red-400' : 'text-indigo-400' }}"/>
-                            </div>
-                            <div class="min-w-0">
-                                <h3 class="text-sm font-semibold transition-colors {{ $cardColor === 'red' ? 'text-slate-100 group-hover:text-red-300' : 'text-slate-100 group-hover:text-indigo-300' }}">{{ $card['title'] }}</h3>
-                                <p class="text-xs text-slate-500 mt-1">{{ $card['description'] }}</p>
-                            </div>
-                        </a>
+                        @if($card['platform_select'] ?? false)
+                            {{-- #143: mismo aspecto que la tarjeta-enlace de abajo, pero
+                                 como <form> GET para poder llevar platform_id a la ruta. --}}
+                            <form method="GET" action="{{ $card['route'] }}"
+                               class="flex flex-col gap-4 bg-slate-900 border border-slate-800 hover:border-indigo-500/50 rounded-xl p-6 transition-colors">
+                                <div class="flex items-start gap-4">
+                                    <div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-indigo-500/10">
+                                        <x-gicon name="{{ $card['icon'] }}" class="text-[20px] text-indigo-400"/>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <h3 class="text-sm font-semibold text-slate-100">{{ $card['title'] }}</h3>
+                                        <p class="text-xs text-slate-500 mt-1">{{ $card['description'] }}</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2 pl-14">
+                                    <select name="platform_id"
+                                            class="flex-1 min-w-0 rounded-lg border border-slate-700 bg-slate-800 text-slate-100 text-xs px-2.5 py-1.5 focus:border-indigo-500 focus:ring-indigo-500 outline-hidden">
+                                        <option value="">Todas las plataformas</option>
+                                        @foreach($platforms as $platform)
+                                            <option value="{{ $platform->id }}">{{ $platform->name }}</option>
+                                        @endforeach
+                                    </select>
+                                    <button type="submit" class="shrink-0 text-xs font-medium text-indigo-400 hover:text-indigo-300 px-2 py-1.5">
+                                        {{ $card['action_label'] }}
+                                    </button>
+                                </div>
+                            </form>
+                        @else
+                            <a href="{{ $card['route'] }}" @if(isset($card['target'])) target="{{ $card['target'] }}"
+                               rel="noopener" @endif
+                               class="group flex items-start gap-4 bg-slate-900 border rounded-xl p-6 transition-colors {{ $cardColor === 'red' ? 'border-red-900/40 hover:border-red-500/50' : 'border-slate-800 hover:border-indigo-500/50' }}">
+                                <div
+                                    class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 {{ $cardColor === 'red' ? 'bg-red-500/10' : 'bg-indigo-500/10' }}">
+                                    <x-gicon name="{{ $card['icon'] }}" class="text-[20px] {{ $cardColor === 'red' ? 'text-red-400' : 'text-indigo-400' }}"/>
+                                </div>
+                                <div class="min-w-0">
+                                    <h3 class="text-sm font-semibold transition-colors {{ $cardColor === 'red' ? 'text-slate-100 group-hover:text-red-300' : 'text-slate-100 group-hover:text-indigo-300' }}">{{ $card['title'] }}</h3>
+                                    <p class="text-xs text-slate-500 mt-1">{{ $card['description'] }}</p>
+                                </div>
+                            </a>
+                        @endif
                     @endforeach
                 </div>
             </div>
