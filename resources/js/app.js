@@ -665,12 +665,83 @@ function initImportPreview() {
     const rowsEl = document.getElementById('import-preview-rows');
     const previewUrl = fileInput.dataset.previewUrl;
 
+    // Duplicados (#143): decisión por fila (fila -> 'overwrite'|'skip'),
+    // volcada a #import-duplicate-decisions justo antes de enviar el
+    // formulario real (ver initImportDuplicateDecisions más abajo).
+    const duplicatesWrap = document.getElementById('import-duplicates');
+    const duplicatesCountEl = document.getElementById('import-duplicates-count');
+    const duplicatesListEl = document.getElementById('import-duplicates-list');
+    const skipAllBtn = document.getElementById('import-duplicates-skip-all');
+    const overwriteAllBtn = document.getElementById('import-duplicates-overwrite-all');
+    window.spImportDuplicateDecisions = {};
+
+    function renderDuplicates(duplicates) {
+        window.spImportDuplicateDecisions = {};
+
+        if (!duplicatesWrap || !duplicates || !duplicates.length) {
+            duplicatesWrap?.classList.add('hidden');
+            return;
+        }
+
+        duplicatesCountEl.textContent = `${duplicates.length} ${duplicates.length === 1 ? 'fila' : 'filas'}`;
+        duplicatesListEl.innerHTML = '';
+
+        duplicates.forEach((dup) => {
+            window.spImportDuplicateDecisions[dup.row] = 'skip';
+
+            const li = document.createElement('li');
+            li.className = 'flex items-center justify-between gap-3 bg-slate-800/50 border border-slate-700 rounded-lg px-3 py-2';
+
+            const info = document.createElement('span');
+            info.className = 'text-sm text-slate-300 min-w-0 truncate';
+            info.textContent = `Fila ${dup.row}: ${dup.title}` + (dup.platform ? ` (${dup.platform})` : '');
+            li.appendChild(info);
+
+            const choices = document.createElement('span');
+            choices.className = 'flex items-center gap-3 shrink-0 text-xs';
+            ['skip', 'overwrite'].forEach((value) => {
+                const label = document.createElement('label');
+                label.className = 'flex items-center gap-1 cursor-pointer text-slate-400';
+                const radio = document.createElement('input');
+                radio.type = 'radio';
+                radio.name = `import-duplicate-${dup.row}`;
+                radio.value = value;
+                radio.checked = value === 'skip';
+                radio.className = 'accent-indigo-500';
+                radio.addEventListener('change', () => {
+                    window.spImportDuplicateDecisions[dup.row] = value;
+                });
+                label.appendChild(radio);
+                label.append(value === 'skip' ? 'Omitir' : 'Sobrescribir');
+                choices.appendChild(label);
+            });
+            li.appendChild(choices);
+
+            duplicatesListEl.appendChild(li);
+        });
+
+        duplicatesWrap.classList.remove('hidden');
+    }
+
+    function applyToAll(decision) {
+        Object.keys(window.spImportDuplicateDecisions).forEach((row) => {
+            window.spImportDuplicateDecisions[row] = decision;
+        });
+        duplicatesListEl.querySelectorAll('input[type="radio"]').forEach((radio) => {
+            radio.checked = radio.value === decision;
+        });
+    }
+
+    skipAllBtn?.addEventListener('click', () => applyToAll('skip'));
+    overwriteAllBtn?.addEventListener('click', () => applyToAll('overwrite'));
+
     fileInput.addEventListener('change', async () => {
         const file = fileInput.files[0];
 
         wrapper.classList.add('hidden');
         errorEl.classList.add('hidden');
         contentEl.classList.add('hidden');
+        renderDuplicates([]);
         if (!file || !previewUrl) return;
 
         const token = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
@@ -708,6 +779,7 @@ function initImportPreview() {
                 rowsEl.appendChild(tr);
             });
 
+            renderDuplicates(data.duplicates || []);
             contentEl.classList.remove('hidden');
         } catch (e) {
             wrapper.classList.remove('hidden');
@@ -718,6 +790,80 @@ function initImportPreview() {
 }
 
 initImportPreview();
+
+/**
+ * Vuelca las decisiones de duplicados (window.spImportDuplicateDecisions,
+ * rellenado por initImportPreview()) al campo oculto justo antes de enviar
+ * el formulario real — así viajan junto con el fichero a
+ * GameImportController::store() (#143).
+ */
+function initImportDuplicateDecisions() {
+    const form = document.getElementById('file')?.closest('form');
+    const input = document.getElementById('import-duplicate-decisions');
+    if (!form || !input) return;
+
+    form.addEventListener('submit', () => {
+        input.value = JSON.stringify(window.spImportDuplicateDecisions || {});
+    });
+}
+
+initImportDuplicateDecisions();
+
+/**
+ * Modo Añadir/Reemplazar de la importación (#143): igual que
+ * initDangerZoneClearPlatform()/initDangerZoneClearAll() de Zona de peligro,
+ * pero unificado en una sola función porque aquí el desplegable de alcance
+ * siempre tiene una opción válida seleccionada (incluida "Toda la
+ * colección", con su propio data-name = PanelController::
+ * CLEAR_ALL_CONFIRM_TEXT) — no hace falta distinguir "sin elegir todavía"
+ * como sí pasaba con el desplegable de plataforma de Zona de peligro.
+ */
+function initImportModeAndConfirm() {
+    const modeInputs = document.querySelectorAll('input[name="mode"]');
+    const scopeWrap = document.getElementById('import-scope-wrap');
+    const scopeSelect = document.getElementById('import-scope-select');
+    const confirmWrap = document.getElementById('import-confirm-wrap');
+    const confirmNameEl = document.getElementById('import-confirm-name');
+    const confirmInput = document.getElementById('import-confirm');
+    const submitBtn = document.getElementById('import-submit');
+    if (!modeInputs.length || !scopeWrap || !scopeSelect || !confirmWrap || !confirmNameEl || !confirmInput || !submitBtn) return;
+
+    const isReplace = () => document.querySelector('input[name="mode"]:checked')?.value === 'replace';
+
+    const sync = () => {
+        if (!isReplace()) {
+            scopeWrap.classList.add('hidden');
+            confirmWrap.classList.add('hidden');
+            submitBtn.disabled = false;
+            return;
+        }
+
+        scopeWrap.classList.remove('hidden');
+        confirmWrap.classList.remove('hidden');
+
+        const name = scopeSelect.selectedOptions[0]?.dataset.name ?? '';
+        confirmNameEl.textContent = name;
+        submitBtn.disabled = confirmInput.value !== name;
+    };
+
+    modeInputs.forEach((input) => input.addEventListener('change', () => {
+        confirmInput.value = '';
+        sync();
+    }));
+
+    scopeSelect.addEventListener('change', () => {
+        confirmInput.value = '';
+        sync();
+    });
+
+    confirmInput.addEventListener('input', sync);
+
+    // Restaura el estado tras un error de validación (old('mode')/
+    // old('scope_platform_id')/old('confirm')).
+    sync();
+}
+
+initImportModeAndConfirm();
 
 // Una importación normal (sin llamadas de red por fila, ver GameCsvImporter)
 // no debería tardar más de un par de minutos ni con la colección real
@@ -761,6 +907,22 @@ function initImportStatusPolling() {
             created.className = 'text-sm text-slate-400 mt-2';
             created.textContent = `Creadas sobre la marcha: ${data.createdPlatforms} ` + (data.createdPlatforms === 1 ? 'plataforma' : 'plataformas') + ` y ${data.createdEditions} ` + (data.createdEditions === 1 ? 'edición' : 'ediciones') + '.';
             resultEl.appendChild(created);
+        }
+
+        // Contadores de #143 (modo Reemplazar y duplicados de Añadir): mismo
+        // patrón que el bloque de arriba, solo se pintan si hay algo que contar.
+        if (data.duplicatesOverwritten || data.duplicatesSkipped) {
+            const duplicates = document.createElement('p');
+            duplicates.className = 'text-sm text-slate-400 mt-2';
+            duplicates.textContent = `Duplicados: ${data.duplicatesOverwritten || 0} ` + ((data.duplicatesOverwritten === 1) ? 'sobrescrito' : 'sobrescritos') + `, ${data.duplicatesSkipped || 0} ` + ((data.duplicatesSkipped === 1) ? 'omitido' : 'omitidos') + '.';
+            resultEl.appendChild(duplicates);
+        }
+
+        if (data.skippedScope) {
+            const skippedScope = document.createElement('p');
+            skippedScope.className = 'text-sm text-slate-400 mt-2';
+            skippedScope.textContent = `${data.skippedScope} ${data.skippedScope === 1 ? 'fila omitida' : 'filas omitidas'} por ser de otra plataforma.`;
+            resultEl.appendChild(skippedScope);
         }
 
         if (data.errors && data.errors.length) {

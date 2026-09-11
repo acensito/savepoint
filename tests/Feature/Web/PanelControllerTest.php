@@ -33,6 +33,22 @@ class PanelControllerTest extends TestCase
         $response->assertSee(route('web.profile.edit'), false);
     }
 
+    /**
+     * #143: las tarjetas de Importar/Exportar pasan a ser <form> con un
+     * desplegable de plataforma en vez de simples enlaces.
+     */
+    public function test_panel_shows_a_platform_select_on_the_import_and_export_cards(): void
+    {
+        $user = User::factory()->create();
+        Platform::factory()->for($user)->create(['name' => 'Nintendo Switch']);
+
+        $response = $this->actingAs($user)->get('/panel');
+
+        $response->assertOk();
+        $response->assertSee('Nintendo Switch');
+        $response->assertSee('name="platform_id"', false);
+    }
+
     public function test_panel_shows_the_trashed_games_count_for_the_authenticated_user_only(): void
     {
         $user = User::factory()->create();

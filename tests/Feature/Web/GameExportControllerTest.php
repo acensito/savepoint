@@ -163,6 +163,26 @@ class GameExportControllerTest extends TestCase
         $this->assertStringNotContainsString('Deseado', $csv);
     }
 
+    /**
+     * #143: selector de plataforma en la tarjeta "Exportar colección" del
+     * Panel de control — GameCollectionQuery ya sabe filtrar por
+     * platform_id, esto solo confirma que export() lo respeta.
+     */
+    public function test_export_can_be_scoped_to_a_single_platform(): void
+    {
+        $user = User::factory()->create();
+        $switch = Platform::factory()->for($user)->create(['name' => 'Nintendo Switch']);
+        $ps5 = Platform::factory()->for($user)->create(['name' => 'PS5']);
+        Game::factory()->for($user)->create(['title' => 'Switch Game', 'platform_id' => $switch->id]);
+        Game::factory()->for($user)->create(['title' => 'PS5 Game', 'platform_id' => $ps5->id]);
+
+        $response = $this->actingAs($user)->get("/games/export?platform_id={$switch->id}");
+
+        $csv = $response->getContent();
+        $this->assertStringContainsString('Switch Game', $csv);
+        $this->assertStringNotContainsString('PS5 Game', $csv);
+    }
+
     public function test_export_only_lists_the_authenticated_users_games(): void
     {
         $user = User::factory()->create();

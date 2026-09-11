@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\ImportGamesFromCsv;
+use App\Models\Game;
+use App\Models\Platform;
 use App\Services\GameImport\GameCsvImporter;
 use App\Services\Games\CsvFieldEscaper;
 use Illuminate\Http\JsonResponse;
@@ -22,11 +24,18 @@ class GameImportController extends Controller
     ) {}
 
     /**
-     * Formulario de importación.
+     * Formulario de importación. $selectedPlatformId llega como ?platform_id=
+     * desde la tarjeta del Panel de control (#143) y solo preselecciona el
+     * alcance del modo Reemplazar aquí — no filtra la subida en sí.
      */
-    public function create(): View
+    public function create(Request $request): View
     {
-        return view('games.import');
+        $platforms = Platform::where('user_id', auth()->id())->withCount('games')->orderBy('name')->get();
+        $noPlatformCount = Game::where('user_id', auth()->id())->whereNull('platform_id')->count();
+        $totalGames = Game::where('user_id', auth()->id())->count();
+        $selectedPlatformId = $request->query('platform_id');
+
+        return view('games.import', compact('platforms', 'noPlatformCount', 'totalGames', 'selectedPlatformId'));
     }
 
     /**
@@ -113,10 +122,16 @@ class GameImportController extends Controller
 
         fclose($handle);
 
+        // #143: escaneo completo del CSV (no solo las filas de ejemplo de
+        // arriba) para detectar filas que ya existen en la colección
+        // (título+plataforma+edición) antes de confirmar la importación real.
+        $duplicates = $this->importer->findDuplicates($request->file('file')->getRealPath(), $request->user()->id);
+
         return response()->json([
             'matchedColumns' => $matched,
             'unmatchedColumns' => $unmatched,
             'rows' => $rows,
+            'duplicates' => $duplicates,
         ]);
     }
 
@@ -131,8 +146,12 @@ class GameImportController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'file' => ['required', 'file', 'mimes:csv,txt', 'max:5120'],
+            'mode' => ['nullable', 'in:add,replace'],
+            'scope_platform_id' => ['nullable'],
+            'confirm' => ['required_if:mode,replace', 'nullable', 'string'],
+            'duplicate_decisions' => ['nullable', 'string'],
         ]);
 
         $parsed = $this->importer->openFile($request->file('file')->getRealPath());
@@ -143,6 +162,50 @@ class GameImportController extends Controller
 
         fclose($parsed['handle']);
 
+        $mode = $validated['mode'] ?? 'add';
+
+        // Reemplazar borra en bloque antes de importar (ver ImportGamesFromCsv):
+        // el alcance y la confirmación tecleada se resuelven y comprueban aquí,
+        // no dentro del job, para poder devolver el error al propio formulario
+        // sin llegar a despachar nada (mismo patrón que
+        // PanelController::clearPlatformGames()/clearAllGames(), #143).
+        $scope = ['type' => 'all', 'id' => null];
+
+        if ($mode === 'replace') {
+            $scopePlatformId = $validated['scope_platform_id'] ?? null;
+
+            if (blank($scopePlatformId)) {
+                $expectedName = PanelController::CLEAR_ALL_CONFIRM_TEXT;
+            } elseif ((string) $scopePlatformId === PanelController::NO_PLATFORM_VALUE) {
+                $scope = ['type' => 'none', 'id' => null];
+                $expectedName = 'Sin plataforma';
+            } else {
+                $platform = Platform::where('user_id', auth()->id())->find($scopePlatformId);
+
+                if (! $platform) {
+                    return back()->withInput()->withErrors(['scope_platform_id' => 'Esa plataforma ya no existe.']);
+                }
+
+                $scope = ['type' => 'platform', 'id' => $platform->id];
+                $expectedName = $platform->name;
+            }
+
+            if ($validated['confirm'] !== $expectedName) {
+                return back()->withInput()->withErrors(['confirm' => 'El nombre no coincide con «'.$expectedName.'», no se ha importado nada.']);
+            }
+        }
+
+        $duplicateDecisions = [];
+        if (filled($validated['duplicate_decisions'] ?? null)) {
+            $decoded = json_decode($validated['duplicate_decisions'], true);
+            // Decisiones inválidas se ignoran (cada duplicado real vuelve a
+            // comprobarse en el import real y por defecto se omite, ver
+            // GameCsvImporter::import()) en vez de bloquear la importación.
+            if (is_array($decoded)) {
+                $duplicateDecisions = $decoded;
+            }
+        }
+
         // El directorio de subidas temporal de PHP no sobrevive a la
         // petición, así que el job (que se procesa después de que esta
         // respuesta ya se haya devuelto) necesita su propia copia persistida.
@@ -151,7 +214,7 @@ class GameImportController extends Controller
         $importId = (string) Str::uuid();
         Cache::put(self::cacheKey($importId), ['user_id' => $request->user()->id, 'done' => false], self::cacheTtl());
 
-        ImportGamesFromCsv::dispatch($request->user()->id, $path, $importId);
+        ImportGamesFromCsv::dispatch($request->user()->id, $path, $importId, $mode, $scope, $duplicateDecisions);
 
         return redirect()->route('web.games.import')->with('importId', $importId);
     }

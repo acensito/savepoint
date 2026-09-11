@@ -65,7 +65,10 @@ class PanelController extends Controller
     {
         $trashedCount = Game::onlyTrashed()->where('user_id', auth()->id())->count();
 
-        return view('panel.index', compact('trashedCount'));
+        // Selector de plataforma en las tarjetas de Importar/Exportar (#143).
+        $platforms = Platform::where('user_id', auth()->id())->orderBy('name')->get();
+
+        return view('panel.index', compact('trashedCount', 'platforms'));
     }
 
     /**

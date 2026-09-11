@@ -119,19 +119,109 @@ class GameCsvImporter
     }
 
     /**
+     * Escanea el CSV completo (a diferencia de las 5 filas de ejemplo de
+     * GameImportController::preview()) en busca de filas que ya existan en la
+     * colección por título+plataforma+edición, sin distinguir mayúsculas
+     * (#143). A propósito NO crea ninguna plataforma/edición/juego — si el
+     * nombre de plataforma o edición de una fila no existe todavía en el
+     * catálogo, no puede haber ya un juego duplicado bajo ese id, así que se
+     * trata como "sin coincidencia" (ver findPlatformId()/findEditionId(),
+     * variantes de solo lectura de resolvePlatform()/resolveEdition()). El
+     * modo Añadir vuelve a comprobar cada fila contra la colección en el
+     * import real (import()) antes de crear nada — esto es solo para poder
+     * enseñarle al usuario los duplicados antes de confirmar.
+     *
+     * @return array<int, array{row: int, title: string, platform: ?string, edition: ?string, existingGameId: int}>
+     */
+    public function findDuplicates(string $path, int $userId): array
+    {
+        $parsed = $this->openFile($path);
+
+        if (isset($parsed['error'])) {
+            return [];
+        }
+
+        ['handle' => $handle, 'delimiter' => $delimiter, 'columns' => $columns] = $parsed;
+
+        $this->platformIdsByName = [];
+        $this->editionIdsByName = [];
+
+        $duplicates = [];
+        $rowNumber = 1;
+
+        while (($row = fgetcsv($handle, 0, $delimiter)) !== false) {
+            $rowNumber++;
+
+            if (count($row) === 1 && trim((string) $row[0]) === '') {
+                continue;
+            }
+
+            $get = fn (string $key): ?string => isset($columns[$key], $row[$columns[$key]])
+                ? trim((string) $row[$columns[$key]])
+                : null;
+
+            $title = $get('titulo');
+
+            if (blank($title)) {
+                continue;
+            }
+
+            $platformName = $get('plataforma');
+            $platformId = filled($platformName) ? $this->findPlatformId($platformName, $userId) : null;
+            if (filled($platformName) && $platformId === null) {
+                continue; // la plataforma no existe todavía: no puede haber duplicado.
+            }
+
+            $editionName = $get('edicion');
+            $editionId = filled($editionName) ? $this->findEditionId($editionName, $userId) : null;
+            if (filled($editionName) && $editionId === null) {
+                continue; // igual que arriba, con la edición.
+            }
+
+            $existing = Game::where('user_id', $userId)
+                ->whereRaw('LOWER(title) = ?', [Str::lower($title)])
+                ->where('platform_id', $platformId)
+                ->where('edition_id', $editionId)
+                ->first();
+
+            if ($existing) {
+                $duplicates[] = [
+                    'row' => $rowNumber,
+                    'title' => $title,
+                    'platform' => $platformName ?: null,
+                    'edition' => $editionName ?: null,
+                    'existingGameId' => $existing->id,
+                ];
+            }
+        }
+
+        fclose($handle);
+
+        return $duplicates;
+    }
+
+    /**
      * Importa fila a fila un CSV ya subido/almacenado: cada fila se procesa
      * de forma independiente (si una falla, no bloquea al resto) y las
      * plataformas/ediciones que no existan todavía en el catálogo se crean
      * sobre la marcha.
      *
-     * @return array{imported: int, createdPlatforms: int, createdEditions: int, errors: string[], platformIds: int[]}
+     * $mode/$scopePlatformName/$duplicateDecisions son de #143 (modo
+     * Reemplazar y duplicados de Añadir) — ImportGamesFromCsv ya se encarga
+     * de borrar el alcance elegido antes de llamar aquí cuando $mode es
+     * 'replace'; esta función solo necesita saber el nombre de la plataforma
+     * del alcance (null = toda la colección, sin restricción; '' = "Sin
+     * plataforma") para omitir filas que no encajen.
+     *
+     * @param  array<int, string>  $duplicateDecisions  fila => 'overwrite'|'skip'
+     * @return array{imported: int, createdPlatforms: int, createdEditions: int, errors: string[], platformIds: int[], duplicatesOverwritten: int, duplicatesSkipped: int, skippedScope: int}
      */
-    public function import(string $path, int $userId): array
+    public function import(string $path, int $userId, string $mode = 'add', ?string $scopePlatformName = null, array $duplicateDecisions = []): array
     {
         $parsed = $this->openFile($path);
 
         if (isset($parsed['error'])) {
-            return ['imported' => 0, 'createdPlatforms' => 0, 'createdEditions' => 0, 'errors' => [$parsed['error']], 'platformIds' => []];
+            return ['imported' => 0, 'createdPlatforms' => 0, 'createdEditions' => 0, 'errors' => [$parsed['error']], 'platformIds' => [], 'duplicatesOverwritten' => 0, 'duplicatesSkipped' => 0, 'skippedScope' => 0];
         }
 
         ['handle' => $handle, 'delimiter' => $delimiter, 'columns' => $columns] = $parsed;
@@ -142,6 +232,9 @@ class GameCsvImporter
         $imported = 0;
         $createdPlatforms = 0;
         $createdEditions = 0;
+        $duplicatesOverwritten = 0;
+        $duplicatesSkipped = 0;
+        $skippedScope = 0;
         $errors = [];
         $rowNumber = 1;
         $platformIds = [];
@@ -166,6 +259,23 @@ class GameCsvImporter
                 continue;
             }
 
+            // Reemplazar acotado a una plataforma (o a "Sin plataforma"): una
+            // fila de otra plataforma se omite en vez de colarse fuera del
+            // alcance que el usuario eligió sustituir.
+            if ($scopePlatformName !== null) {
+                $rowPlatformName = (string) $get('plataforma');
+                $matchesScope = $scopePlatformName === ''
+                    ? blank($rowPlatformName)
+                    : Str::lower(trim($rowPlatformName)) === Str::lower($scopePlatformName);
+
+                if (! $matchesScope) {
+                    $errors[] = "Fila {$rowNumber} omitida: plataforma distinta a la seleccionada.";
+                    $skippedScope++;
+
+                    continue;
+                }
+            }
+
             try {
                 $platformId = null;
                 if (filled($get('plataforma'))) {
@@ -181,7 +291,7 @@ class GameCsvImporter
 
                 $status = $this->mapValue($get('propiedad'), self::STATUS_MAP, 'owned');
 
-                Game::create([
+                $attributes = [
                     'user_id' => $userId,
                     'title' => $title,
                     'ean' => $get('ean') ?: null,
@@ -200,7 +310,39 @@ class GameCsvImporter
                     'region' => $get('region') ?: null,
                     'age_rating' => $get('clasificacion por edad') ?: null,
                     'notes' => $get('notas') ?: null,
-                ]);
+                ];
+
+                // Añadir revisa duplicados en tiempo real (no solo se fía de
+                // lo que GameImportController::preview() detectó antes de
+                // confirmar): mismo criterio que findDuplicates(), por si el
+                // catálogo cambió entre la vista previa y la confirmación.
+                $existing = $mode === 'add'
+                    ? Game::where('user_id', $userId)
+                        ->whereRaw('LOWER(title) = ?', [Str::lower($title)])
+                        ->where('platform_id', $platformId)
+                        ->where('edition_id', $editionId)
+                        ->first()
+                    : null;
+
+                if ($existing) {
+                    // Por defecto Omitir si no hay decisión (fila sin marcar
+                    // en la vista previa, o decisiones perdidas/manipuladas):
+                    // más seguro que crear un duplicado sin que nadie lo pida.
+                    if (($duplicateDecisions[$rowNumber] ?? 'skip') === 'overwrite') {
+                        $existing->update($attributes);
+                        $duplicatesOverwritten++;
+
+                        if ($platformId !== null && $status !== 'wishlist') {
+                            $platformIds[$platformId] = true;
+                        }
+                    } else {
+                        $duplicatesSkipped++;
+                    }
+
+                    continue;
+                }
+
+                Game::create($attributes);
 
                 // Plataformas de la importación con al menos un juego que
                 // "Identificar en bloque" (issue #128) sí recogería después
@@ -222,7 +364,7 @@ class GameCsvImporter
 
         $platformIds = array_keys($platformIds);
 
-        return compact('imported', 'createdPlatforms', 'createdEditions', 'errors', 'platformIds');
+        return compact('imported', 'createdPlatforms', 'createdEditions', 'errors', 'platformIds', 'duplicatesOverwritten', 'duplicatesSkipped', 'skippedScope');
     }
 
     /**
@@ -290,6 +432,53 @@ class GameCsvImporter
         $this->editionIdsByName[$key] = $edition->id;
 
         return [$edition->id, $edition->wasRecentlyCreated];
+    }
+
+    /**
+     * Igual que resolvePlatform() pero de solo lectura, para findDuplicates()
+     * (#143): no crea la plataforma si no existe todavía — devuelve null en
+     * ese caso, en vez de crearla antes de que el usuario haya confirmado
+     * nada.
+     */
+    private function findPlatformId(string $name, int $userId): ?int
+    {
+        $key = $userId.':'.Str::lower($name);
+
+        if (isset($this->platformIdsByName[$key])) {
+            return $this->platformIdsByName[$key];
+        }
+
+        $platform = Platform::where('user_id', $userId)->whereRaw('LOWER(name) = ?', [Str::lower($name)])->first();
+
+        if ($platform) {
+            $this->platformIdsByName[$key] = $platform->id;
+        }
+
+        return $platform?->id;
+    }
+
+    /**
+     * Igual que findPlatformId() pero para ediciones (mismo desempate por
+     * soporte que resolveEdition() cuando el nombre es ambiguo).
+     */
+    private function findEditionId(string $name, int $userId): ?int
+    {
+        $key = $userId.':'.Str::lower($name);
+
+        if (isset($this->editionIdsByName[$key])) {
+            return $this->editionIdsByName[$key];
+        }
+
+        $edition = Edition::where('user_id', $userId)
+            ->whereRaw('LOWER(name) = ?', [Str::lower($name)])
+            ->orderByRaw("CASE WHEN format = 'physical_disc' THEN 0 ELSE 1 END")
+            ->first();
+
+        if ($edition) {
+            $this->editionIdsByName[$key] = $edition->id;
+        }
+
+        return $edition?->id;
     }
 
     private function uniqueSlug(string $modelClass, string $name, int $userId): string
