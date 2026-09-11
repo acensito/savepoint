@@ -26,7 +26,17 @@ return new class extends Migration
         if ($userIds->isEmpty()) {
             // Instalación nueva sin usuarios todavía: nada que repartir. El
             // catálogo semilla se copiará al primer usuario que se dé de
-            // alta (ver SeedCatalogCopier), no aquí.
+            // alta (ver SeedCatalogCopier), no aquí. Pero las filas
+            // originales (p. ej. la "Normal" de seed_normal_edition.php) hay
+            // que borrarlas igualmente: sin usuarios no hay juegos que
+            // puedan referenciarlas, y dejarlas con user_id NULL rompería la
+            // siguiente migración (NOT NULL en user_id) — este es
+            // precisamente el estado con el que arranca cada test (
+            // RefreshDatabase migra sobre una base sin usuarios todavía).
+            DB::table('editions')->whereNull('user_id')->delete();
+            DB::table('platforms')->whereNull('user_id')->delete();
+            DB::table('manufacturers')->whereNull('user_id')->delete();
+
             return;
         }
 

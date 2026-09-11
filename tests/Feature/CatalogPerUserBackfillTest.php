@@ -24,6 +24,28 @@ class CatalogPerUserBackfillTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * Solo SQLite: para cuando este test arranca, RefreshDatabase ya ha
+     * corrido las tres migraciones de la #175 en orden, incluida la que deja
+     * user_id como NOT NULL — en Postgres real esa restricción ya está
+     * viva, así que la fila "vieja" (user_id null) que estos tests insertan
+     * a mano para simular datos previos a la migración es, aquí, un estado
+     * ya imposible de crear (rechazado por la propia base de datos), no algo
+     * que el código de la migración tenga que tolerar. SQLite no llega a
+     * aplicar esa restricción (ver 2026_09_11_100200_make_catalog_user_id_
+     * not_null.php, guardado por driver), así que sigue permitiendo
+     * reproducir aquí el escenario real que esta migración sí tuvo que
+     * resolver en producción.
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        if (DB::getDriverName() === 'pgsql') {
+            $this->markTestSkipped('Simula datos previos a la migración (user_id null): Postgres ya no lo permite tras completar la #175.');
+        }
+    }
+
     private function runBackfillMigration(): void
     {
         $migration = include database_path('migrations/2026_09_11_100100_backfill_catalog_tables_to_per_user.php');
@@ -131,20 +153,29 @@ class CatalogPerUserBackfillTest extends TestCase
         $this->assertNull($userB->fresh()->default_edition_id);
     }
 
-    public function test_backfill_does_nothing_when_there_are_no_users(): void
+    public function test_backfill_deletes_orphaned_catalog_rows_when_there_are_no_users(): void
     {
-        DB::table('users')->delete();
-
-        // El único dato de catálogo que existe en una instalación nueva sin
-        // usuarios es la edición "Normal" fija de seed_normal_edition.php
-        // (2026_08_14_190156) — el backfill no debe tocarla ni lanzar
-        // ninguna excepción con la tabla de usuarios vacía.
-        $editionsBefore = DB::table('editions')->count();
+        // Para cuando este test arranca, RefreshDatabase ya ha migrado (y por
+        // tanto ya ha lanzado esta misma migración una primera vez) sobre una
+        // base sin usuarios todavía, dejando la tabla de ediciones a 0 — la
+        // "Normal" fija de seed_normal_edition.php (2026_08_14_190156) ya se
+        // ha borrado en esa primera pasada. Se simula aquí una fila "vieja"
+        // (user_id null) para comprobar que una segunda pasada del backfill
+        // sin usuarios la vuelve a limpiar en vez de dejarla — dejarla viva
+        // rompería la siguiente migración (NOT NULL en user_id) en Postgres
+        // real.
+        DB::table('editions')->insert([
+            'user_id' => null,
+            'name' => 'Normal',
+            'format' => 'physical_disc',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         $this->runBackfillMigration();
 
         $this->assertSame(0, DB::table('manufacturers')->count());
         $this->assertSame(0, DB::table('platforms')->count());
-        $this->assertSame($editionsBefore, DB::table('editions')->count());
+        $this->assertSame(0, DB::table('editions')->count());
     }
 }

@@ -6,6 +6,7 @@ use App\Models\Edition;
 use App\Models\Game;
 use App\Models\Platform;
 use App\Models\User;
+use App\Services\Catalog\SeedCatalogCopier;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -24,11 +25,14 @@ class EditionControllerTest extends TestCase
 
     public function test_the_normal_edition_exists_and_is_available_for_any_platform(): void
     {
-        // Poblada por la migración 2026_08_14_190156_seed_normal_edition, no
-        // por un seeder (ver su docblock: los seeders no corren siempre en
-        // producción). Sin filas en edition_platform = disponible para
-        // cualquier plataforma, incluidas las que se den de alta después.
-        $edition = Edition::where('name', 'Normal')->firstOrFail();
+        // SeedCatalogCopier crea una "Normal" por cuenta al darse de alta
+        // (issue #175) — ya no es una fila global sembrada por migración.
+        // Sin filas en edition_platform = disponible para cualquier
+        // plataforma, incluidas las que se den de alta después.
+        $user = User::factory()->create();
+        app(SeedCatalogCopier::class)->copyTo($user);
+
+        $edition = Edition::where('user_id', $user->id)->where('name', 'Normal')->firstOrFail();
 
         $this->assertCount(0, $edition->platforms);
     }

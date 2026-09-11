@@ -68,7 +68,7 @@ class EnumCheckConstraintsTest extends TestCase
     {
         $this->expectException(QueryException::class);
 
-        Edition::query()->create(['name' => 'Test', 'format' => 'not-a-real-format']);
+        Edition::query()->create(['user_id' => User::factory()->create()->id, 'name' => 'Test', 'format' => 'not-a-real-format']);
     }
 
     /**
@@ -79,13 +79,15 @@ class EnumCheckConstraintsTest extends TestCase
     {
         $this->expectException(QueryException::class);
 
-        Edition::query()->create(['name' => 'Test', 'format' => 'physical']);
+        Edition::query()->create(['user_id' => User::factory()->create()->id, 'name' => 'Test', 'format' => 'physical']);
     }
 
     public function test_every_current_edition_format_is_accepted(): void
     {
+        $userId = User::factory()->create()->id;
+
         foreach (array_keys(Edition::FORMATS) as $format) {
-            $edition = Edition::query()->create(['name' => "Test {$format}", 'format' => $format]);
+            $edition = Edition::query()->create(['user_id' => $userId, 'name' => "Test {$format}", 'format' => $format]);
 
             $this->assertNotNull($edition->id);
         }

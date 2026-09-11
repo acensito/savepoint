@@ -465,7 +465,7 @@ class GameControllerTest extends TestCase
         // usuarios ya existentes en la migración, que no aplica a un usuario
         // creado aquí mismo): sin ajuste configurado, no se preselecciona nada.
         $user = User::factory()->create();
-        $normal = Edition::where('name', 'Normal')->firstOrFail();
+        $normal = Edition::factory()->for($user)->create(['name' => 'Normal']);
 
         $response = $this->actingAs($user)->get(route('web.games.create'));
 
@@ -502,11 +502,11 @@ class GameControllerTest extends TestCase
     {
         $user = User::factory()->create();
         $game = Game::factory()->for($user)->create(['edition_id' => null]);
+        $normal = Edition::factory()->for($user)->create(['name' => 'Normal']);
 
         $response = $this->actingAs($user)->get(route('web.games.edit', $game->id));
 
         $response->assertOk();
-        $normal = Edition::where('name', 'Normal')->firstOrFail();
         $content = preg_replace('/\s+/', ' ', $response->getContent());
         $this->assertStringNotContainsString('value="'.$normal->id.'" data-platforms="" selected', $content);
     }
