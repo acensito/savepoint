@@ -8,22 +8,29 @@ use App\Models\Manufacturer;
 use App\Models\Platform;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
+/**
+ * Catálogo por cuenta (issue #175): cada usuario gestiona sus propias
+ * plataformas, sin dato compartido con el resto — mismo criterio que ya
+ * aplica a Game (ver GameController/GamePolicy).
+ */
 class PlatformController extends Controller
 {
     use GeneratesUniqueSlug;
 
     public function index(): View
     {
-        $platforms = Platform::with('manufacturer')->orderBy('name')->get();
+        $platforms = Platform::where('user_id', auth()->id())->with('manufacturer')->orderBy('name')->get();
 
         return view('platforms.index', compact('platforms'));
     }
 
     public function create(): View
     {
-        $manufacturers = Manufacturer::orderBy('name')->get();
+        $manufacturers = Manufacturer::where('user_id', auth()->id())->orderBy('name')->get();
 
         return view('platforms.create', compact('manufacturers'));
     }
@@ -31,7 +38,8 @@ class PlatformController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $this->validated($request);
-        $validated['slug'] = $this->uniqueSlug(Platform::class, $validated['name']);
+        $validated['user_id'] = auth()->id();
+        $validated['slug'] = $this->uniqueSlug(Platform::class, $validated['name'], auth()->id());
 
         Platform::create($validated);
 
@@ -40,17 +48,21 @@ class PlatformController extends Controller
 
     public function edit(Platform $platform): View
     {
-        $manufacturers = Manufacturer::orderBy('name')->get();
+        Gate::authorize('update', $platform);
+
+        $manufacturers = Manufacturer::where('user_id', auth()->id())->orderBy('name')->get();
 
         return view('platforms.edit', compact('platform', 'manufacturers'));
     }
 
     public function update(Request $request, Platform $platform): RedirectResponse
     {
+        Gate::authorize('update', $platform);
+
         $validated = $this->validated($request);
 
         if ($validated['name'] !== $platform->name) {
-            $validated['slug'] = $this->uniqueSlug(Platform::class, $validated['name'], $platform->id);
+            $validated['slug'] = $this->uniqueSlug(Platform::class, $validated['name'], auth()->id(), $platform->id);
         }
 
         $platform->update($validated);
@@ -60,6 +72,8 @@ class PlatformController extends Controller
 
     public function destroy(Platform $platform): RedirectResponse
     {
+        Gate::authorize('delete', $platform);
+
         // Los juegos de esta plataforma no se borran: platform_id pasa a null (ver migración).
         $platform->delete();
 
@@ -74,7 +88,10 @@ class PlatformController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'label' => 'nullable|string|max:20',
-            'manufacturer_id' => 'nullable|exists:manufacturers,id',
+            // Rule::exists(...)->where(...), no 'exists:manufacturers,id' a
+            // secas: sin esto, una cuenta podría enganchar su plataforma al
+            // fabricante de otra (issue #175).
+            'manufacturer_id' => ['nullable', Rule::exists('manufacturers', 'id')->where('user_id', auth()->id())],
             'override_colors' => 'nullable|boolean',
             'bg_color' => 'required_if:override_colors,1|nullable|regex:/^#[0-9A-Fa-f]{6}$/',
             'text_color' => 'required_if:override_colors,1|nullable|regex:/^#[0-9A-Fa-f]{6}$/',
