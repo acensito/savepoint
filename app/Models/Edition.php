@@ -55,12 +55,12 @@ class Edition extends Model
         self::FORMAT_PHYSICAL_CARTRIDGE => ['label' => 'Físico (cartucho)', 'icon' => 'sd_card'],
         self::FORMAT_PHYSICAL_DISC => ['label' => 'Físico (disco)', 'icon' => 'album'],
         self::FORMAT_PHYSICAL_FLOPPY => ['label' => 'Físico (diskette)', 'icon' => 'save'],
-        // 'radio' es una aproximación: Material Symbols no tiene ningún
-        // icono de cassette/cinta (verificado contra el listado oficial de
-        // google/material-design-icons) — ver #149 para sustituirlo por un
-        // SVG propio en cuanto exista soporte para iconos personalizados.
-        self::FORMAT_PHYSICAL_TAPE => ['label' => 'Físico (cassette)', 'icon' => 'radio'],
-        self::FORMAT_PHYSICAL_OTHER => ['label' => 'Físico (otros)', 'icon' => 'usb'],
+        // 'cassette' y 'pendrive' son SVG propios (resources/svg/gicons/,
+        // issue #149): Material Symbols no tiene icono de cassette/cinta, y
+        // se usa un pendrive propio para mantener el mismo estilo entre los
+        // dos iconos "no estándar" de este enum.
+        self::FORMAT_PHYSICAL_TAPE => ['label' => 'Físico (cassette)', 'icon' => 'cassette'],
+        self::FORMAT_PHYSICAL_OTHER => ['label' => 'Físico (otros)', 'icon' => 'pendrive'],
         self::FORMAT_DIGITAL => ['label' => 'Digital', 'icon' => 'cloud'],
         self::FORMAT_CIAB => ['label' => 'CIAB (código en caja)', 'icon' => 'card_giftcard'],
     ];

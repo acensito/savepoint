@@ -474,3 +474,19 @@ summary::-webkit-details-marker {
     -webkit-font-feature-settings: 'liga';
     -webkit-font-smoothing: antialiased;
 }
+
+/* Iconos propios en SVG dentro de x-gicon (issue #149): mismo font-size por
+   defecto que .material-symbols-outlined para que ambos tipos de icono
+   quepan en las mismas clases text-[Npx] usadas en las vistas. El SVG en sí
+   se ajusta a 1em (ver resources/svg/gicons/) para heredar ese tamaño. */
+.gicon-svg {
+    font-size: 24px;
+    line-height: 1;
+    display: inline-block;
+}
+
+.gicon-svg svg {
+    display: block;
+    width: 1em;
+    height: 1em;
+}
