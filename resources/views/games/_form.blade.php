@@ -97,7 +97,7 @@
             @if($externalCoverUrl)
                 Carátula sugerida desde CEX. Sube un fichero aquí si prefieres reemplazarla.
             @else
-                JPG, PNG o WEBP, máx. 1MB. Si no subes ninguna, se muestran las iniciales del título.
+                JPG, PNG o WEBP, máx. 512 KB. Si no subes ninguna, se muestran las iniciales del título.
             @endif
         </p>
         <span id="cover-error" class="{{ $error }}{{ $errors->has('cover') ? '' : ' hidden' }}">{{ $errors->first('cover') }}</span>
@@ -441,10 +441,10 @@
             coverError.classList.add('hidden');
             if (!file) return;
 
-            if (file.size > 1024 * 1024) {
+            if (file.size > 512 * 1024) {
                 coverInput.value = '';
                 clearPreview();
-                showError('No se admiten imágenes superiores a 1 MB.');
+                showError('No se admiten imágenes superiores a 512 KB.');
                 return;
             }
 

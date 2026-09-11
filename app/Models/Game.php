@@ -38,6 +38,8 @@ class Game extends Model
         'title',
         'platform_id',
         'cover',
+        'cover_width',
+        'cover_height',
         'data',
         'release_date',
         'developer',
@@ -81,6 +83,8 @@ class Game extends Model
         return [
             'release_date' => 'date',
             'purchase_date' => 'date',
+            'cover_width' => 'integer',
+            'cover_height' => 'integer',
             'genres' => 'array', // Laravel convierte el JSON de Postgres a un array de PHP automáticamente
             'price_paid' => 'decimal:2',
             'for_sale' => 'boolean',

@@ -164,7 +164,7 @@ return [
     */
 
     'custom' => [
-        'cover.max' => 'No se admiten imágenes superiores a 1 MB.',
+        'cover.max' => 'No se admiten imágenes superiores a 512 KB.',
         'cover.uploaded' => 'No se pudo subir la carátula. Comprueba el archivo e inténtalo de nuevo.',
     ],
 

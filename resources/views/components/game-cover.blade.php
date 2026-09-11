@@ -15,9 +15,13 @@
          carátulas de golpe (auditoría de rendimiento del 2026-09-10, ~56 KB
          de media cada una) es la parte más cara de la página — el navegador
          difiere las que quedan fuera de la ventana visible sin que haga
-         falta ninguna librería. Sin width/height fijos a propósito (ver
-         comentario de arriba: cada carátula crece con su proporción real). --}}
+         falta ninguna librería. width/height HTML (#116, cuando se conocen:
+         carátulas subidas antes de esa migración no los tienen) le dan al
+         navegador la proporción real para reservar el hueco y evitar el
+         salto de layout, sin fijar el tamaño renderizado — eso lo sigue
+         controlando el CSS de abajo (ver comentario de arriba). --}}
     <img src="{{ $game->coverUrl() }}" alt="{{ $game->title }}" loading="lazy" decoding="async"
+        @if($game->cover_width && $game->cover_height) width="{{ $game->cover_width }}" height="{{ $game->cover_height }}" @endif
         {{ $attributes->merge(['class' => "$width h-auto $rounded border border-slate-700 shrink-0"]) }}>
 @else
     @php $colors = $game?->coverPlaceholderColors() ?? ['bg' => '#1e293b', 'text' => '#94a3b8', 'border' => '#334155']; @endphp

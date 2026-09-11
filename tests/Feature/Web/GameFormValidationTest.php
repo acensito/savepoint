@@ -801,16 +801,16 @@ class GameFormValidationTest extends TestCase
         $this->assertDatabaseCount('games', 0);
     }
 
-    public function test_cover_rejects_a_file_larger_than_the_1_megabyte_limit(): void
+    public function test_cover_rejects_a_file_larger_than_the_512kb_limit(): void
     {
         Storage::fake('public');
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->post('/games', $this->validPayload([
-            'cover' => UploadedFile::fake()->image('cover.jpg')->size(1025),
+            'cover' => UploadedFile::fake()->image('cover.jpg')->size(513),
         ]));
 
-        $response->assertSessionHasErrors(['cover' => 'No se admiten imágenes superiores a 1 MB.']);
+        $response->assertSessionHasErrors(['cover' => 'No se admiten imágenes superiores a 512 KB.']);
         $this->assertDatabaseCount('games', 0);
     }
 
@@ -839,7 +839,7 @@ class GameFormValidationTest extends TestCase
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->post('/games', $this->validPayload([
-            'cover' => UploadedFile::fake()->image('cover.jpg')->size(1024),
+            'cover' => UploadedFile::fake()->image('cover.jpg')->size(512),
         ]));
 
         $response->assertRedirect(route('web.games.index'));
