@@ -47,13 +47,16 @@ class GameCsvImporter
 
     /**
      * Ids de plataforma/edición ya resueltos en la corrida de import() en
-     * curso, por nombre en minúsculas — una colección real repite la misma
-     * plataforma/edición en la inmensa mayoría de sus filas, y sin esto cada
-     * una disparaba su propia consulta whereRaw('LOWER(name) = ?') (issue
+     * curso, por "userId:nombre en minúsculas" — una colección real repite la
+     * misma plataforma/edición en la inmensa mayoría de sus filas, y sin esto
+     * cada una disparaba su propia consulta whereRaw('LOWER(name) = ?') (issue
      * #185, auditoría de rendimiento del 2026-09-10). Se reinician al
      * principio de cada import() en vez de vivir solo en el constructor: el
      * importador se resuelve por inyección de dependencias y no hay garantía
-     * de que cada import() se ejecute sobre una instancia nueva.
+     * de que cada import() se ejecute sobre una instancia nueva. El userId
+     * entra en la clave (no solo el nombre) por si esta misma instancia
+     * llegara a reutilizarse entre usuarios distintos en la misma request
+     * (catálogo por cuenta, issue #175).
      *
      * @var array<string, int>
      */
@@ -166,13 +169,13 @@ class GameCsvImporter
             try {
                 $platformId = null;
                 if (filled($get('plataforma'))) {
-                    [$platformId, $wasCreated] = $this->resolvePlatform($get('plataforma'));
+                    [$platformId, $wasCreated] = $this->resolvePlatform($get('plataforma'), $userId);
                     $createdPlatforms += $wasCreated ? 1 : 0;
                 }
 
                 $editionId = null;
                 if (filled($get('edicion'))) {
-                    [$editionId, $wasCreated] = $this->resolveEdition($get('edicion'));
+                    [$editionId, $wasCreated] = $this->resolveEdition($get('edicion'), $userId);
                     $createdEditions += $wasCreated ? 1 : 0;
                 }
 
@@ -228,20 +231,24 @@ class GameCsvImporter
      *
      * @return array{0: int, 1: bool}
      */
-    private function resolvePlatform(string $name): array
+    private function resolvePlatform(string $name, int $userId): array
     {
-        $key = Str::lower($name);
+        $key = $userId.':'.Str::lower($name);
 
         if (isset($this->platformIdsByName[$key])) {
             return [$this->platformIdsByName[$key], false];
         }
 
-        $platform = Platform::whereRaw('LOWER(name) = ?', [$key])->first();
+        // Rule::exists()->where(...) no aplica aquí (no es una validación de
+        // formulario): where('user_id', ...) a mano, catálogo por cuenta
+        // (issue #175).
+        $platform = Platform::where('user_id', $userId)->whereRaw('LOWER(name) = ?', [Str::lower($name)])->first();
 
         if (! $platform) {
             $platform = Platform::create([
+                'user_id' => $userId,
                 'name' => $name,
-                'slug' => $this->uniqueSlug(Platform::class, $name),
+                'slug' => $this->uniqueSlug(Platform::class, $name, $userId),
             ]);
         }
 
@@ -263,20 +270,21 @@ class GameCsvImporter
      *
      * @return array{0: int, 1: bool}
      */
-    private function resolveEdition(string $name): array
+    private function resolveEdition(string $name, int $userId): array
     {
-        $key = Str::lower($name);
+        $key = $userId.':'.Str::lower($name);
 
         if (isset($this->editionIdsByName[$key])) {
             return [$this->editionIdsByName[$key], false];
         }
 
-        $edition = Edition::whereRaw('LOWER(name) = ?', [$key])
+        $edition = Edition::where('user_id', $userId)
+            ->whereRaw('LOWER(name) = ?', [Str::lower($name)])
             ->orderByRaw("CASE WHEN format = 'physical_disc' THEN 0 ELSE 1 END")
             ->first();
 
         if (! $edition) {
-            $edition = Edition::create(['name' => $name]);
+            $edition = Edition::create(['user_id' => $userId, 'name' => $name]);
         }
 
         $this->editionIdsByName[$key] = $edition->id;
@@ -284,13 +292,13 @@ class GameCsvImporter
         return [$edition->id, $edition->wasRecentlyCreated];
     }
 
-    private function uniqueSlug(string $modelClass, string $name): string
+    private function uniqueSlug(string $modelClass, string $name, int $userId): string
     {
         $base = Str::slug($name);
         $slug = $base;
         $i = 1;
 
-        while ($modelClass::where('slug', $slug)->exists()) {
+        while ($modelClass::where('user_id', $userId)->where('slug', $slug)->exists()) {
             $slug = $base.'-'.$i++;
         }
 
