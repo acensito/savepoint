@@ -73,6 +73,33 @@ class PanelControllerTest extends TestCase
         $response->assertSee('Mozilla/5.0 Test Browser');
     }
 
+    /**
+     * Regresión: los botones "Revocar" de un dispositivo de confianza vivían
+     * dentro de su propio <form>, anidado dentro del <form> grande de
+     * "Guardar ajustes" -- HTML inválido. El navegador ignora la apertura del
+     * <form> interior, pero al llegar a su </form> cierra ahí mismo el <form>
+     * exterior de verdad, dejando fuera de él (entre otras cosas) el propio
+     * botón "Guardar ajustes", que dejaba de estar asociado a ningún
+     * formulario y no hacía nada al pulsarlo.
+     */
+    public function test_settings_page_does_not_nest_a_form_inside_the_save_settings_form(): void
+    {
+        $user = User::factory()->create();
+        TwoFactorTrustedDevice::issueFor($user, '203.0.113.5', 'Mozilla/5.0 Test Browser');
+
+        $html = $this->actingAs($user)->get('/panel/settings')->getContent();
+
+        $formOpen = strpos($html, '<form action="'.route('web.panel.settings.update').'"');
+        $saveButton = strpos($html, 'Guardar ajustes');
+
+        $this->assertNotFalse($formOpen);
+        $this->assertNotFalse($saveButton);
+        $this->assertGreaterThan($formOpen, $saveButton);
+
+        $between = substr($html, $formOpen + 1, $saveButton - $formOpen - 1);
+        $this->assertStringNotContainsString('<form', $between);
+    }
+
     public function test_user_can_revoke_a_single_trusted_device(): void
     {
         $user = User::factory()->create();
