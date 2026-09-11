@@ -239,6 +239,8 @@ class GameController extends Controller
             $validated['cover'] = null;
         }
 
+        $validated += $this->readCoverDimensions($validated['cover']);
+
         $validated['user_id'] = auth()->id();
 
         $game = Game::create($validated);
@@ -387,11 +389,13 @@ class GameController extends Controller
                 Storage::disk('public')->delete($game->cover);
             }
             $validated['cover'] = $request->file('cover')->store('covers', 'public');
+            $validated += $this->readCoverDimensions($validated['cover']);
         } elseif ($request->boolean('remove_cover')) {
             if ($game->cover) {
                 Storage::disk('public')->delete($game->cover);
             }
             $validated['cover'] = null;
+            $validated += $this->readCoverDimensions(null);
         } elseif ($request->filled('cover_url')) {
             // Carátula elegida desde "Buscar carátula en CEX" (ver
             // GameCoverLookupController::coverLookup()): mismo tratamiento
@@ -402,6 +406,7 @@ class GameController extends Controller
                     Storage::disk('public')->delete($game->cover);
                 }
                 $validated['cover'] = $downloaded;
+                $validated += $this->readCoverDimensions($downloaded);
             } else {
                 unset($validated['cover']);
             }
@@ -480,7 +485,9 @@ class GameController extends Controller
             'age_rating_select' => 'nullable|string|max:20',
             'age_rating_other' => 'required_if:age_rating_select,other|nullable|string|max:20',
             'notes' => 'nullable|string|max:2000',
-            'cover' => 'nullable|image|max:1024',
+            // 512KB (antes 1MB, #116): límite razonable para una carátula de
+            // caja de videojuego sin perder calidad perceptible.
+            'cover' => 'nullable|image|max:512',
         ]);
 
         $validated['genres'] = $this->parseGenres($request->input('genres'));
@@ -517,6 +524,25 @@ class GameController extends Controller
             ->where('ean', $validated['ean'])
             ->when($ignore, fn ($q) => $q->where('id', '!=', $ignore->id))
             ->first();
+    }
+
+    /**
+     * Dimensiones reales de la carátula recién guardada, para poder fijar
+     * width/height en <img> y evitar el salto de layout (#116).
+     * getimagesize() solo lee la cabecera del fichero, no lo decodifica ni
+     * redimensiona — coste insignificante frente a generar una miniatura.
+     *
+     * @return array{cover_width: int|null, cover_height: int|null}
+     */
+    private function readCoverDimensions(?string $path): array
+    {
+        if ($path === null) {
+            return ['cover_width' => null, 'cover_height' => null];
+        }
+
+        $size = @getimagesize(Storage::disk('public')->path($path));
+
+        return ['cover_width' => $size[0] ?? null, 'cover_height' => $size[1] ?? null];
     }
 
     /**

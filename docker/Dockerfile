@@ -29,7 +29,7 @@ opcache.max_accelerated_files=10000\n\
 opcache.revalidate_freq=2\n\
 opcache.fast_shutdown=1" > /usr/local/etc/php/conf.d/opcache-recommended.ini
 
-# 4b. Subida de ficheros (carátulas de juegos, límite real de 1MB validado en Laravel)
+# 4b. Subida de ficheros (carátulas de juegos, límite real de 512KB validado en Laravel)
 RUN echo -e "upload_max_filesize=2M\n\
 post_max_size=4M" > /usr/local/etc/php/conf.d/uploads.ini
 

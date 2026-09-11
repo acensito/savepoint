@@ -728,10 +728,33 @@ class GameControllerTest extends TestCase
         Storage::disk('public')->assertExists($game->cover);
     }
 
-    public function test_creating_a_game_rejects_an_image_cover_over_one_mb_without_saving(): void
+    /**
+     * getimagesize() sobre el fichero subido (#116): guardan la proporción
+     * real para poder fijar width/height en <img> sin generar una miniatura.
+     */
+    public function test_creating_a_game_with_a_cover_stores_its_real_dimensions(): void
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->create();
+        $cover = UploadedFile::fake()->image('cover.jpg', 300, 400);
+
+        $this->actingAs($user)->post('/games', [
+            'title' => 'Celeste',
+            'play_status' => 'playing',
+            'cover' => $cover,
+        ]);
+
+        $game = Game::where('title', 'Celeste')->firstOrFail();
+
+        $this->assertSame(300, $game->cover_width);
+        $this->assertSame(400, $game->cover_height);
+    }
+
+    public function test_creating_a_game_rejects_an_image_cover_over_512kb_without_saving(): void
     {
         $user = User::factory()->create();
-        $cover = UploadedFile::fake()->image('large-cover.jpg')->size(1025);
+        $cover = UploadedFile::fake()->image('large-cover.jpg')->size(513);
 
         $response = $this->actingAs($user)->post('/games', [
             'title' => 'Imagen demasiado grande',
@@ -740,7 +763,7 @@ class GameControllerTest extends TestCase
         ]);
 
         $response->assertSessionHasErrors([
-            'cover' => 'No se admiten imágenes superiores a 1 MB.',
+            'cover' => 'No se admiten imágenes superiores a 512 KB.',
         ]);
         $this->assertDatabaseMissing('games', ['title' => 'Imagen demasiado grande']);
     }
@@ -1459,6 +1482,79 @@ class GameControllerTest extends TestCase
         $this->assertSame('New title', $game->title);
         Storage::disk('public')->assertMissing($oldCover);
         Storage::disk('public')->assertExists($game->cover);
+    }
+
+    public function test_replacing_a_games_cover_updates_its_stored_dimensions(): void
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['cover_width' => 100, 'cover_height' => 100]);
+
+        $this->actingAs($user)->put("/games/{$game->id}", [
+            'title' => $game->title,
+            'play_status' => 'finished',
+            'cover' => UploadedFile::fake()->image('new.jpg', 300, 400),
+        ]);
+
+        $game->refresh();
+
+        $this->assertSame(300, $game->cover_width);
+        $this->assertSame(400, $game->cover_height);
+    }
+
+    public function test_removing_a_games_cover_clears_its_stored_dimensions(): void
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->create();
+        $oldCover = UploadedFile::fake()->image('old.jpg')->store('covers', 'public');
+        $game = Game::factory()->for($user)->create([
+            'cover' => $oldCover,
+            'cover_width' => 100,
+            'cover_height' => 100,
+        ]);
+
+        $this->actingAs($user)->put("/games/{$game->id}", [
+            'title' => $game->title,
+            'play_status' => 'finished',
+            'remove_cover' => '1',
+        ]);
+
+        $game->refresh();
+
+        $this->assertNull($game->cover);
+        $this->assertNull($game->cover_width);
+        $this->assertNull($game->cover_height);
+    }
+
+    /**
+     * Regresión: la rama unset($validated['cover']) (ni fichero ni cover_url
+     * ni remove_cover) no debe tocar las dimensiones ya guardadas (#116).
+     */
+    public function test_updating_a_game_without_touching_the_cover_keeps_its_dimensions(): void
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->create();
+        $cover = UploadedFile::fake()->image('cover.jpg')->store('covers', 'public');
+        $game = Game::factory()->for($user)->create([
+            'cover' => $cover,
+            'cover_width' => 300,
+            'cover_height' => 400,
+        ]);
+
+        $this->actingAs($user)->put("/games/{$game->id}", [
+            'title' => 'Nuevo título',
+            'play_status' => 'finished',
+        ]);
+
+        $game->refresh();
+
+        $this->assertSame('Nuevo título', $game->title);
+        $this->assertSame($cover, $game->cover);
+        $this->assertSame(300, $game->cover_width);
+        $this->assertSame(400, $game->cover_height);
     }
 
     public function test_updating_a_game_downloads_the_chosen_cex_cover_and_replaces_the_old_one(): void

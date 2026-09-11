@@ -106,7 +106,7 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
   segundo botón **"Guardar y añadir otro"** redirige de vuelta al propio formulario arrastrando los campos que suelen
   repetirse dentro de un mismo lote (plataforma, edición, región, lugar/fecha de compra, conservación), para catalogar
   varias copias seguidas sin repetir la misma elección una y otra vez.
-- **Carátula**: se sube desde el propio formulario (JPG/PNG/WEBP, máx. 1MB) con vista previa en vivo que respeta la
+- **Carátula**: se sube desde el propio formulario (JPG/PNG/WEBP, máx. 512KB) con vista previa en vivo que respeta la
   proporción real de la imagen, sin recortarla. Si el juego no tiene carátula, se muestran las iniciales del título en
   su lugar.
 - Listado de la colección con miniatura, título, plataforma, edición, región, manual, conservación (estrellas), precio y
