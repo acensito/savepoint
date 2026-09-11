@@ -138,6 +138,17 @@
                             — por ejemplo, si prestaste el equipo o ya no confías en él.
                         </p>
 
+                        {{-- Los botones de abajo usan form="..." en vez de envolverse en su
+                             propio <form>: esta tarjeta vive dentro del <form> grande de
+                             "Guardar ajustes" (ver comentario al principio del fichero), y un
+                             <form> anidado dentro de otro es HTML inválido — el navegador
+                             ignora la apertura del <form> interior pero, al llegar a su
+                             </form>, cierra ahí mismo el <form> exterior (el de verdad), dejando
+                             fuera de él todo lo que viniera después: los colores de navbar, las
+                             preferencias de Colección y el propio botón "Guardar ajustes", que
+                             deja de estar asociado a ningún formulario y no hace nada al
+                             pulsarlo. Los <form> reales de este bloque se declaran más abajo,
+                             ya fuera del <form> grande (ver el cierre de este fichero). --}}
                         @if($trustedDevices->isEmpty())
                             <p class="text-sm text-slate-500">No tienes ningún dispositivo marcado como de confianza ahora mismo.</p>
                         @else
@@ -152,20 +163,12 @@
                                                 · caduca el {{ $device->expires_at->format('d/m/Y') }}
                                             </p>
                                         </div>
-                                        <form method="POST" action="{{ route('web.panel.settings.trusted-devices.revoke', $device) }}" class="shrink-0">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="text-xs font-medium text-red-400 hover:text-red-300">Revocar</button>
-                                        </form>
+                                        <button type="submit" form="revoke-device-{{ $device->id }}" class="shrink-0 text-xs font-medium text-red-400 hover:text-red-300">Revocar</button>
                                     </div>
                                 @endforeach
                             </div>
 
-                            <form method="POST" action="{{ route('web.panel.settings.trusted-devices.revoke-all') }}" class="mt-4">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="text-sm font-medium text-red-400 hover:text-red-300">Revocar todos los dispositivos</button>
-                            </form>
+                            <button type="submit" form="revoke-all-devices" class="mt-4 text-sm font-medium text-red-400 hover:text-red-300">Revocar todos los dispositivos</button>
                         @endif
                     </div>
 
@@ -356,6 +359,24 @@
                 </button>
             </div>
         </form>
+
+        {{-- Formularios reales de "Dispositivos de confianza" (ver comentario en esa
+             tarjeta más arriba): fuera del <form> grande a propósito, referenciados por
+             los botones "Revocar"/"Revocar todos" con form="...". --}}
+        @foreach($trustedDevices as $device)
+            <form id="revoke-device-{{ $device->id }}" method="POST"
+                  action="{{ route('web.panel.settings.trusted-devices.revoke', $device) }}" class="hidden">
+                @csrf
+                @method('DELETE')
+            </form>
+        @endforeach
+        @if($trustedDevices->isNotEmpty())
+            <form id="revoke-all-devices" method="POST"
+                  action="{{ route('web.panel.settings.trusted-devices.revoke-all') }}" class="hidden">
+                @csrf
+                @method('DELETE')
+            </form>
+        @endif
     </div>
 
     <script nonce="{{ $cspNonce }}">
