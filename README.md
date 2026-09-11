@@ -102,13 +102,17 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 - Alta de un juego mediante un único formulario directo, sin pasos intermedios. Cubre prácticamente todo el modelo:
   título, EAN, desarrollador, plataforma, fecha de lanzamiento, géneros, propiedad (en colección/lista de
   deseos/vendido), estado de juego, conservación, precio y lugar/fecha de compra, manual, región, clasificación por edad
-  y notas.
+  y notas. El campo de géneros sugiere, mientras se escribe, los que ya has usado en otros juegos de tu colección. Un
+  segundo botón **"Guardar y añadir otro"** redirige de vuelta al propio formulario arrastrando los campos que suelen
+  repetirse dentro de un mismo lote (plataforma, edición, región, lugar/fecha de compra, conservación), para catalogar
+  varias copias seguidas sin repetir la misma elección una y otra vez.
 - **Carátula**: se sube desde el propio formulario (JPG/PNG/WEBP, máx. 1MB) con vista previa en vivo que respeta la
   proporción real de la imagen, sin recortarla. Si el juego no tiene carátula, se muestran las iniciales del título en
   su lugar.
 - Listado de la colección con miniatura, título, plataforma, edición, región, manual, conservación (estrellas), precio y
-  fecha de compra, paginado. En móvil se muestra como tarjetas en vez de tabla; tocar cualquier punto de una tarjeta
-  abre la ficha de detalle del juego, que es el único sitio desde el que se edita o se borra.
+  fecha de compra, paginado. En móvil se muestra como tarjetas en vez de tabla; un lápiz de edición directo en cualquiera
+  de las tres vistas (tabla, tarjeta, estantería) lleva a la edición sin pasar antes por la ficha de detalle, que sigue
+  siendo el único sitio desde el que se borra.
 - La colección se busca por **título**/ **EAN** desde el mismo buscador rápido de toda la app (`Ctrl+K`, ver Interfaz):
   ya no hay un buscador de texto aparte en la propia página, solo un botón con su misma pinta que lo abre, precargado
   con la búsqueda activa si la hay. Un icono "Avanzado" en la página sigue desplegando los filtros de **plataforma**
@@ -140,20 +144,29 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
   eliminarlos definitivamente. El aviso de borrado lleva un botón "Deshacer" que restaura el juego sin salir de la
   colección.
 - **Importación masiva** desde un CSV: solo el título es obligatorio, cada fila se procesa de forma independiente (una
-  fila con error no bloquea al resto) y las plataformas/ediciones que el CSV mencione y no existan todavía en el
+  fila con error no bloquea al resto) y las plataformas/ediciones que el CSV mencione y no existan todavía en tu
   catálogo se crean automáticamente. Antes de importar se muestra una vista previa de lo que se va a crear, con una
   plantilla de ejemplo descargable. El CSV se procesa en segundo plano (worker de cola), así que ficheros grandes no
-  bloquean el formulario: en cuanto se sube, la página pasa a sondear el resultado y lo muestra en cuanto termina.
+  bloquean el formulario: en cuanto se sube, la página pasa a sondear el resultado y lo muestra en cuanto termina. Al
+  terminar, un enlace directo a "Identificar carátulas" (ver más abajo) para la plataforma recién importada, ya
+  preseleccionada.
+- **Identificar carátula/EAN en bloque**: herramienta que recorre de golpe los juegos sin carátula de una plataforma
+  elegida y busca un candidato en CEX para cada uno (por EAN si ya lo tiene, si no por título) — pensada para catalogar
+  de una vez una colección grande recién importada. Se procesa en segundo plano y nunca aplica nada solo: los
+  candidatos quedan en una cola de revisión con casilla marcada por defecto, y solo se guardan (carátula descargada,
+  EAN rellenado si faltaba) los que confirmes; sin candidato razonable, el juego se deja tal cual para corrección
+  manual.
 - **Buscar carátula y EAN en CEX** (webuy.com) desde el propio formulario de alta o edición: busca por EAN o título en
   su catálogo, muestra los resultados con carátula/EAN/plataforma para elegir con confianza, y rellena ambos campos al
   elegir uno. En el alta busca por lo que ya se haya tecleado en EAN/título antes de pulsar el botón (el juego todavía
   no está guardado); en la edición, por defecto usa el EAN/título ya guardados. Si la búsqueda automática no encuentra
   nada, se puede repetir a mano con otras palabras.
-- Panel de gestión de ediciones (normal/especial/coleccionista...) asociadas a una o varias plataformas — o a ninguna,
+- Gestión de ediciones (normal/especial/coleccionista...) asociadas a una o varias plataformas — o a ninguna,
   lo que la deja disponible para cualquier plataforma, presente o futura. Una edición **"Normal"** con ese criterio
-  viene creada de fábrica y es la que se preselecciona por defecto al dar de alta un juego (configurable desde Ajustes,
-  junto con la región por defecto). Si la edición que necesitas no existe todavía, se puede crear al vuelo desde el
-  propio formulario de alta/edición de juego sin perder lo ya rellenado. Cada edición tiene además un **formato**
+  viene creada de fábrica en cada cuenta nueva y es la que se preselecciona por defecto al dar de alta un juego
+  (configurable desde Ajustes, junto con la región por defecto). Si la edición que necesitas no existe todavía, se
+  puede crear al vuelo desde el propio formulario de alta/edición de juego sin perder lo ya rellenado. Cada edición
+  tiene además un **formato**
   (cartucho/disco/diskette/cassette/otros para lo físico, más digital y CIAB — disco por defecto) marcado con icono
   en la gestión de ediciones, la ficha del juego y el listado de la colección.
 - **Marcar un juego como "en venta"**: etiqueta independiente del estado de Propiedad (un juego sigue en tu colección y
@@ -196,10 +209,12 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 - El encargo **nunca desaparece ni se borra al resolverse**: se queda listado como histórico, con enlace directo a la
   ficha del juego cuando se creó uno, para poder consultar más adelante qué se envió o recibió y cuándo.
 
-### Catálogo (fabricantes y plataformas)
+### Catálogo (fabricantes, plataformas y ediciones)
 
-- Panel de gestión para dar de alta, editar y borrar tus propios fabricantes y plataformas, en vez de depender de un
-  catálogo precargado fijo.
+- Panel de gestión para dar de alta, editar y borrar tus propios fabricantes, plataformas y ediciones — **privado de
+  cada cuenta**, sin catálogo compartido con el resto de usuarios de la instancia: borrar o renombrar algo tuyo no
+  afecta a nadie más. Toda cuenta nueva arranca con una copia del mismo catálogo base (Nintendo, Sony, Microsoft, Sega,
+  PC...), no en blanco.
 - Cada **fabricante** define un color de marca para su chip que heredan todas sus plataformas; cada **plataforma** puede
   personalizar el suyo y tiene una **etiqueta abreviada** editable (p. ej. "PS5").
 
@@ -224,8 +239,9 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
   solo uso) — se puede desactivar después desde Ajustes una vez dentro, mismo patrón por cuenta que las credenciales de
   IGDB. Las cuentas ya existentes antes de esta función lo llevan desactivado y lo activan igual desde Ajustes si
   quieren. Con "recordar este dispositivo" marcado en el propio desafío, no se repite en el mismo navegador durante 30
-  días. Reenvío de código y verificación limitados aparte (5 intentos/10 min y 3 reenvíos/5 min) para que no se pueda
-  tantear por fuerza bruta.
+  días — cambiar de contraseña o desactivar el 2FA revoca todos los dispositivos recordados, para que una cookie
+  filtrada deje de servir de nada. Reenvío de código y verificación limitados aparte (5 intentos/10 min y 3
+  reenvíos/5 min) para que no se pueda tantear por fuerza bruta.
 - **Gestión de usuarios** (`/panel/users`, solo cuentas con el rol **admin**): listar todas las cuentas de la plataforma
   con su nº de juegos, dar de alta cuentas nuevas (nombre/email/contraseña puesta a mano, rol admin opcional), editarlas
   y borrarlas. Un admin no puede quitarse el rol a sí mismo ni borrar su propia cuenta, y no se puede borrar una cuenta
@@ -245,7 +261,9 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 - Validación de entrada separada en `StoreGameRequest` / `UpdateGameRequest`.
 - Tokens Sanctum con expiración global de 30 días desde su emisión (`SANCTUM_TOKEN_EXPIRATION_MINUTES` en `.env`,
   `config/sanctum.php`): pasado ese tiempo dejan de autenticar aunque no se hayan revocado a mano, así que un token
-  filtrado no queda válido para siempre.
+  filtrado no queda válido para siempre. Emitidos además con abilities concretas (`games:read`, `games:write`,
+  `profile:read`, ver `TokenAbility`) en vez del comodín sin restricción por defecto de Sanctum, para acotar el daño
+  de un token filtrado el día que se emita uno más restringido que el actual.
 - **Login con 2FA**: si la cuenta tiene el 2FA por email activo, `POST /api/login` no emite token — devuelve
   `two_factor_required: true` y un `two_factor_token` de un solo uso (10 minutos), y manda el código por email igual que
   el login web. `POST /api/login/verify-2fa` (con `two_factor_token` + `code`) completa el login y emite el token
@@ -259,10 +277,12 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
 ### Estadísticas
 
 - Panel (`/stats`) con total de juegos, gasto total y conservación media, reparto de juegos por plataforma (barra por
-  plataforma), y reparto por estado de juego y por propiedad (barras apiladas con leyenda).
+  plataforma) y gasto por plataforma, y reparto por estado de juego y por propiedad (barras apiladas con leyenda).
 - Evolución del gasto por mes de compra (gráfico de barras, últimos 12 meses con datos), top de géneros más repetidos en
   la colección, reparto por década de lanzamiento (`release_date`, orden cronológico) y destacados (juego más caro y
   mejor valorado, con enlace a su ficha).
+- **Conservación**: reparto en % (Malo/Regular/Bueno/Muy bueno/Nuevo, más "Sin valorar" si aplica) sobre el total de la
+  colección, con un desglose colapsable por plataforma (mini-resumen de total, gasto y media junto a cada barra).
 - **Ventas por año**: nº de ventas, invertido, obtenido y rendimiento (beneficio y %) de los juegos vendidos, con enlace
   al histórico completo en `/sales`.
 
@@ -315,7 +335,9 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
   `$request->user()->id`) al crearlo, tanto en web como en API.
 - Listados y búsqueda (web y API) filtrados por `user_id`: cada usuario solo ve su propia colección.
 - `GamePolicy` aplicada con `Gate::authorize()` en editar, borrar, restaurar y eliminar definitivamente (web y API),
-  para que nadie pueda tocar un juego ajeno aunque adivine su ID por URL.
+  para que nadie pueda tocar un juego ajeno aunque adivine su ID por URL. Mismo criterio para el catálogo
+  (`PlatformPolicy`/`EditionPolicy`/`ManufacturerPolicy`): fabricantes, plataformas y ediciones son datos de cuenta,
+  no compartidos, así que también están protegidos por dueño.
 - Login (web y API) con protección contra fuerza bruta: bloqueo de 60 segundos tras 5 intentos fallidos, con clave
   email+IP (`ThrottlesLogins`), así que un atacante no puede bloquear a otros usuarios que compartan su misma IP.
   Además, un segundo límite más laxo (10 intentos / 5 minutos) solo por email frena a quien rota de IP en cada intento
@@ -342,7 +364,8 @@ Historial de cambios en [`CHANGELOG.md`](CHANGELOG.md).
   Panel de control y "Salir", en vez de tener el botón de salir suelto al lado.
 - Orden del listado por título, precio, conservación o fecha de compra (con un valor por defecto configurable desde
   Ajustes); atajo de teclado `/` abre el buscador rápido, igual que `Ctrl+K`.
-- Acciones en bloque: seleccionar varios juegos a la vez para enviarlos a la papelera o cambiarles el estado de golpe.
+- Acciones en bloque: seleccionar varios juegos a la vez para enviarlos a la papelera, cambiarles el estado de juego, o
+  marcarlos como vendidos con un único precio y fecha de venta compartidos para todo el lote.
 - Botón flotante de "Añadir juego" en móvil, para no tener que volver arriba al hacer scroll por una colección larga.
 - Cuatro formas de ver la colección: la habitual, una tabla compacta, solo texto (sin carátulas ni espacio reservado
   para ellas, para hojear más filas por pantalla — solo en escritorio, en móvil siempre se ve la tarjeta) y una
@@ -567,6 +590,8 @@ Cobertura actual:
   correcto y lo rechaza con uno incorrecto/caducado o un `two_factor_token` desconocido, un `user_id` colado en el body
   no tiene efecto, `/api/login/resend-2fa` invalida el código anterior, y ambas rutas tienen su propio límite de
   intentos.
+- `Tests\Feature\Api\TokenAbilityTest`: cada ruta de la API rechaza un token sin la ability que le corresponde
+  (`games:read`/`games:write`/`profile:read`), y `/logout` acepta cualquier token válido.
 - `Tests\Feature\SessionCookieSecurityTest`: la cookie de sesión no lleva `Secure` por HTTP plano, pero sí en cuanto la
   petición llega con `X-Forwarded-Proto: https` (simula el proxy inverso de producción).
 - `Tests\Feature\Api\GameControllerTest`: CRUD completo de la API, paginación (tamaño por defecto, `per_page` a medida,
@@ -587,8 +612,11 @@ Cobertura actual:
   scoping por usuario, y de regresión, que la vista imprimible es un documento autocontenido sin el layout de la app.
 - `Tests\Feature\Web\GameTrashControllerTest`: papelera (listar/restaurar/eliminar definitivamente, buscador/filtro
   propio, con scoping por usuario) y que excluye los juegos vendidos.
-- `Tests\Feature\Web\GameBulkActionControllerTest`: acciones en bloque (borrar, cambiar estado de juego) acotadas al
-  usuario autenticado, con validación de los IDs seleccionados.
+- `Tests\Feature\Web\GameBulkActionControllerTest`: acciones en bloque (borrar, cambiar estado de juego, marcar como
+  vendido con precio/fecha compartidos) acotadas al usuario autenticado, con validación de los IDs seleccionados.
+- `Tests\Feature\Web\GameAutoIdentifyControllerTest`: lanzamiento del job de identificación acotado a plataformas con
+  juegos sin carátula, cola de revisión con candidatos por EAN/título, confirmación en bloque que aplica solo lo
+  marcado, y aislamiento entre usuarios en cada paso.
 - `Tests\Feature\Web\GameCoverLookupControllerTest`: búsqueda de carátula/EAN en CEX tanto para un juego ya guardado
   (por su EAN o su título, o por una búsqueda manual) como para el alta (sin resultados ni llamada a CEX sin `q`,
   requiere sesión iniciada).
@@ -597,12 +625,18 @@ Cobertura actual:
   validación del fichero subido, y la vista previa (columnas reconocidas/no reconocidas, filas de ejemplo, que no
   importa nada).
 - `Tests\Feature\Web\ManufacturerControllerTest` / `PlatformControllerTest` / `EditionControllerTest`: CRUD de cada
-  panel de catálogo, validaciones propias (colores en formato hex, nombre único de fabricante, colores obligatorios solo
-  si se sobrescriben en una plataforma), que borrar un registro deja en `null` la relación en juegos/plataformas en vez
-  de arrastrar el borrado, que la edición "Normal" existe por defecto sin ninguna plataforma asociada (disponible para
-  cualquiera), y el formato de edición (disco por defecto si no se indica, alta/edición con cualquiera de los subtipos
-  físicos, formato inválido — incluido el antiguo "físico" genérico, ya no válido — rechazado). `Tests\Unit\Models\
-  EditionTest` cubre la etiqueta/icono de cada formato y el fallback de uno desconocido.
+  panel de catálogo acotado a la cuenta autenticada (`PlatformPolicy`/`EditionPolicy`/`ManufacturerPolicy` con 403 en
+  vez de 404 al tocar un registro ajeno, listados/desplegables que no enseñan catálogo de otra cuenta), validaciones
+  propias (colores en formato hex, nombre único de fabricante por cuenta, colores obligatorios solo si se sobrescriben
+  en una plataforma), que borrar un registro deja en `null` la relación en juegos/plataformas en vez de arrastrar el
+  borrado, que la edición "Normal" de cada cuenta existe sin ninguna plataforma asociada (disponible para cualquiera),
+  y el formato de edición (disco por defecto si no se indica, alta/edición con cualquiera de los subtipos físicos,
+  formato inválido — incluido el antiguo "físico" genérico, ya no válido — rechazado). `Tests\Unit\Models\EditionTest`
+  cubre la etiqueta/icono de cada formato y el fallback de uno desconocido.
+- `Tests\Feature\CatalogPerUserBackfillTest`: la migración que reparte el catálogo compartido en una copia privada por
+  cuenta reasigna cada juego y el ajuste de edición por defecto de cada usuario sin dejar ninguna FK rota.
+  `Tests\Feature\Services\Catalog\SeedCatalogCopierTest`: la copia del catálogo base a una cuenta nueva es idempotente
+  (repetirla no duplica filas) e independiente entre cuentas.
 - `Tests\Feature\Web\SearchControllerTest`: búsqueda rápida por título/EAN acotada al usuario autenticado, filtros de
   plataforma/estado de juego/propiedad, sugerencias externas de CEX (no antes de 3 caracteres) tanto sin coincidencia
   local como junto a coincidencias ya existentes (recortadas a un par, sin repetir títulos ya poseídos), el aviso de
@@ -622,7 +656,8 @@ Cobertura actual:
   que un admin no puede quitarse el rol ni borrarse a sí mismo, que no se puede borrar una cuenta con juegos, que el
   registro público está abierto por defecto, y que un admin puede cerrarlo/reabrirlo.
 - `Tests\Feature\Web\StatsControllerTest`: los totales y repartos (por plataforma, estado de juego, propiedad, gasto por
-  mes, top de géneros, destacados y ventas por año) solo consideran los juegos del usuario autenticado.
+  mes y por plataforma, top de géneros, destacados, conservación total y por plataforma, y ventas por año) solo
+  consideran los juegos del usuario autenticado.
 - `Tests\Feature\Web\SalesControllerTest`: histórico de ventas agrupado por año con sus totales/rendimiento, scoping por
   usuario, deshacer una venta (el juego vuelve a la colección sin datos de venta) y `GamePolicy` bloqueando la
   restauración de una venta ajena, marcar un juego como vendido (validación, envío a la papelera, `GamePolicy`).
