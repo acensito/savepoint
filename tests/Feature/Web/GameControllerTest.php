@@ -1242,6 +1242,100 @@ class GameControllerTest extends TestCase
         $this->assertDatabaseHas('games', ['title' => 'Mi copia', 'user_id' => $user->id]);
     }
 
+    /**
+     * Issue #25: título parecido (subcadena, sin distinguir mayúsculas, en
+     * cualquiera de los dos sentidos), sin acotar por plataforma.
+     */
+    public function test_creating_a_game_with_a_similar_title_warns_instead_of_saving(): void
+    {
+        $user = User::factory()->create();
+        Game::factory()->for($user)->create(['title' => 'Hollow Knight']);
+
+        $response = $this->actingAs($user)->post('/games', [
+            'title' => 'Hollow Knight: Voidheart Edition',
+            'play_status' => 'pending',
+        ]);
+
+        $response->assertSessionHasErrors('title_similar');
+        $this->assertDatabaseMissing('games', ['title' => 'Hollow Knight: Voidheart Edition']);
+    }
+
+    public function test_similar_title_warning_matches_either_direction_of_containment(): void
+    {
+        $user = User::factory()->create();
+        Game::factory()->for($user)->create(['title' => 'Hollow Knight: Voidheart Edition']);
+
+        $response = $this->actingAs($user)->post('/games', [
+            'title' => 'hollow knight',
+            'play_status' => 'pending',
+        ]);
+
+        $response->assertSessionHasErrors('title_similar');
+    }
+
+    public function test_the_similar_title_warning_offers_a_one_click_save_anyway_button(): void
+    {
+        $user = User::factory()->create();
+        Game::factory()->for($user)->create(['title' => 'Hollow Knight']);
+
+        $this->actingAs($user)->from(route('web.games.create'))->post('/games', [
+            'title' => 'Hollow Knight: Voidheart Edition',
+            'play_status' => 'pending',
+        ]);
+
+        $response = $this->get(route('web.games.create'));
+
+        $response->assertSee('name="confirm_similar_title" value="1"', false);
+        $response->assertSee('Guardar igualmente');
+    }
+
+    public function test_creating_a_game_with_a_similar_title_saves_when_confirmed(): void
+    {
+        $user = User::factory()->create();
+        Game::factory()->for($user)->create(['title' => 'Hollow Knight']);
+
+        $response = $this->actingAs($user)->post('/games', [
+            'title' => 'Hollow Knight: Voidheart Edition',
+            'play_status' => 'pending',
+            'confirm_similar_title' => '1',
+        ]);
+
+        $response->assertRedirect(route('web.games.index'));
+        $this->assertDatabaseHas('games', ['title' => 'Hollow Knight: Voidheart Edition']);
+    }
+
+    public function test_similar_title_warning_is_not_scoped_to_a_platform(): void
+    {
+        $user = User::factory()->create();
+        $switch = Platform::factory()->for($user)->create();
+        $ps5 = Platform::factory()->for($user)->create();
+        Game::factory()->for($user)->create(['title' => 'Celeste', 'platform_id' => $switch->id]);
+
+        $response = $this->actingAs($user)->post('/games', [
+            'title' => 'Celeste',
+            'platform_id' => $ps5->id,
+            'play_status' => 'pending',
+        ]);
+
+        $response->assertSessionHasErrors('title_similar');
+    }
+
+    public function test_similar_title_check_only_considers_the_authenticated_users_games(): void
+    {
+        $otherUser = User::factory()->create();
+        Game::factory()->for($otherUser)->create(['title' => 'Hollow Knight']);
+
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post('/games', [
+            'title' => 'Hollow Knight: Voidheart Edition',
+            'play_status' => 'pending',
+        ]);
+
+        $response->assertRedirect(route('web.games.index'));
+        $this->assertDatabaseHas('games', ['title' => 'Hollow Knight: Voidheart Edition', 'user_id' => $user->id]);
+    }
+
     public function test_user_can_view_their_own_games_detail_page(): void
     {
         $user = User::factory()->create();
@@ -1622,6 +1716,35 @@ class GameControllerTest extends TestCase
 
         $response->assertSessionHasErrors('ean');
         $this->assertSame(null, $game->fresh()->ean);
+    }
+
+    public function test_updating_a_game_to_a_similar_title_warns_instead_of_saving(): void
+    {
+        $user = User::factory()->create();
+        Game::factory()->for($user)->create(['title' => 'Hollow Knight']);
+        $game = Game::factory()->for($user)->create(['title' => 'Otro juego', 'play_status' => 'pending']);
+
+        $response = $this->actingAs($user)->put("/games/{$game->id}", [
+            'title' => 'Hollow Knight: Voidheart Edition',
+            'play_status' => 'pending',
+        ]);
+
+        $response->assertSessionHasErrors('title_similar');
+        $this->assertSame('Otro juego', $game->fresh()->title);
+    }
+
+    public function test_updating_a_game_does_not_flag_its_own_unchanged_title_as_similar(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::factory()->for($user)->create(['title' => 'Hollow Knight: Voidheart Edition', 'play_status' => 'pending']);
+
+        $response = $this->actingAs($user)->put("/games/{$game->id}", [
+            'title' => 'Hollow Knight: Voidheart Edition',
+            'play_status' => 'finished',
+        ]);
+
+        $response->assertRedirect(route('web.games.index'));
+        $this->assertSame('finished', $game->fresh()->play_status);
     }
 
     public function test_updating_a_game_does_not_flag_its_own_unchanged_ean_as_a_duplicate(): void

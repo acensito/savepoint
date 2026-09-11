@@ -222,10 +222,8 @@ class GameController extends Controller
     {
         $validated = $this->validated($request);
 
-        if ($duplicate = $this->duplicateEan($request, $validated, null)) {
-            return back()->withInput()->withErrors([
-                'ean' => "Ya tienes «{$duplicate->title}» registrado con este EAN.",
-            ]);
+        if ($errors = $this->duplicateWarnings($request, $validated, null)) {
+            return back()->withInput()->withErrors($errors);
         }
 
         if ($request->hasFile('cover')) {
@@ -378,10 +376,8 @@ class GameController extends Controller
 
         $validated = $this->validated($request);
 
-        if ($duplicate = $this->duplicateEan($request, $validated, $game)) {
-            return back()->withInput()->withErrors([
-                'ean' => "Ya tienes «{$duplicate->title}» registrado con este EAN.",
-            ]);
+        if ($errors = $this->duplicateWarnings($request, $validated, $game)) {
+            return back()->withInput()->withErrors($errors);
         }
 
         if ($request->hasFile('cover')) {
@@ -504,6 +500,30 @@ class GameController extends Controller
     }
 
     /**
+     * Agrupa los dos avisos de posible duplicado (EAN exacto y título
+     * parecido, issue #25) en una sola respuesta: si el usuario corrige o
+     * confirma uno pero no ha visto todavía el otro, mejor enseñar ambos de
+     * golpe que ir descubriéndolos uno a uno en sucesivos reenvíos.
+     *
+     * @param  array<string, mixed>  $validated
+     * @return array<string, string>
+     */
+    private function duplicateWarnings(Request $request, array $validated, ?Game $ignore): array
+    {
+        $errors = [];
+
+        if ($duplicate = $this->duplicateEan($request, $validated, $ignore)) {
+            $errors['ean'] = "Ya tienes «{$duplicate->title}» registrado con este EAN.";
+        }
+
+        if ($similar = $this->similarTitle($request, $validated, $ignore)) {
+            $errors['title_similar'] = "Ya tienes un juego con un título parecido: «{$similar->title}».";
+        }
+
+        return $errors;
+    }
+
+    /**
      * Busca otro juego del usuario con el mismo EAN (para avisar antes de
      * duplicar sin querer). Muchos juegos antiguos no tienen EAN, así que
      * nunca se compara cuando viene vacío: dos juegos sin EAN no son
@@ -523,6 +543,39 @@ class GameController extends Controller
         return Game::where('user_id', auth()->id())
             ->where('ean', $validated['ean'])
             ->when($ignore, fn ($q) => $q->where('id', '!=', $ignore->id))
+            ->first();
+    }
+
+    /**
+     * Busca otro juego del usuario con un título parecido (issue #25): el
+     * EAN exacto de duplicateEan() no avisa de nada si el EAN no coincide o
+     * viene en blanco, aunque el título sea prácticamente el mismo — p. ej.
+     * dar de alta "Hollow Knight: Voidheart Edition" no avisaba si ya se
+     * tenía "Hollow Knight". Criterio de similitud: subcadena sin distinguir
+     * mayúsculas en cualquiera de los dos sentidos (uno de los títulos
+     * contiene al otro), sin acotar por plataforma — dos ediciones del mismo
+     * juego en plataformas distintas son legítimamente juegos distintos,
+     * pero se prefiere avisar igual y dejar decidir al usuario. El aviso se
+     * puede saltar mandando confirm_similar_title=1 (mismo patrón "Guardar
+     * igualmente" que duplicateEan(), ver games/_form.blade.php), sin
+     * bloquear el alta/edición en ningún caso.
+     *
+     * @param  array<string, mixed>  $validated
+     */
+    private function similarTitle(Request $request, array $validated, ?Game $ignore): ?Game
+    {
+        $title = trim((string) ($validated['title'] ?? ''));
+
+        if ($title === '' || $request->boolean('confirm_similar_title')) {
+            return null;
+        }
+
+        return Game::where('user_id', auth()->id())
+            ->when($ignore, fn ($q) => $q->where('id', '!=', $ignore->id))
+            ->where(function ($query) use ($title) {
+                $query->whereRaw("LOWER(title) LIKE LOWER(CONCAT('%', ?, '%'))", [$title])
+                    ->orWhereRaw("LOWER(?) LIKE LOWER(CONCAT('%', title, '%'))", [$title]);
+            })
             ->first();
     }
 

@@ -165,6 +165,17 @@
         <label for="title" class="{{ $label }}">Título</label>
         <input type="text" name="title" id="title" value="{{ old('title', $game?->title ?? $prefill['title'] ?? null) }}" required autofocus autocomplete="off" autocorrect="off" spellcheck="false" class="{{ $input }}">
         @error('title') <span class="{{ $error }}">{{ $message }}</span> @enderror
+        {{-- Título parecido a uno ya existente (issue #25): mismo patrón "Guardar
+             igualmente" que el aviso de EAN duplicado de arriba, no bloquea el
+             alta/edición en ningún caso. --}}
+        @error('title_similar')
+            <div class="flex items-center gap-3 flex-wrap mt-1.5">
+                <span class="{{ $error }} !mt-0">{{ $message }}</span>
+                <button type="submit" name="confirm_similar_title" value="1" class="text-sm font-medium text-indigo-400 hover:text-indigo-300 underline underline-offset-2">
+                    Guardar igualmente (es un juego distinto)
+                </button>
+            </div>
+        @enderror
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
