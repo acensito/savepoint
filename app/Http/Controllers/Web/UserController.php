@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\AppSetting;
 use App\Models\User;
+use App\Services\Catalog\SeedCatalogCopier;
 use App\Services\Users\AbandonedAccountPruner;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -86,7 +87,7 @@ class UserController extends Controller
         return view('panel.users.create');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, SeedCatalogCopier $seedCatalogCopier): RedirectResponse
     {
         Gate::authorize('create', User::class);
 
@@ -106,6 +107,10 @@ class UserController extends Controller
         // forceFill(), no fillable: 'is_admin' es un privilegio, no un dato
         // de perfil normal (ver User::class, junto a la lista Fillable).
         $user->forceFill(['is_admin' => $request->boolean('is_admin')])->save();
+
+        // Catálogo por cuenta (issue #175): copia del catálogo base para que
+        // esta cuenta no arranque en blanco (ver SeedCatalogCopier).
+        $seedCatalogCopier->copyTo($user);
 
         return redirect()->route('web.panel.users.index')->with('success', 'Usuario creado correctamente.');
     }

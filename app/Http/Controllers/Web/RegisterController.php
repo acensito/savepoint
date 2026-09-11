@@ -7,6 +7,7 @@ use App\Http\Controllers\Concerns\SendsTwoFactorCode;
 use App\Http\Controllers\Controller;
 use App\Models\AppSetting;
 use App\Models\User;
+use App\Services\Catalog\SeedCatalogCopier;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,6 +17,8 @@ use Illuminate\View\View;
 class RegisterController extends Controller
 {
     use AppliesThemePreference, SendsTwoFactorCode;
+
+    public function __construct(private readonly SeedCatalogCopier $seedCatalogCopier) {}
 
     /**
      * Muestra el formulario de registro de nuevo usuario, o manda a /login
@@ -64,6 +67,13 @@ class RegisterController extends Controller
         ]);
 
         $this->applyPendingTheme($user, $validated['pending_theme'] ?? null);
+
+        // Catálogo por cuenta (issue #175): copia del catálogo base para no
+        // arrancar en blanco. Va antes del envío del 2FA a propósito: si
+        // este envío falla y la cuenta se borra más abajo, el
+        // cascadeOnDelete() de la migración de #175 limpia solo esta copia,
+        // sin código adicional aquí.
+        $this->seedCatalogCopier->copyTo($user);
 
         // Si el email no llega a salir (SMTP caído, credenciales mal puestas...),
         // la cuenta recién creada quedaría huérfana: activa el 2FA pero sin
