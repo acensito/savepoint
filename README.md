@@ -686,6 +686,15 @@ plazo. Agrupadas por la sección de la app a la que afectarían.
 - **Importar biblioteca digital**: conectar con Steam/PSN/Xbox (Steam tiene API pública sin auth compleja) para detectar
   juegos digitales que ya tienes y no están en Savepoint.
 
+### Otros coleccionables (fuera de alcance a corto plazo)
+
+Savepoint es hoy una app de videojuegos. Estas tres ideas ampliarían el alcance a otro tipo de objetos relacionados —
+mencionadas aquí a propósito, sin planificar ni acotar todavía, para no perderlas de vista:
+
+- **Consolas, mandos y hardware**: catalogar las propias máquinas y periféricos, no solo los juegos que corren en ellas.
+- **Merchandising y figuras**: figuras, peluches y demás merchandising de videojuegos, como colección aparte.
+- **Libros, guías y material impreso**: guías oficiales, artbooks y libros relacionados.
+
 ### Lista de deseos / compras
 
 - **Aviso de bajada de precio**: comparar periódicamente `wishlist_estimated_price` contra CEX (que ya se usa para
