@@ -161,7 +161,7 @@ class WishlistControllerTest extends TestCase
     public function test_store_creates_a_wishlist_game_without_optional_fields(): void
     {
         $user = User::factory()->create();
-        $platform = Platform::factory()->create();
+        $platform = Platform::factory()->for($user)->create();
 
         $response = $this->actingAs($user)->post(route('web.wishlist.store'), [
             'title' => 'Silksong',

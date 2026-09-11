@@ -40,7 +40,7 @@ class StatsControllerTest extends TestCase
     public function test_stats_breaks_down_games_by_platform(): void
     {
         $user = User::factory()->create();
-        $platform = Platform::factory()->create(['name' => 'Switch']);
+        $platform = Platform::factory()->for($user)->create(['name' => 'Switch']);
 
         Game::factory()->for($user)->count(3)->create(['platform_id' => $platform->id]);
 
@@ -56,8 +56,8 @@ class StatsControllerTest extends TestCase
     public function test_stats_breaks_down_spending_by_platform(): void
     {
         $user = User::factory()->create();
-        $switch = Platform::factory()->create(['name' => 'Switch']);
-        $ps4 = Platform::factory()->create(['name' => 'PS4']);
+        $switch = Platform::factory()->for($user)->create(['name' => 'Switch']);
+        $ps4 = Platform::factory()->for($user)->create(['name' => 'PS4']);
 
         Game::factory()->for($user)->create(['platform_id' => $switch->id, 'price_paid' => 10]);
         Game::factory()->for($user)->create(['platform_id' => $switch->id, 'price_paid' => 15]);
@@ -121,8 +121,8 @@ class StatsControllerTest extends TestCase
     public function test_stats_breaks_down_rating_and_summary_per_platform(): void
     {
         $user = User::factory()->create();
-        $switch = Platform::factory()->create(['name' => 'Switch']);
-        $ps4 = Platform::factory()->create(['name' => 'PS4']);
+        $switch = Platform::factory()->for($user)->create(['name' => 'Switch']);
+        $ps4 = Platform::factory()->for($user)->create(['name' => 'PS4']);
 
         Game::factory()->for($user)->create(['platform_id' => $switch->id, 'rating' => 5, 'price_paid' => 10]);
         Game::factory()->for($user)->create(['platform_id' => $switch->id, 'rating' => 3, 'price_paid' => 20]);

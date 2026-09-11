@@ -9,6 +9,7 @@ use App\Models\Game;
 use App\Models\Platform;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class WishlistController extends Controller
@@ -98,8 +99,8 @@ class WishlistController extends Controller
      */
     public function create(): View
     {
-        $platforms = Platform::orderBy('name')->get();
-        $editions = Edition::with('platforms')->orderBy('name')->get();
+        $platforms = Platform::where('user_id', auth()->id())->orderBy('name')->get();
+        $editions = Edition::where('user_id', auth()->id())->with('platforms')->orderBy('name')->get();
 
         return view('wishlist.create', compact('platforms', 'editions'));
     }
@@ -114,8 +115,10 @@ class WishlistController extends Controller
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'platform_id' => 'nullable|exists:platforms,id',
-            'edition_id' => 'nullable|exists:editions,id',
+            // Rule::exists(...)->where(...), no 'exists:...,id' a secas:
+            // catálogo por cuenta (issue #175).
+            'platform_id' => ['nullable', Rule::exists('platforms', 'id')->where('user_id', auth()->id())],
+            'edition_id' => ['nullable', Rule::exists('editions', 'id')->where('user_id', auth()->id())],
             'wishlist_priority' => 'nullable|integer|min:1|max:3',
             // max:99999999.99: tope real de la columna decimal(10,2) — ver
             // GameController::validated() para el mismo motivo.

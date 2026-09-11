@@ -137,7 +137,7 @@ class GameController extends Controller
             ->paginate($perPage)
             ->withQueryString();
 
-        $platforms = Platform::orderBy('name')->get();
+        $platforms = Platform::where('user_id', auth()->id())->orderBy('name')->get();
 
         // El buscador simple filtra en vivo (ver initGamesLiveSearch en app.js):
         // en vez de la página completa, solo hace falta el fragmento con el
@@ -168,8 +168,8 @@ class GameController extends Controller
      */
     public function create(Request $request): View
     {
-        $platforms = Platform::orderBy('name')->get();
-        $editions = Edition::with('platforms')->orderBy('name')->get();
+        $platforms = Platform::where('user_id', auth()->id())->orderBy('name')->get();
+        $editions = Edition::where('user_id', auth()->id())->with('platforms')->orderBy('name')->get();
         $availableGenres = $this->availableGenres();
 
         $prefill = [
@@ -352,8 +352,8 @@ class GameController extends Controller
     {
         Gate::authorize('update', $game);
 
-        $platforms = Platform::orderBy('name')->get();
-        $editions = Edition::with('platforms')->orderBy('name')->get();
+        $platforms = Platform::where('user_id', auth()->id())->orderBy('name')->get();
+        $editions = Edition::where('user_id', auth()->id())->with('platforms')->orderBy('name')->get();
         $availableGenres = $this->availableGenres();
 
         // Llega en ?convert_to_owned=1 desde la acción "Pasar a la colección"
@@ -448,8 +448,11 @@ class GameController extends Controller
             'title' => 'required|string|max:255',
             'ean' => 'nullable|string|max:50',
             'developer' => 'nullable|string|max:255',
-            'platform_id' => 'nullable|exists:platforms,id',
-            'edition_id' => 'nullable|exists:editions,id',
+            // Rule::exists(...)->where(...), no 'exists:platforms,id' a
+            // secas: catálogo por cuenta (issue #175) — sin esto, un juego
+            // podría enlazarse a la plataforma/edición de otro usuario.
+            'platform_id' => ['nullable', Rule::exists('platforms', 'id')->where('user_id', auth()->id())],
+            'edition_id' => ['nullable', Rule::exists('editions', 'id')->where('user_id', auth()->id())],
             'release_date' => 'nullable|date',
             'genres' => 'nullable|string|max:500',
             // 'sold' no es un valor asignable aquí: requiere precio/fecha de

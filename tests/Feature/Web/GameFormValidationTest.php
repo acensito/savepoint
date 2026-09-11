@@ -725,7 +725,7 @@ class GameFormValidationTest extends TestCase
     public function test_platform_id_accepts_an_existing_id(): void
     {
         $user = User::factory()->create();
-        $platform = Platform::factory()->create();
+        $platform = Platform::factory()->for($user)->create();
 
         $response = $this->actingAs($user)->post('/games', $this->validPayload([
             'platform_id' => $platform->id,
@@ -750,7 +750,7 @@ class GameFormValidationTest extends TestCase
     public function test_edition_id_accepts_an_existing_id(): void
     {
         $user = User::factory()->create();
-        $edition = Edition::factory()->create();
+        $edition = Edition::factory()->for($user)->create();
 
         $response = $this->actingAs($user)->post('/games', $this->validPayload([
             'edition_id' => $edition->id,

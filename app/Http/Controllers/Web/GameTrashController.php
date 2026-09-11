@@ -52,7 +52,7 @@ class GameTrashController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        $platforms = Platform::orderBy('name')->get();
+        $platforms = Platform::where('user_id', auth()->id())->orderBy('name')->get();
 
         return view('games.trash', compact('games', 'query', 'platformId', 'platforms'));
     }

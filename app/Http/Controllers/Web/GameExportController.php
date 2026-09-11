@@ -39,7 +39,10 @@ class GameExportController extends Controller
         $query = trim((string) $request->input('q', ''));
         $platformId = (string) $request->input('platform_id', '');
         $playStatus = (string) $request->input('play_status', '');
-        $platform = ctype_digit($platformId) ? Platform::find($platformId) : null;
+        // where('user_id', ...), no Platform::find() a secas: catálogo por
+        // cuenta (issue #175) — sin esto, un ?platform_id= manipulado dejaba
+        // ver el nombre de una plataforma de otra cuenta en este título.
+        $platform = ctype_digit($platformId) ? Platform::where('user_id', auth()->id())->find($platformId) : null;
 
         $totals = [
             'count' => $games->count(),

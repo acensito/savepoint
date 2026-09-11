@@ -119,7 +119,7 @@ class StatsController extends Controller
     private function hydrateByPlatform(array $rows): array
     {
         $platformIds = collect($rows)->pluck('platform_id')->filter()->values();
-        $platforms = Platform::whereIn('id', $platformIds)->get()->keyBy('id');
+        $platforms = Platform::where('user_id', auth()->id())->whereIn('id', $platformIds)->get()->keyBy('id');
 
         return array_map(fn (array $row) => [
             'platform' => $row['platform_id'] ? $platforms->get($row['platform_id']) : null,
@@ -139,7 +139,7 @@ class StatsController extends Controller
     private function hydrateByPlatformRating(array $rows): array
     {
         $platformIds = collect($rows)->pluck('platform_id')->filter()->values();
-        $platforms = Platform::whereIn('id', $platformIds)->get()->keyBy('id');
+        $platforms = Platform::where('user_id', auth()->id())->whereIn('id', $platformIds)->get()->keyBy('id');
 
         return array_map(fn (array $row) => [
             'platform' => $row['platform_id'] ? $platforms->get($row['platform_id']) : null,
