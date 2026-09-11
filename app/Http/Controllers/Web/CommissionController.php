@@ -9,6 +9,7 @@ use App\Models\Platform;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class CommissionController extends Controller
@@ -34,7 +35,7 @@ class CommissionController extends Controller
 
     public function create(): View
     {
-        $platforms = Platform::orderBy('name')->get();
+        $platforms = Platform::where('user_id', auth()->id())->orderBy('name')->get();
 
         return view('commissions.create', compact('platforms'));
     }
@@ -53,7 +54,7 @@ class CommissionController extends Controller
     {
         Gate::authorize('update', $commission);
 
-        $platforms = Platform::orderBy('name')->get();
+        $platforms = Platform::where('user_id', auth()->id())->orderBy('name')->get();
 
         return view('commissions.edit', compact('commission', 'platforms'));
     }
@@ -124,7 +125,9 @@ class CommissionController extends Controller
     {
         return $request->validate([
             'title' => 'required|string|max:255',
-            'platform_id' => 'nullable|exists:platforms,id',
+            // Rule::exists(...)->where(...), no 'exists:platforms,id' a
+            // secas: catálogo por cuenta (issue #175).
+            'platform_id' => ['nullable', Rule::exists('platforms', 'id')->where('user_id', auth()->id())],
             'counterparty_name' => 'required|string|max:255',
             'direction' => 'required|string|in:'.implode(',', Commission::DIRECTIONS),
             // max:99999999.99: tope real de la columna decimal(10,2) — ver

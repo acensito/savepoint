@@ -3,6 +3,9 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\AppSetting;
+use App\Models\Edition;
+use App\Models\Manufacturer;
+use App\Models\Platform;
 use App\Models\User;
 use App\Notifications\TwoFactorCodeNotification;
 use Illuminate\Auth\Events\Registered;
@@ -212,6 +215,29 @@ class RegisterTest extends TestCase
     }
 
     /**
+     * Issue #175: cuenta nueva con una copia del catálogo base, no en
+     * blanco — así se puede dar de alta el primer juego sin tener que crear
+     * antes la plataforma a mano.
+     */
+    public function test_registering_copies_the_seed_catalog_to_the_new_account(): void
+    {
+        Notification::fake();
+
+        $this->post(route('web.register.attempt'), [
+            'name' => 'Player One',
+            'email' => 'player1@example.com',
+            'password' => 'Secret123!',
+            'password_confirmation' => 'Secret123!',
+        ]);
+
+        $user = User::where('email', 'player1@example.com')->firstOrFail();
+
+        $this->assertTrue(Platform::where('user_id', $user->id)->where('slug', 'nintendo-switch')->exists());
+        $this->assertTrue(Manufacturer::where('user_id', $user->id)->where('slug', 'nintendo')->exists());
+        $this->assertTrue(Edition::where('user_id', $user->id)->where('name', 'Normal')->exists());
+    }
+
+    /**
      * Requirement: a failed 2FA email (SMTP down, bad credentials...) rolls
      * back the registration instead of leaving an orphaned account that can
      * never receive a code (regresión de un 500 real en producción).
@@ -233,6 +259,13 @@ class RegisterTest extends TestCase
         $response->assertSessionHas('error');
         $this->assertGuest();
         $this->assertDatabaseMissing('users', ['email' => 'playerfails@example.com']);
+
+        // El catálogo copiado antes del intento de envío (ver
+        // RegisterController::register()) se limpia solo vía
+        // cascadeOnDelete() al borrar la cuenta huérfana — sin esto se
+        // quedarían plataformas/fabricantes de una cuenta que ya no existe.
+        $this->assertSame(0, Platform::count());
+        $this->assertSame(0, Manufacturer::count());
     }
 
     /**

@@ -86,8 +86,8 @@ class GameControllerTest extends TestCase
     public function test_create_form_disambiguates_editions_with_the_same_name_by_format(): void
     {
         $user = User::factory()->create();
-        Edition::factory()->create(['name' => 'Normal', 'format' => Edition::FORMAT_PHYSICAL_DISC]);
-        Edition::factory()->create(['name' => 'Normal', 'format' => Edition::FORMAT_PHYSICAL_CARTRIDGE]);
+        Edition::factory()->for($user)->create(['name' => 'Normal', 'format' => Edition::FORMAT_PHYSICAL_DISC]);
+        Edition::factory()->for($user)->create(['name' => 'Normal', 'format' => Edition::FORMAT_PHYSICAL_CARTRIDGE]);
 
         $response = $this->actingAs($user)->get(route('web.games.create'));
 
@@ -448,8 +448,9 @@ class GameControllerTest extends TestCase
 
     public function test_creating_a_game_preselects_the_users_default_edition(): void
     {
-        $edition = Edition::factory()->create(['name' => 'Coleccionista']);
-        $user = User::factory()->create(['default_edition_id' => $edition->id]);
+        $user = User::factory()->create();
+        $edition = Edition::factory()->for($user)->create(['name' => 'Coleccionista']);
+        $user->update(['default_edition_id' => $edition->id]);
 
         $response = $this->actingAs($user)->get(route('web.games.create'));
 
@@ -464,7 +465,7 @@ class GameControllerTest extends TestCase
         // usuarios ya existentes en la migración, que no aplica a un usuario
         // creado aquí mismo): sin ajuste configurado, no se preselecciona nada.
         $user = User::factory()->create();
-        $normal = Edition::where('name', 'Normal')->firstOrFail();
+        $normal = Edition::factory()->for($user)->create(['name' => 'Normal']);
 
         $response = $this->actingAs($user)->get(route('web.games.create'));
 
@@ -487,7 +488,7 @@ class GameControllerTest extends TestCase
     public function test_editing_a_game_keeps_its_own_edition_instead_of_normal(): void
     {
         $user = User::factory()->create();
-        $edition = Edition::factory()->create(['name' => 'Coleccionista']);
+        $edition = Edition::factory()->for($user)->create(['name' => 'Coleccionista']);
         $game = Game::factory()->for($user)->create(['edition_id' => $edition->id]);
 
         $response = $this->actingAs($user)->get(route('web.games.edit', $game->id));
@@ -501,11 +502,11 @@ class GameControllerTest extends TestCase
     {
         $user = User::factory()->create();
         $game = Game::factory()->for($user)->create(['edition_id' => null]);
+        $normal = Edition::factory()->for($user)->create(['name' => 'Normal']);
 
         $response = $this->actingAs($user)->get(route('web.games.edit', $game->id));
 
         $response->assertOk();
-        $normal = Edition::where('name', 'Normal')->firstOrFail();
         $content = preg_replace('/\s+/', ' ', $response->getContent());
         $this->assertStringNotContainsString('value="'.$normal->id.'" data-platforms="" selected', $content);
     }
@@ -708,7 +709,7 @@ class GameControllerTest extends TestCase
         Storage::fake('public');
 
         $user = User::factory()->create();
-        $platform = Platform::factory()->create();
+        $platform = Platform::factory()->for($user)->create();
         $cover = UploadedFile::fake()->image('cover.jpg');
 
         $response = $this->actingAs($user)->post('/games', [
@@ -881,7 +882,7 @@ class GameControllerTest extends TestCase
             'igdb_client_id' => 'user-client-id',
             'igdb_client_secret' => 'user-client-secret',
         ]);
-        $platform = Platform::factory()->create(['name' => 'Nintendo Switch']);
+        $platform = Platform::factory()->for($user)->create(['name' => 'Nintendo Switch']);
 
         Http::fake([
             'id.twitch.tv/oauth2/token' => Http::response(['access_token' => 'user-token', 'expires_in' => 5184000], 200),
@@ -1026,8 +1027,8 @@ class GameControllerTest extends TestCase
     public function test_saving_with_add_another_redirects_to_create_with_carried_fields(): void
     {
         $user = User::factory()->create();
-        $platform = Platform::factory()->create();
-        $edition = Edition::factory()->create();
+        $platform = Platform::factory()->for($user)->create();
+        $edition = Edition::factory()->for($user)->create();
 
         $response = $this->actingAs($user)->post('/games', [
             'title' => 'Primer juego del lote',
@@ -1433,7 +1434,7 @@ class GameControllerTest extends TestCase
         Storage::fake('public');
 
         $user = User::factory()->create();
-        $platform = Platform::factory()->create();
+        $platform = Platform::factory()->for($user)->create();
 
         $oldCover = UploadedFile::fake()->image('old.jpg')->store('covers', 'public');
         $game = Game::factory()->for($user)->create([
@@ -1466,7 +1467,7 @@ class GameControllerTest extends TestCase
         Http::fake(['es.static.webuy.com/*' => Http::response('fake-jpeg-bytes', 200, ['Content-Type' => 'image/jpeg'])]);
 
         $user = User::factory()->create();
-        $platform = Platform::factory()->create();
+        $platform = Platform::factory()->for($user)->create();
         $oldCover = UploadedFile::fake()->image('old.jpg')->store('covers', 'public');
         $game = Game::factory()->for($user)->create(['platform_id' => $platform->id, 'cover' => $oldCover]);
 

@@ -64,7 +64,7 @@ class GameAutoIdentifyControllerTest extends TestCase
         Http::fake(['search.webuy.io/*' => Http::response(['hits' => []], 200)]);
 
         $user = User::factory()->create();
-        $platform = Platform::factory()->create();
+        $platform = Platform::factory()->for($user)->create();
         Game::factory()->for($user)->create(['platform_id' => $platform->id, 'ean' => null, 'cover' => null]);
 
         $this->actingAs($user);
@@ -78,8 +78,8 @@ class GameAutoIdentifyControllerTest extends TestCase
     public function test_form_only_lists_platforms_with_games_missing_a_cover(): void
     {
         $user = User::factory()->create();
-        $withGap = Platform::factory()->create(['name' => 'Nintendo Switch']);
-        $complete = Platform::factory()->create(['name' => 'PlayStation 4']);
+        $withGap = Platform::factory()->for($user)->create(['name' => 'Nintendo Switch']);
+        $complete = Platform::factory()->for($user)->create(['name' => 'PlayStation 4']);
 
         Game::factory()->for($user)->create(['platform_id' => $withGap->id, 'cover' => null]);
         Game::factory()->for($user)->create(['platform_id' => $complete->id, 'cover' => 'covers/x.jpg']);
@@ -102,7 +102,7 @@ class GameAutoIdentifyControllerTest extends TestCase
     public function test_form_does_not_count_wishlist_games_as_pending(): void
     {
         $user = User::factory()->create();
-        $platform = Platform::factory()->create();
+        $platform = Platform::factory()->for($user)->create();
 
         Game::factory()->for($user)->create(['platform_id' => $platform->id, 'status' => 'wishlist', 'cover' => null]);
 
@@ -116,7 +116,7 @@ class GameAutoIdentifyControllerTest extends TestCase
         Http::fake(['search.webuy.io/*' => Http::response(['hits' => []], 200)]);
 
         $user = User::factory()->create();
-        $platform = Platform::factory()->create();
+        $platform = Platform::factory()->for($user)->create();
 
         Game::factory()->for($user)->create(['platform_id' => $platform->id, 'status' => 'wishlist', 'cover' => null]);
         Game::factory()->for($user)->create(['platform_id' => $platform->id, 'status' => 'owned', 'cover' => null]);
@@ -140,7 +140,7 @@ class GameAutoIdentifyControllerTest extends TestCase
         ]);
 
         $user = User::factory()->create();
-        $platform = Platform::factory()->create();
+        $platform = Platform::factory()->for($user)->create();
         $game = Game::factory()->for($user)->create([
             'platform_id' => $platform->id,
             'title' => 'Hollow Knight',
@@ -172,7 +172,7 @@ class GameAutoIdentifyControllerTest extends TestCase
         ]);
 
         $user = User::factory()->create();
-        $platform = Platform::factory()->create(['name' => 'Nintendo Switch']);
+        $platform = Platform::factory()->for($user)->create(['name' => 'Nintendo Switch']);
         $game = Game::factory()->for($user)->create([
             'platform_id' => $platform->id,
             'title' => 'Celeste',
@@ -201,7 +201,7 @@ class GameAutoIdentifyControllerTest extends TestCase
         ]);
 
         $user = User::factory()->create();
-        $platform = Platform::factory()->create();
+        $platform = Platform::factory()->for($user)->create();
         Game::factory()->for($user)->create(['platform_id' => $platform->id, 'title' => 'Ambiguous Game', 'ean' => null, 'cover' => null]);
 
         $response = $this->actingAs($user)->post('/games/auto-identify', ['platform_id' => $platform->id]);
@@ -219,7 +219,7 @@ class GameAutoIdentifyControllerTest extends TestCase
         Http::fake(['search.webuy.io/*' => Http::response(['hits' => []], 200)]);
 
         $user = User::factory()->create();
-        $platform = Platform::factory()->create();
+        $platform = Platform::factory()->for($user)->create();
         Game::factory()->for($user)->count(3)->create(['platform_id' => $platform->id, 'ean' => null, 'cover' => null]);
 
         $response = $this->actingAs($user)->post('/games/auto-identify', ['platform_id' => $platform->id]);
@@ -236,8 +236,8 @@ class GameAutoIdentifyControllerTest extends TestCase
         Http::fake(['search.webuy.io/*' => Http::response(['hits' => []], 200)]);
 
         $user = User::factory()->create();
-        $platform = Platform::factory()->create();
-        $otherPlatform = Platform::factory()->create();
+        $platform = Platform::factory()->for($user)->create();
+        $otherPlatform = Platform::factory()->for($user)->create();
 
         Game::factory()->for($user)->create(['platform_id' => $platform->id, 'cover' => 'covers/already.jpg']);
         Game::factory()->for($user)->create(['platform_id' => $otherPlatform->id, 'cover' => null]);
@@ -263,7 +263,7 @@ class GameAutoIdentifyControllerTest extends TestCase
         ]);
 
         $user = User::factory()->create();
-        $platform = Platform::factory()->create();
+        $platform = Platform::factory()->for($user)->create();
         $game = Game::factory()->for($user)->create([
             'platform_id' => $platform->id,
             'title' => 'Celeste',
@@ -306,7 +306,7 @@ class GameAutoIdentifyControllerTest extends TestCase
         ]);
 
         $user = User::factory()->create();
-        $platform = Platform::factory()->create();
+        $platform = Platform::factory()->for($user)->create();
         $game = Game::factory()->for($user)->create(['platform_id' => $platform->id, 'title' => 'Celeste', 'ean' => null, 'cover' => null]);
 
         $storeResponse = $this->actingAs($user)->post('/games/auto-identify', ['platform_id' => $platform->id]);
@@ -347,7 +347,7 @@ class GameAutoIdentifyControllerTest extends TestCase
         ]);
 
         $user = User::factory()->create();
-        $platform = Platform::factory()->create();
+        $platform = Platform::factory()->for($user)->create();
         $game = Game::factory()->for($user)->create(['platform_id' => $platform->id, 'title' => 'Celeste', 'ean' => null, 'cover' => null]);
 
         $storeResponse = $this->actingAs($user)->post('/games/auto-identify', ['platform_id' => $platform->id]);
@@ -365,7 +365,7 @@ class GameAutoIdentifyControllerTest extends TestCase
         Storage::fake('public');
 
         $owner = User::factory()->create();
-        $platform = Platform::factory()->create();
+        $platform = Platform::factory()->for($owner)->create();
         $game = Game::factory()->for($owner)->create(['platform_id' => $platform->id, 'cover' => null]);
 
         $batchId = (string) Str::uuid();
@@ -398,7 +398,7 @@ class GameAutoIdentifyControllerTest extends TestCase
         Http::fake(['search.webuy.io/*' => Http::response(['hits' => []], 200)]);
 
         $owner = User::factory()->create();
-        $platform = Platform::factory()->create();
+        $platform = Platform::factory()->for($owner)->create();
         Game::factory()->for($owner)->create(['platform_id' => $platform->id, 'cover' => null]);
 
         $response = $this->actingAs($owner)->post('/games/auto-identify', ['platform_id' => $platform->id]);
@@ -430,7 +430,7 @@ class GameAutoIdentifyControllerTest extends TestCase
         Http::fake(['search.webuy.io/*' => Http::response(['hits' => []], 200)]);
 
         $user = User::factory()->create();
-        $platform = Platform::factory()->create();
+        $platform = Platform::factory()->for($user)->create();
         Game::factory()->for($user)->create(['platform_id' => $platform->id, 'cover' => null]);
 
         for ($i = 0; $i < 5; $i++) {

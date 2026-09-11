@@ -117,7 +117,7 @@ class GameImportControllerTest extends TestCase
     public function test_import_reuses_an_existing_platform_instead_of_duplicating_it(): void
     {
         $user = User::factory()->create();
-        $platform = Platform::factory()->create(['name' => 'Nintendo Switch']);
+        $platform = Platform::factory()->for($user)->create(['name' => 'Nintendo Switch']);
 
         $csv = "Título,Plataforma\r\nHollow Knight,nintendo switch\r\n";
 
@@ -126,6 +126,27 @@ class GameImportControllerTest extends TestCase
 
         $this->assertDatabaseHas('games', ['title' => 'Hollow Knight', 'platform_id' => $platform->id]);
         $this->assertSame(1, Platform::where('name', 'Nintendo Switch')->count());
+    }
+
+    /**
+     * Catálogo por cuenta (issue #175): una plataforma con el mismo nombre en
+     * otra cuenta no debe reutilizarse — el import tiene que crear (y
+     * quedarse con) su propia copia, no la ajena.
+     */
+    public function test_import_does_not_reuse_another_users_platform_with_the_same_name(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $othersPlatform = Platform::factory()->for($otherUser)->create(['name' => 'Nintendo Switch']);
+
+        $csv = "Título,Plataforma\r\nHollow Knight,nintendo switch\r\n";
+
+        $response = $this->actingAs($user)->post('/games/import', ['file' => $this->csvFile($csv)]);
+        $this->importStatus($response)->assertJsonPath('createdPlatforms', 1);
+
+        $ownPlatform = Platform::where('user_id', $user->id)->where('name', 'nintendo switch')->firstOrFail();
+        $this->assertNotSame($othersPlatform->id, $ownPlatform->id);
+        $this->assertDatabaseHas('games', ['title' => 'Hollow Knight', 'platform_id' => $ownPlatform->id]);
     }
 
     /**
@@ -205,8 +226,8 @@ class GameImportControllerTest extends TestCase
         // reusar ese nombre aquí dejaría dos ediciones válidas en disco
         // entre las que elegir, sin que la aserción sepa cuál de las dos
         // esperar.
-        $cartridge = Edition::factory()->create(['name' => 'Edición Ambigua', 'format' => Edition::FORMAT_PHYSICAL_CARTRIDGE]);
-        $disc = Edition::factory()->create(['name' => 'Edición Ambigua', 'format' => Edition::FORMAT_PHYSICAL_DISC]);
+        $cartridge = Edition::factory()->for($user)->create(['name' => 'Edición Ambigua', 'format' => Edition::FORMAT_PHYSICAL_CARTRIDGE]);
+        $disc = Edition::factory()->for($user)->create(['name' => 'Edición Ambigua', 'format' => Edition::FORMAT_PHYSICAL_DISC]);
 
         $csv = "Título,Plataforma,Edición\r\nHalo 3,Xbox 360,Edición Ambigua\r\n";
 

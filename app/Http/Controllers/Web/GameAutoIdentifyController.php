@@ -43,7 +43,8 @@ class GameAutoIdentifyController extends Controller
             ->groupBy('platform_id')
             ->pluck('count', 'platform_id');
 
-        $platforms = Platform::whereIn('id', $pendingCounts->keys())
+        $platforms = Platform::where('user_id', auth()->id())
+            ->whereIn('id', $pendingCounts->keys())
             ->orderBy('name')
             ->get()
             ->map(fn (Platform $platform) => ['platform' => $platform, 'count' => $pendingCounts[$platform->id]]);
@@ -61,7 +62,8 @@ class GameAutoIdentifyController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'platform_id' => ['required', Rule::exists('platforms', 'id')],
+            // ->where(...): catálogo por cuenta (issue #175).
+            'platform_id' => ['required', Rule::exists('platforms', 'id')->where('user_id', auth()->id())],
         ]);
 
         $batchId = (string) Str::uuid();

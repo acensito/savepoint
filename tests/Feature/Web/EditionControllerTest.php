@@ -6,9 +6,14 @@ use App\Models\Edition;
 use App\Models\Game;
 use App\Models\Platform;
 use App\Models\User;
+use App\Services\Catalog\SeedCatalogCopier;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
+/**
+ * Catálogo por cuenta (issue #175): cada usuario gestiona sus propias
+ * ediciones, sin dato compartido con el resto — ver EditionPolicy.
+ */
 class EditionControllerTest extends TestCase
 {
     use RefreshDatabase;
@@ -20,11 +25,14 @@ class EditionControllerTest extends TestCase
 
     public function test_the_normal_edition_exists_and_is_available_for_any_platform(): void
     {
-        // Poblada por la migración 2026_08_14_190156_seed_normal_edition, no
-        // por un seeder (ver su docblock: los seeders no corren siempre en
-        // producción). Sin filas en edition_platform = disponible para
-        // cualquier plataforma, incluidas las que se den de alta después.
-        $edition = Edition::where('name', 'Normal')->firstOrFail();
+        // SeedCatalogCopier crea una "Normal" por cuenta al darse de alta
+        // (issue #175) — ya no es una fila global sembrada por migración.
+        // Sin filas en edition_platform = disponible para cualquier
+        // plataforma, incluidas las que se den de alta después.
+        $user = User::factory()->create();
+        app(SeedCatalogCopier::class)->copyTo($user);
+
+        $edition = Edition::where('user_id', $user->id)->where('name', 'Normal')->firstOrFail();
 
         $this->assertCount(0, $edition->platforms);
     }
@@ -32,8 +40,8 @@ class EditionControllerTest extends TestCase
     public function test_index_lists_editions_with_their_platforms_and_game_count(): void
     {
         $user = User::factory()->create();
-        $platform = Platform::factory()->create(['name' => 'Switch']);
-        $edition = Edition::factory()->create(['name' => 'Coleccionista']);
+        $platform = Platform::factory()->for($user)->create(['name' => 'Switch']);
+        $edition = Edition::factory()->for($user)->create(['name' => 'Coleccionista']);
         $edition->platforms()->attach($platform);
         Game::factory()->for($user)->create(['edition_id' => $edition->id]);
 
@@ -42,6 +50,17 @@ class EditionControllerTest extends TestCase
         $response->assertOk();
         $response->assertSee('Coleccionista');
         $response->assertSee('Switch');
+    }
+
+    public function test_index_does_not_list_another_users_editions(): void
+    {
+        $user = User::factory()->create();
+        Edition::factory()->create(['name' => 'Ajena']);
+
+        $response = $this->actingAs($user)->get('/editions');
+
+        $response->assertOk();
+        $response->assertDontSee('Ajena');
     }
 
     /**
@@ -62,15 +81,23 @@ class EditionControllerTest extends TestCase
     public function test_edit_form_can_be_rendered(): void
     {
         $user = User::factory()->create();
-        $edition = Edition::factory()->create();
+        $edition = Edition::factory()->for($user)->create();
 
         $this->actingAs($user)->get("/editions/{$edition->id}/edit")->assertOk();
+    }
+
+    public function test_user_cannot_view_the_edit_form_of_another_users_edition(): void
+    {
+        $user = User::factory()->create();
+        $edition = Edition::factory()->create();
+
+        $this->actingAs($user)->get("/editions/{$edition->id}/edit")->assertForbidden();
     }
 
     public function test_user_can_create_an_edition_with_platforms(): void
     {
         $user = User::factory()->create();
-        $platform = Platform::factory()->create();
+        $platform = Platform::factory()->for($user)->create();
 
         $response = $this->actingAs($user)->post('/editions', [
             'name' => 'Edición especial',
@@ -80,7 +107,23 @@ class EditionControllerTest extends TestCase
         $response->assertRedirect(route('web.editions.index'));
 
         $edition = Edition::where('name', 'Edición especial')->firstOrFail();
+        $this->assertSame($user->id, $edition->user_id);
         $this->assertTrue($edition->platforms->contains($platform));
+    }
+
+    /**
+     * Issue #175: una cuenta no puede enganchar su edición a la plataforma
+     * de otra.
+     */
+    public function test_creating_an_edition_rejects_another_users_platform(): void
+    {
+        $user = User::factory()->create();
+        $othersPlatform = Platform::factory()->create();
+
+        $this->actingAs($user)->post('/editions', [
+            'name' => 'Edición especial',
+            'platform_ids' => [$othersPlatform->id],
+        ])->assertSessionHasErrors('platform_ids.0');
     }
 
     public function test_creating_an_edition_without_a_format_defaults_to_physical_disc(): void
@@ -144,7 +187,7 @@ class EditionControllerTest extends TestCase
     public function test_user_can_update_an_editions_format(): void
     {
         $user = User::factory()->create();
-        $edition = Edition::factory()->create(['format' => Edition::FORMAT_PHYSICAL_DISC]);
+        $edition = Edition::factory()->for($user)->create(['format' => Edition::FORMAT_PHYSICAL_DISC]);
 
         $response = $this->actingAs($user)->put("/editions/{$edition->id}", [
             'name' => $edition->name,
@@ -153,6 +196,17 @@ class EditionControllerTest extends TestCase
 
         $response->assertRedirect(route('web.editions.index'));
         $this->assertSame(Edition::FORMAT_CIAB, $edition->fresh()->format);
+    }
+
+    public function test_user_cannot_update_another_users_edition(): void
+    {
+        $user = User::factory()->create();
+        $edition = Edition::factory()->create(['name' => 'Ajena']);
+
+        $this->actingAs($user)->put("/editions/{$edition->id}", ['name' => 'Hijacked'])
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('editions', ['id' => $edition->id, 'name' => 'Ajena']);
     }
 
     public function test_creating_an_edition_via_ajax_returns_json(): void
@@ -170,7 +224,7 @@ class EditionControllerTest extends TestCase
         // nombre pero distinto formato, igual que las que ya vienen del
         // servidor (#142).
         $response->assertJsonPath('formatLabel', Edition::FORMATS[Edition::FORMAT_PHYSICAL_DISC]['label']);
-        $this->assertDatabaseHas('editions', ['name' => 'Edición al vuelo']);
+        $this->assertDatabaseHas('editions', ['user_id' => $user->id, 'name' => 'Edición al vuelo']);
     }
 
     public function test_creating_an_edition_requires_a_name(): void
@@ -184,10 +238,10 @@ class EditionControllerTest extends TestCase
     public function test_user_can_update_an_editions_platforms(): void
     {
         $user = User::factory()->create();
-        $edition = Edition::factory()->create();
-        $oldPlatform = Platform::factory()->create();
+        $edition = Edition::factory()->for($user)->create();
+        $oldPlatform = Platform::factory()->for($user)->create();
         $edition->platforms()->attach($oldPlatform);
-        $newPlatform = Platform::factory()->create();
+        $newPlatform = Platform::factory()->for($user)->create();
 
         $response = $this->actingAs($user)->put("/editions/{$edition->id}", [
             'name' => $edition->name,
@@ -204,7 +258,7 @@ class EditionControllerTest extends TestCase
     public function test_deleting_an_edition_nullifies_its_games(): void
     {
         $user = User::factory()->create();
-        $edition = Edition::factory()->create();
+        $edition = Edition::factory()->for($user)->create();
         $game = Game::factory()->for($user)->create(['edition_id' => $edition->id]);
 
         $this->actingAs($user)->delete("/editions/{$edition->id}")
@@ -212,5 +266,15 @@ class EditionControllerTest extends TestCase
 
         $this->assertDatabaseMissing('editions', ['id' => $edition->id]);
         $this->assertDatabaseHas('games', ['id' => $game->id, 'edition_id' => null]);
+    }
+
+    public function test_user_cannot_delete_another_users_edition(): void
+    {
+        $user = User::factory()->create();
+        $edition = Edition::factory()->create();
+
+        $this->actingAs($user)->delete("/editions/{$edition->id}")->assertForbidden();
+
+        $this->assertDatabaseHas('editions', ['id' => $edition->id]);
     }
 }

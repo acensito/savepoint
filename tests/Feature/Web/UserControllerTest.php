@@ -4,6 +4,7 @@ namespace Tests\Feature\Web;
 
 use App\Models\AppSetting;
 use App\Models\Game;
+use App\Models\Platform;
 use App\Models\TwoFactorTrustedDevice;
 use App\Models\User;
 use App\Services\Users\AbandonedAccountPruner;
@@ -159,6 +160,10 @@ class UserControllerTest extends TestCase
         $this->assertSame('Nuevo Usuario', $created->name);
         $this->assertTrue($created->is_admin);
         $this->assertTrue(Hash::check('Password123!', $created->password));
+
+        // Issue #175: la cuenta nueva no arranca en blanco, con una copia
+        // del catálogo base (ver SeedCatalogCopier).
+        $this->assertTrue(Platform::where('user_id', $created->id)->where('slug', 'nintendo-switch')->exists());
     }
 
     public function test_creating_a_user_requires_a_unique_email_and_a_confirmed_password(): void

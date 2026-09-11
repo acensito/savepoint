@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Manufacturer;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -16,6 +17,7 @@ class ManufacturerFactory extends Factory
         $name = fake()->unique()->company();
 
         return [
+            'user_id' => User::factory(),
             'name' => $name,
             'slug' => Str::slug($name).'-'.fake()->unique()->randomNumber(5),
         ];

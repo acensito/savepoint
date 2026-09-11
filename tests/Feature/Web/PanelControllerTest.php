@@ -150,8 +150,8 @@ class PanelControllerTest extends TestCase
 
     public function test_user_can_update_collection_and_new_game_defaults(): void
     {
-        $edition = Edition::factory()->create(['name' => 'Coleccionista']);
         $user = User::factory()->create();
+        $edition = Edition::factory()->for($user)->create(['name' => 'Coleccionista']);
 
         $response = $this->actingAs($user)->put('/panel/settings', [
             'default_sort' => 'title',
@@ -546,7 +546,7 @@ class PanelControllerTest extends TestCase
     public function test_user_can_clear_all_their_games_of_a_platform_with_the_exact_name(): void
     {
         $user = User::factory()->create();
-        $platform = Platform::factory()->create(['name' => 'Nintendo Switch']);
+        $platform = Platform::factory()->for($user)->create(['name' => 'Nintendo Switch']);
         $game = Game::factory()->for($user)->create(['platform_id' => $platform->id]);
 
         $response = $this->actingAs($user)->delete('/panel/platforms/games', [
@@ -582,7 +582,7 @@ class PanelControllerTest extends TestCase
     public function test_clearing_a_platform_rejects_a_confirmation_that_does_not_match_the_name(): void
     {
         $user = User::factory()->create();
-        $platform = Platform::factory()->create(['name' => 'Nintendo Switch']);
+        $platform = Platform::factory()->for($user)->create(['name' => 'Nintendo Switch']);
         $game = Game::factory()->for($user)->create(['platform_id' => $platform->id]);
 
         $response = $this->actingAs($user)->delete('/panel/platforms/games', [
@@ -610,9 +610,10 @@ class PanelControllerTest extends TestCase
     {
         $user = User::factory()->create();
         $otherUser = User::factory()->create();
-        $platform = Platform::factory()->create(['name' => 'Nintendo Switch']);
+        $platform = Platform::factory()->for($user)->create(['name' => 'Nintendo Switch']);
+        $otherPlatform = Platform::factory()->for($otherUser)->create(['name' => 'Nintendo Switch']);
         Game::factory()->for($user)->create(['platform_id' => $platform->id]);
-        $otherGame = Game::factory()->for($otherUser)->create(['platform_id' => $platform->id]);
+        $otherGame = Game::factory()->for($otherUser)->create(['platform_id' => $otherPlatform->id]);
 
         $this->actingAs($user)->delete('/panel/platforms/games', [
             'platform_id' => $platform->id,
@@ -639,9 +640,10 @@ class PanelControllerTest extends TestCase
     {
         $user = User::factory()->create();
         $otherUser = User::factory()->create();
-        $platform = Platform::factory()->create(['name' => 'Nintendo Switch']);
+        $platform = Platform::factory()->for($user)->create(['name' => 'Nintendo Switch']);
+        $otherPlatform = Platform::factory()->for($otherUser)->create(['name' => 'Nintendo Switch']);
         Game::factory()->for($user)->create(['platform_id' => $platform->id]);
-        Game::factory()->for($otherUser)->create(['platform_id' => $platform->id]);
+        Game::factory()->for($otherUser)->create(['platform_id' => $otherPlatform->id]);
 
         $response = $this->actingAs($user)->get('/panel/danger-zone');
 

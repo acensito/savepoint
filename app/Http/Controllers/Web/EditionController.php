@@ -8,20 +8,26 @@ use App\Models\Platform;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
+/**
+ * Catálogo por cuenta (issue #175): cada usuario gestiona sus propias
+ * ediciones, sin dato compartido con el resto.
+ */
 class EditionController extends Controller
 {
     public function index(): View
     {
-        $editions = Edition::with('platforms')->withCount('games')->orderBy('name')->get();
+        $editions = Edition::where('user_id', auth()->id())->with('platforms')->withCount('games')->orderBy('name')->get();
 
         return view('editions.index', compact('editions'));
     }
 
     public function create(): View
     {
-        $platforms = Platform::orderBy('name')->get();
+        $platforms = Platform::where('user_id', auth()->id())->orderBy('name')->get();
 
         return view('editions.create', compact('platforms'));
     }
@@ -31,6 +37,7 @@ class EditionController extends Controller
         $validated = $this->validated($request);
 
         $edition = Edition::create([
+            'user_id' => auth()->id(),
             'name' => $validated['name'],
             'format' => $validated['format'] ?? Edition::FORMAT_PHYSICAL_DISC,
         ]);
@@ -53,7 +60,9 @@ class EditionController extends Controller
 
     public function edit(Edition $edition): View
     {
-        $platforms = Platform::orderBy('name')->get();
+        Gate::authorize('update', $edition);
+
+        $platforms = Platform::where('user_id', auth()->id())->orderBy('name')->get();
         $edition->load('platforms');
 
         return view('editions.edit', compact('edition', 'platforms'));
@@ -61,6 +70,8 @@ class EditionController extends Controller
 
     public function update(Request $request, Edition $edition): RedirectResponse
     {
+        Gate::authorize('update', $edition);
+
         $validated = $this->validated($request);
 
         $edition->update([
@@ -74,6 +85,8 @@ class EditionController extends Controller
 
     public function destroy(Edition $edition): RedirectResponse
     {
+        Gate::authorize('delete', $edition);
+
         // Los juegos con esta edición no se borran: edition_id pasa a null (ver migración de games).
         $edition->delete();
 
@@ -89,7 +102,10 @@ class EditionController extends Controller
             'name' => 'required|string|max:255',
             'format' => 'nullable|string|in:'.implode(',', array_keys(Edition::FORMATS)),
             'platform_ids' => 'nullable|array',
-            'platform_ids.*' => 'exists:platforms,id',
+            // Rule::exists(...)->where(...), no 'exists:platforms,id' a
+            // secas: sin esto, una cuenta podría enganchar su edición a la
+            // plataforma de otra (issue #175).
+            'platform_ids.*' => Rule::exists('platforms', 'id')->where('user_id', auth()->id()),
         ]);
     }
 }

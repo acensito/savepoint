@@ -71,7 +71,15 @@ class AppServiceProvider extends ServiceProvider
         // colección: de ahí un composer en vez de pasarlo controlador a
         // controlador.
         View::composer('layouts.app', function ($view) {
-            $view->with('quickSearchPlatforms', Platform::orderBy('name')->get(['id', 'name']));
+            // auth()->check(): este layout es el único que usa toda página
+            // autenticada, pero el composer en sí no distingue — sin la
+            // comprobación, un invitado (si esta vista se llegara a
+            // renderizar para uno) dispararía la consulta con user_id nulo
+            // en vano. Catálogo por cuenta (issue #175): antes era el mismo
+            // Platform::orderBy('name')->get() para todo el mundo.
+            $view->with('quickSearchPlatforms', auth()->check()
+                ? Platform::where('user_id', auth()->id())->orderBy('name')->get(['id', 'name'])
+                : collect());
         });
 
         Game::observe(GameObserver::class);

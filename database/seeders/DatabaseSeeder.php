@@ -3,13 +3,12 @@
 namespace Database\Seeders;
 
 use App\Models\Game;
-use App\Models\Manufacturer;
 use App\Models\Platform;
 use App\Models\User;
+use App\Services\Catalog\SeedCatalogCopier;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 class DatabaseSeeder extends Seeder
 {
@@ -18,7 +17,15 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $user = $this->seedUsers();
-        $this->seedCatalog();
+
+        // Catálogo por cuenta (issue #175): el admin de desarrollo pasa por
+        // el mismo camino que un alta real (ver SeedCatalogCopier), en vez
+        // de un catálogo global sembrado una sola vez y compartido por
+        // todos.
+        if ($user !== null) {
+            app(SeedCatalogCopier::class)->copyTo($user);
+        }
+
         $this->seedGames($user);
     }
 
@@ -52,52 +59,6 @@ class DatabaseSeeder extends Seeder
     }
 
     /**
-     * Catálogo base: fabricantes y sus plataformas.
-     */
-    private function seedCatalog(): void
-    {
-        $catalog = [
-            'Nintendo' => [
-                'NES', 'SNES', 'Nintendo 64', 'GameCube', 'Wii', 'Wii U',
-                'Nintendo Switch', 'Game Boy', 'Game Boy Advance', 'Nintendo DS', 'Nintendo 3DS',
-            ],
-            'Sony' => [
-                'PlayStation', 'PlayStation 2', 'PlayStation 3', 'PlayStation 4',
-                'PlayStation 5', 'PSP', 'PS Vita',
-            ],
-            'Microsoft' => [
-                'Xbox', 'Xbox 360', 'Xbox One', 'Xbox Series X|S',
-            ],
-            'Sega' => [
-                'Master System', 'Mega Drive', 'Saturn', 'Dreamcast', 'Game Gear',
-            ],
-        ];
-
-        foreach ($catalog as $manufacturerName => $platforms) {
-            $manufacturer = Manufacturer::updateOrCreate(
-                ['slug' => Str::slug($manufacturerName)],
-                ['name' => $manufacturerName]
-            );
-
-            foreach ($platforms as $platformName) {
-                Platform::updateOrCreate(
-                    ['slug' => Str::slug($platformName)],
-                    [
-                        'name' => $platformName,
-                        'manufacturer_id' => $manufacturer->id,
-                    ]
-                );
-            }
-        }
-
-        // PC no tiene fabricante: la columna manufacturer_id es nullable.
-        Platform::updateOrCreate(
-            ['slug' => 'pc'],
-            ['name' => 'PC', 'manufacturer_id' => null]
-        );
-    }
-
-    /**
      * Juegos de prueba en la colección de Admin.
      */
     private function seedGames(?User $user): void
@@ -106,7 +67,7 @@ class DatabaseSeeder extends Seeder
             return;
         }
 
-        $switch = Platform::where('slug', 'nintendo-switch')->firstOrFail();
+        $switch = Platform::where('user_id', $user->id)->where('slug', 'nintendo-switch')->firstOrFail();
 
         $games = [
             [

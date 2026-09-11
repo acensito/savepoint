@@ -86,13 +86,15 @@ class PanelController extends Controller
 
     /**
      * Zona de peligro (#144): elegir plataforma o vaciar la colección
-     * entera. Recuento por usuario, no por instancia: Platform::games() no
-     * filtra por dueño (es un catálogo compartido, ver Platform), así que un
-     * withCount() sin más contaría los juegos de cualquier cuenta.
+     * entera. Catálogo por cuenta desde #175 (antes compartido: el
+     * withCount() de más abajo ya tenía que filtrar el recuento de juegos
+     * por dueño para no contar los de cualquier cuenta; ahora, además, la
+     * propia lista de plataformas también se acota a las del usuario).
      */
     public function dangerZone(): View
     {
-        $platforms = Platform::withCount(['games' => fn ($q) => $q->where('user_id', auth()->id())])
+        $platforms = Platform::where('user_id', auth()->id())
+            ->withCount('games')
             ->orderBy('name')
             ->get();
 
@@ -123,7 +125,11 @@ class PanelController extends Controller
         ]);
 
         $isNoPlatform = (string) $validated['platform_id'] === self::NO_PLATFORM_VALUE;
-        $platform = $isNoPlatform ? null : Platform::find($validated['platform_id']);
+        // where('user_id', ...), no Platform::find() a secas: catálogo por
+        // cuenta (issue #175) — sin esto, un platform_id manipulado dejaba
+        // ver (y usar en el mensaje de confirmación) el nombre de una
+        // plataforma de otra cuenta.
+        $platform = $isNoPlatform ? null : Platform::where('user_id', auth()->id())->find($validated['platform_id']);
 
         if (! $isNoPlatform && ! $platform) {
             return back()->withInput()->withErrors(['platform_id' => 'Esa plataforma ya no existe.']);
@@ -189,7 +195,7 @@ class PanelController extends Controller
      */
     public function settings(): View
     {
-        $editions = Edition::orderBy('name')->get();
+        $editions = Edition::where('user_id', auth()->id())->orderBy('name')->get();
 
         // Auditoría de seguridad del 2026-09-10: antes no había ninguna
         // forma de ver (ni revocar a mano) los dispositivos que se
@@ -233,7 +239,9 @@ class PanelController extends Controller
             'default_dir' => 'nullable|in:asc,desc',
             'default_per_page' => ['nullable', Rule::in(GameController::PER_PAGE_OPTIONS)],
             'default_region' => ['nullable', Rule::in(GameController::REGION_PRESETS)],
-            'default_edition_id' => 'nullable|exists:editions,id',
+            // Rule::exists(...)->where(...), no 'exists:editions,id' a
+            // secas: catálogo por cuenta (issue #175).
+            'default_edition_id' => ['nullable', Rule::exists('editions', 'id')->where('user_id', auth()->id())],
             'navbar_color' => ['nullable', Rule::in(array_keys(self::NAVBAR_COLORS))],
             'theme' => ['nullable', Rule::in(User::THEMES)],
             'igdb_client_id' => 'nullable|string|max:255',

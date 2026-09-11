@@ -63,7 +63,7 @@ class CommissionControllerTest extends TestCase
     public function test_user_can_create_a_commission(): void
     {
         $user = User::factory()->create();
-        $platform = Platform::factory()->create();
+        $platform = Platform::factory()->for($user)->create();
 
         $response = $this->actingAs($user)->post('/commissions', [
             'title' => 'Celeste',
